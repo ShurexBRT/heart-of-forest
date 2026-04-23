@@ -1,79 +1,59 @@
-<<<<<<< HEAD
-# Heart of Forest Prototype
+# Heart of Forest
 
-A small playable top-down action RPG prototype built with plain HTML5 Canvas, CSS, and vanilla JavaScript.
-
-## How to run
-Just extract the ZIP and open `index.html` in your browser.
+A small, polished HTML5 Canvas gameplay prototype for a 2D top-down action RPG. This is intentionally a single-room combat feel demo, not a full game.
 
 ## Controls
-- **WASD** = move
-- **Mouse** = aim
-- **Left Click** = Staff Strike
-- **Right Click** = Spirit Bolt
-- **Space** = Quick Dash
-- **1** = Root Snare
-- **R** = Restart
 
-## Implemented features
-- Smooth 8-direction movement with acceleration/deceleration
-- Collision with forest obstacles and room bounds
-- Staff Strike melee hit with feedback
-- Spirit Bolt projectile
-- Quick Dash with invulnerability window
-- Root Snare area control
-- Two enemy types with readable behavior
-- Minimal UI for HP, Spirit, cooldowns
-- Area-cleared and game-over states
-- Particles, hit feedback, and light screenshake
+- WASD: move
+- Mouse: aim
+- Left click: Staff Strike
+- Right click: Spirit Bolt
+- Space: Quick Dash
+- 1: Root Snare
+- R: restart after victory or defeat
 
-## Short explanation of architecture
-The prototype is intentionally lightweight and uses a single JavaScript file for easy local execution.
-Inside that file, the logic is separated by responsibility:
-- input handling
-- player state and abilities
-- enemy AI
-- projectile and root ability handling
-- collision
-- rendering
-- UI
-- game loop and state reset
+## Implemented Features
 
-This keeps the prototype simple to run now, while still being easy to split into modules later.
+- Smooth 8-direction movement with acceleration, deceleration, dash burst, and obstacle collision
+- Ayla, a readable white-hood forest guardian placeholder character
+- Staff Strike melee arc with hit flash, stun, knockback, particles, and light screen shake
+- Spirit Bolt projectile with travel, spirit cost, cooldown, obstacle collision, and impact feedback
+- Quick Dash with a short invulnerability window and afterimage feedback
+- Root Snare short-range nature skill with visible vines and enemy root effect
+- One forest clearing arena with textured grass, solid trees, rocks, and readable room bounds
+- Two enemy types: basic corrupted creatures and a slower tankier brute
+- Enemy AI states for idle, wander, chase, attack windup, and recover
+- Minimal HUD with HP, Spirit, ability cooldowns, cleared state, game over state, and restart
 
-## Next logical improvements
-1. Split `game.js` into modules (`player`, `enemies`, `combat`, `world`, `ui`, `loop`)
-2. Improve enemy attack tells and behavior variety
-3. Add proper sprite art instead of canvas placeholders
-4. Add sound effects and music
-5. Add better arena composition and level transitions
-6. Tune balance for ability costs, damage, and enemy pressure
+## How To Run Locally
 
-## 3 biggest weaknesses of the prototype
-1. Visuals are still placeholder-style despite being polished enough to read clearly
-2. Enemy AI is readable but still fairly simple and predictable
-3. Everything is in one JS file for reliability, not ideal long-term architecture
-=======
-Heart of Forest Prototype
+Because the prototype uses ES modules, run it from a tiny local web server:
 
-Controls
-- WASD – movement
-- Mouse – aim
-- Left Click – melee attack
+```bash
+python -m http.server 4174
+```
 
-Features
-- Smooth movement with acceleration
-- Basic melee combat
-- Enemy AI (chase behavior)
-- Knockback + hit detection
+Then open:
 
-Run
-Just open index.html in browser.
+```text
+http://localhost:4174/
+```
 
-Structure
-- core – engine logic
-- entities – player/enemy
-- systems – combat/collision (future)
-- world – map (future)
-- ui – interface (future)
->>>>>>> cf1d00d54c05bf8d23d36f94b2cf9009025d3f17
+## Code Structure
+
+- `main.js`: game state, reset flow, camera, resize handling, update/render wiring
+- `core/input.js`: keyboard and mouse input
+- `core/gameLoop.js`: fixed browser animation loop wrapper
+- `core/math.js`: shared math helpers
+- `entities/player.js`: Ayla movement, stats, cooldowns, dash state
+- `entities/enemy.js`: enemy stats and AI states
+- `systems/combat.js`: abilities, projectiles, root snare, damage, knockback, enemy spacing
+- `systems/collision.js`: circle vs obstacle and boundary collision
+- `systems/particles.js`: simple particle bursts and updates
+- `world/arena.js`: arena dimensions, spawn points, trees, and rocks
+- `rendering/renderer.js`: Canvas world rendering and visual effects
+- `ui/hud.js`: HP, Spirit, cooldowns, and end-state messages
+
+## Scope Notes
+
+The prototype deliberately avoids quests, inventory, saves, dialogue, shops, networking, and content pipelines. The focus is moment-to-moment movement, combat readability, and code that can later be ported to a game engine such as Godot.

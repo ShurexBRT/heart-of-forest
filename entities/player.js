@@ -1,53 +1,95 @@
-import { input } from "../core/input.js";
+import { angleTo } from "../core/math.js";
+import { getMovementVector } from "../core/input.js";
+import { moveCircleWithCollisions } from "../systems/collision.js";
+
+export const PLAYER_ABILITY_INFO = {
+  staff: { label: "Staff Strike", key: "LMB", cooldown: 0.28, cost: 0 },
+  bolt: { label: "Spirit Bolt", key: "RMB", cooldown: 0.42, cost: 14 },
+  dash: { label: "Quick Dash", key: "Space", cooldown: 1.05, cost: 0 },
+  root: { label: "Root Snare", key: "1", cooldown: 2.6, cost: 24 },
+};
 
 export class Player {
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-    this.velX = 0;
-    this.velY = 0;
-    this.speed = 0.4;
-    this.friction = 0.85;
-    this.hp = 100;
-    this.radius = 15;
+  constructor(spawn) {
+    this.radius = 16;
+    this.maxHp = 100;
+    this.maxSpirit = 100;
+    this.maxSpeed = 238;
+    this.spiritRegen = 12;
+    this.reset(spawn);
   }
 
-  update(state) {
-    let ax = 0;
-    let ay = 0;
+  reset(spawn) {
+    this.x = spawn.x;
+    this.y = spawn.y;
+    this.vx = 0;
+    this.vy = 0;
+    this.hp = this.maxHp;
+    this.spirit = this.maxSpirit;
+    this.aimAngle = 0;
+    this.invulnerable = 0;
+    this.hurtFlash = 0;
+    this.dashTime = 0;
+    this.lastTrailAt = -1;
+    this.cooldowns = {
+      staff: 0,
+      bolt: 0,
+      dash: 0,
+      root: 0,
+    };
+  }
 
-    if (input.keys["w"]) ay -= 1;
-    if (input.keys["s"]) ay += 1;
-    if (input.keys["a"]) ax -= 1;
-    if (input.keys["d"]) ax += 1;
+  tick(dt) {
+    this.spirit = Math.min(this.maxSpirit, this.spirit + this.spiritRegen * dt);
+    this.invulnerable = Math.max(0, this.invulnerable - dt);
+    this.hurtFlash = Math.max(0, this.hurtFlash - dt);
+    this.dashTime = Math.max(0, this.dashTime - dt);
 
-    this.velX += ax * this.speed;
-    this.velY += ay * this.speed;
-
-    this.velX *= this.friction;
-    this.velY *= this.friction;
-
-    this.x += this.velX;
-    this.y += this.velY;
-
-    if (input.mouse.left) {
-      state.enemies.forEach(e => {
-        const dx = e.x - this.x;
-        const dy = e.y - this.y;
-        const dist = Math.hypot(dx, dy);
-
-        if (dist < 50) {
-          e.takeDamage(10);
-          e.knockback(dx, dy);
-        }
-      });
+    for (const key of Object.keys(this.cooldowns)) {
+      this.cooldowns[key] = Math.max(0, this.cooldowns[key] - dt);
     }
   }
 
-  draw(ctx) {
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-    ctx.fill();
+  move(dt, input, state) {
+    this.aimAngle = angleTo(this.x, this.y, state.mouseWorld.x, state.mouseWorld.y);
+
+    if (this.dashTime > 0) {
+      this.vx *= Math.max(0, 1 - 4.2 * dt);
+      this.vy *= Math.max(0, 1 - 4.2 * dt);
+
+      if (state.time - this.lastTrailAt > 0.028) {
+        this.lastTrailAt = state.time;
+        state.afterImages.push({
+          x: this.x,
+          y: this.y,
+          angle: this.aimAngle,
+          life: 0.18,
+          maxLife: 0.18,
+        });
+      }
+    } else {
+      const movement = getMovementVector(input);
+      const desiredX = movement.x * this.maxSpeed;
+      const desiredY = movement.y * this.maxSpeed;
+      const response = movement.x !== 0 || movement.y !== 0 ? 18 : 16;
+      const blend = Math.min(1, response * dt);
+
+      this.vx += (desiredX - this.vx) * blend;
+      this.vy += (desiredY - this.vy) * blend;
+    }
+
+    moveCircleWithCollisions(this, this.vx * dt, this.vy * dt, state.arena);
+  }
+
+  canSpend(amount) {
+    return this.spirit >= amount;
+  }
+
+  spendSpirit(amount) {
+    this.spirit = Math.max(0, this.spirit - amount);
+  }
+
+  isInvulnerable() {
+    return this.invulnerable > 0 || this.dashTime > 0;
   }
 }

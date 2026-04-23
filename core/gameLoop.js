@@ -1,23 +1,16 @@
-export function startGameLoop(ctx, gameState) {
-  function loop() {
-    update(gameState);
-    render(ctx, gameState);
-    requestAnimationFrame(loop);
+export function startGameLoop({ update, render, input }) {
+  let last = performance.now();
+
+  function frame(now) {
+    const dt = Math.min(0.033, Math.max(0, (now - last) / 1000));
+    last = now;
+
+    update(dt);
+    render();
+    input.endFrame();
+
+    requestAnimationFrame(frame);
   }
-  loop();
-}
 
-function update(state) {
-  state.player.update(state);
-  state.enemies.forEach(e => e.update(state));
-}
-
-function render(ctx, state) {
-  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
-  ctx.fillStyle = "#1f3a2d";
-  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
-  state.player.draw(ctx);
-  state.enemies.forEach(e => e.draw(ctx));
+  requestAnimationFrame(frame);
 }
