@@ -1,8 +1,14 @@
-body {
+html, body {
   margin: 0;
+  padding: 0;
   overflow: hidden;
-  background: #0f1a14;
+  background: #0b120d;
+  font-family: Arial, Helvetica, sans-serif;
 }
+
 canvas {
   display: block;
+  width: 100vw;
+  height: 100vh;
+  cursor: crosshair;
 }
