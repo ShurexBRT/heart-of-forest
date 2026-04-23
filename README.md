@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Heart of Forest Prototype
 
 A small playable top-down action RPG prototype built with plain HTML5 Canvas, CSS, and vanilla JavaScript.
@@ -52,3 +53,27 @@ This keeps the prototype simple to run now, while still being easy to split into
 1. Visuals are still placeholder-style despite being polished enough to read clearly
 2. Enemy AI is readable but still fairly simple and predictable
 3. Everything is in one JS file for reliability, not ideal long-term architecture
+=======
+Heart of Forest Prototype
+
+Controls
+- WASD – movement
+- Mouse – aim
+- Left Click – melee attack
+
+Features
+- Smooth movement with acceleration
+- Basic melee combat
+- Enemy AI (chase behavior)
+- Knockback + hit detection
+
+Run
+Just open index.html in browser.
+
+Structure
+- core – engine logic
+- entities – player/enemy
+- systems – combat/collision (future)
+- world – map (future)
+- ui – interface (future)
+>>>>>>> cf1d00d54c05bf8d23d36f94b2cf9009025d3f17
