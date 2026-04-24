@@ -30,6 +30,7 @@ export function renderGame(ctx, state) {
   drawBackground(ctx, arena);
   drawEncounterGround(ctx, state);
   drawGroundEffects(ctx, state);
+  drawExitMarkers(ctx, state);
   drawProjectiles(ctx, state);
   drawSortedWorld(ctx, state);
   drawHostileProjectiles(ctx, state);
@@ -42,6 +43,7 @@ export function renderGame(ctx, state) {
 
 function drawBackground(ctx, arena) {
   const key = [
+    arena.sceneId,
     arena.width,
     arena.height,
     arena.biomeId,
@@ -65,7 +67,7 @@ function buildBackground(arena) {
 
   drawTileMap(ctx, arena);
   drawForestBorder(ctx, arena);
-  drawBackGarden(ctx, arena);
+  drawSceneBackdrop(ctx, arena);
 
   return canvas;
 }
@@ -148,7 +150,21 @@ function drawBackgroundTreeBand(ctx, x, y, theme) {
   pixelRect(ctx, x + 4, y + 8, 26, 8, theme.treeLight);
 }
 
-function drawBackGarden(ctx, arena) {
+function drawSceneBackdrop(ctx, arena) {
+  if (arena.sceneStyle === "villageClearing") {
+    drawVillageBackdrop(ctx, arena);
+  }
+
+  if (arena.sceneStyle === "shrineGrove") {
+    drawShrineBackdrop(ctx);
+  }
+
+  if (arena.sceneStyle === "blightPass" || arena.sceneStyle === "heartLair") {
+    drawBlightBackdrop(ctx, arena);
+  }
+}
+
+function drawVillageBackdrop(ctx, arena) {
   const theme = arena.theme;
   pixelRect(ctx, 176, 136, 176, 18, "#7b5d3d");
   pixelRect(ctx, 176, 154, 176, 8, "#5d442a");
@@ -160,6 +176,18 @@ function drawBackGarden(ctx, arena) {
   pixelRect(ctx, 310, 216, 2, 18, "#cdb58a");
   pixelRect(ctx, 214, 282, 36, 8, theme.groundLight);
   pixelRect(ctx, 314, 282, 28, 8, theme.groundLight);
+}
+
+function drawShrineBackdrop(ctx) {
+  drawPixelRing(ctx, 808, 472, 150, 12, "rgba(244, 224, 156, 0.22)");
+  drawPixelRing(ctx, 808, 472, 118, 10, "rgba(182, 201, 222, 0.18)");
+}
+
+function drawBlightBackdrop(ctx, arena) {
+  const dark = arena.sceneStyle === "heartLair" ? "rgba(110, 32, 28, 0.26)" : "rgba(82, 24, 22, 0.18)";
+  pixelRect(ctx, 548, 286, 520, 268, dark);
+  pixelRect(ctx, 622, 238, 360, 90, dark);
+  pixelRect(ctx, 622, 566, 360, 90, dark);
 }
 
 function drawEncounterGround(ctx, state) {
@@ -210,6 +238,42 @@ function drawGroundEffects(ctx, state) {
   }
 
   drawBossTelegraphs(ctx, state);
+}
+
+function drawExitMarkers(ctx, state) {
+  for (const exit of state.arena.exits) {
+    const active = state.nearExit?.id === exit.id;
+    ctx.save();
+    ctx.globalAlpha = active ? 0.84 : 0.42;
+    pixelRect(ctx, exit.x + 4, exit.y + 4, exit.w - 8, exit.h - 8, "rgba(255, 240, 173, 0.18)");
+    drawExitArrow(ctx, exit);
+    if (active) {
+      const barWidth = Math.max(20, exit.w - 16);
+      pixelRect(ctx, exit.x + 8, exit.y - 10, barWidth, 6, "#1b1412");
+      pixelRect(ctx, exit.x + 9, exit.y - 9, Math.round((barWidth - 2) * state.exitCharge), 4, "#fff0ad");
+    }
+    ctx.restore();
+  }
+}
+
+function drawExitArrow(ctx, exit) {
+  const cx = Math.round(exit.x + exit.w / 2);
+  const cy = Math.round(exit.y + exit.h / 2);
+  const color = "#fff0ad";
+
+  if (exit.direction === "right") {
+    pixelRect(ctx, cx - 10, cy - 3, 14, 6, color);
+    pixelRect(ctx, cx + 2, cy - 7, 8, 14, color);
+  } else if (exit.direction === "left") {
+    pixelRect(ctx, cx - 4, cy - 3, 14, 6, color);
+    pixelRect(ctx, cx - 10, cy - 7, 8, 14, color);
+  } else if (exit.direction === "up") {
+    pixelRect(ctx, cx - 3, cy - 10, 6, 14, color);
+    pixelRect(ctx, cx - 7, cy - 10, 14, 8, color);
+  } else if (exit.direction === "down") {
+    pixelRect(ctx, cx - 3, cy - 4, 6, 14, color);
+    pixelRect(ctx, cx - 7, cy + 2, 14, 8, color);
+  }
 }
 
 function drawBossTelegraphs(ctx, state) {
@@ -330,6 +394,7 @@ function drawObstacle(ctx, obstacle, theme) {
   if (obstacle.type === "signpost") drawSignpost(ctx, obstacle);
   if (obstacle.type === "cart") drawCart(ctx, obstacle);
   if (obstacle.type === "lantern") drawLantern(ctx, obstacle);
+  if (obstacle.type === "shrine") drawShrine(ctx, obstacle);
 }
 
 function drawTree(ctx, tree, theme) {
@@ -422,6 +487,15 @@ function drawLantern(ctx, lantern) {
   pixelRect(ctx, lantern.x + 10, lantern.y + 16, 4, 28, "#6e4a34");
   pixelRect(ctx, lantern.x + 6, lantern.y + 10, 12, 10, "#efcf79");
   pixelRect(ctx, lantern.x + 8, lantern.y + 12, 8, 6, "#fff1b6");
+}
+
+function drawShrine(ctx, shrine) {
+  drawBlockShadow(ctx, shrine.x + 10, shrine.y + shrine.h - 10, shrine.w - 20, 10);
+  pixelRect(ctx, shrine.x + 18, shrine.y + 18, shrine.w - 36, 18, "#8e8064");
+  pixelRect(ctx, shrine.x + 30, shrine.y + 36, shrine.w - 60, 52, "#b7ab8f");
+  pixelRect(ctx, shrine.x + 48, shrine.y + 48, shrine.w - 96, 34, "#d9d0ba");
+  pixelRect(ctx, shrine.x + 56, shrine.y + 8, shrine.w - 112, 16, "#6f5a4b");
+  pixelRect(ctx, shrine.x + 60, shrine.y + 60, shrine.w - 120, 10, "#87d7de");
 }
 
 function drawAfterImage(ctx, image) {

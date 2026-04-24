@@ -1,0 +1,151 @@
+export const INITIAL_SCENE_ID = "dawnroot_green";
+
+export const SCENES = {
+  dawnroot_green: {
+    id: "dawnroot_green",
+    title: "Dawnroot Green",
+    regionName: "Village Clearing",
+    completionText: "Dawnroot Green Is Safe",
+    biomeId: "forest",
+    seed: "dawnroot-green",
+    poiTypeId: "grove",
+    threatTier: 1,
+    bossEnabled: false,
+    waveTemplates: [
+      [["basic", "basic"]],
+      [["basic", "basic", "brute"]],
+    ],
+    introDelay: 0.45,
+    sceneStyle: "villageClearing",
+    connections: {
+      eastRoad: {
+        label: "Mossy Run",
+        toSceneId: "mossy_run",
+        targetEntryId: "westGate",
+      },
+      northTrail: {
+        label: "Cedar Shrine",
+        toSceneId: "cedar_shrine",
+        targetEntryId: "southGate",
+      },
+    },
+  },
+  mossy_run: {
+    id: "mossy_run",
+    title: "Mossy Run",
+    regionName: "Forest Path",
+    completionText: "Mossy Run Cleansed",
+    biomeId: "forest",
+    seed: "mossy-run",
+    poiTypeId: "nest",
+    threatTier: 2,
+    bossEnabled: false,
+    waveTemplates: [
+      [["basic", "basic", "basic"]],
+      [["basic", "brute", "basic"]],
+    ],
+    introDelay: 0.35,
+    sceneStyle: "forestPass",
+    connections: {
+      westGate: {
+        label: "Dawnroot Green",
+        toSceneId: "dawnroot_green",
+        targetEntryId: "eastRoad",
+      },
+      eastGate: {
+        label: "Blight Approach",
+        toSceneId: "blight_approach",
+        targetEntryId: "westGate",
+      },
+    },
+  },
+  cedar_shrine: {
+    id: "cedar_shrine",
+    title: "Cedar Shrine",
+    regionName: "Old Grove",
+    completionText: "Cedar Shrine Restored",
+    biomeId: "highlands",
+    seed: "cedar-shrine",
+    poiTypeId: "shrine",
+    threatTier: 2,
+    bossEnabled: false,
+    waveTemplates: [
+      [["basic", "basic", "brute"]],
+      [["basic", "brute", "brute"]],
+    ],
+    introDelay: 0.4,
+    sceneStyle: "shrineGrove",
+    connections: {
+      southGate: {
+        label: "Dawnroot Green",
+        toSceneId: "dawnroot_green",
+        targetEntryId: "northTrail",
+      },
+      eastGate: {
+        label: "Blight Approach",
+        toSceneId: "blight_approach",
+        targetEntryId: "southGate",
+      },
+    },
+  },
+  blight_approach: {
+    id: "blight_approach",
+    title: "Blight Approach",
+    regionName: "Corrupted Trail",
+    completionText: "Trail Reclaimed",
+    biomeId: "blight",
+    seed: "blight-approach",
+    poiTypeId: "ruin",
+    threatTier: 3,
+    bossEnabled: false,
+    waveTemplates: [
+      [["basic", "brute", "basic"]],
+      [["basic", "brute", "brute"]],
+      [["basic", "basic", "brute", "brute"]],
+    ],
+    introDelay: 0.32,
+    sceneStyle: "blightPass",
+    connections: {
+      westGate: {
+        label: "Mossy Run",
+        toSceneId: "mossy_run",
+        targetEntryId: "eastGate",
+      },
+      southGate: {
+        label: "Cedar Shrine",
+        toSceneId: "cedar_shrine",
+        targetEntryId: "eastGate",
+      },
+      northGate: {
+        label: "Heart Grove",
+        toSceneId: "heart_grove",
+        targetEntryId: "southGate",
+      },
+    },
+  },
+  heart_grove: {
+    id: "heart_grove",
+    title: "Heart Grove",
+    regionName: "Blighted Heart",
+    completionText: "Heart Grove Purified",
+    biomeId: "blight",
+    seed: "heart-grove",
+    poiTypeId: "lair",
+    threatTier: 4,
+    bossEnabled: true,
+    waveTemplates: [
+      [["basic", "basic", "brute"]],
+      [["basic", "brute", "brute"]],
+      [["basic", "basic", "brute", "brute"]],
+    ],
+    introDelay: 0.32,
+    sceneStyle: "heartLair",
+    connections: {
+      southGate: {
+        label: "Blight Approach",
+        toSceneId: "blight_approach",
+        targetEntryId: "northGate",
+      },
+    },
+  },
+};
