@@ -21,9 +21,11 @@ export function renderGame(ctx, state) {
   ctx.translate(Math.round(-state.camera.x + shakeX), Math.round(-state.camera.y + shakeY));
 
   drawBackground(ctx, state.arena);
+  drawEncounterGround(ctx, state);
   drawGroundEffects(ctx, state);
   drawProjectiles(ctx, state);
   drawSortedWorld(ctx, state);
+  drawHostileProjectiles(ctx, state);
   drawSwings(ctx, state);
   drawParticles(ctx, state);
 
@@ -75,7 +77,12 @@ function buildBackground(arena) {
 
   ctx.strokeStyle = "#2d6a3c";
   ctx.lineWidth = 3;
-  ctx.strokeRect(arena.boundsPadding + 2, arena.boundsPadding + 2, arena.width - arena.boundsPadding * 2 - 4, arena.height - arena.boundsPadding * 2 - 4);
+  ctx.strokeRect(
+    arena.boundsPadding + 2,
+    arena.boundsPadding + 2,
+    arena.width - arena.boundsPadding * 2 - 4,
+    arena.height - arena.boundsPadding * 2 - 4
+  );
 
   return canvas;
 }
@@ -85,7 +92,42 @@ function noise(x, y) {
   return value - Math.floor(value);
 }
 
+function drawEncounterGround(ctx, state) {
+  const alpha = state.encounter.zoneAlpha;
+
+  if (alpha <= 0.02) return;
+
+  const zone = state.arena.bossZone;
+  const outerRadius = zone.radius + Math.sin(state.time * 2.5) * 4;
+  const gradient = ctx.createRadialGradient(zone.x, zone.y, zone.radius * 0.25, zone.x, zone.y, zone.radius);
+  gradient.addColorStop(0, `rgba(78, 18, 10, ${0.08 + alpha * 0.09})`);
+  gradient.addColorStop(0.6, `rgba(44, 11, 10, ${0.14 + alpha * 0.09})`);
+  gradient.addColorStop(1, "rgba(13, 8, 7, 0)");
+
+  ctx.save();
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.arc(zone.x, zone.y, zone.radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.globalAlpha = 0.25 + alpha * 0.3;
+  ctx.strokeStyle = "#8fe36e";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(zone.x, zone.y, outerRadius, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.strokeStyle = "#d56d4d";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(zone.x, zone.y, zone.radius - 14 + Math.sin(state.time * 5.4) * 2, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawGroundEffects(ctx, state) {
+  drawBossTelegraphs(ctx, state);
+
   for (const root of state.roots) {
     const progress = Math.max(0, root.life / root.maxLife);
     const pulse = Math.sin((state.time + root.pulse) * 10) * 3;
@@ -116,6 +158,80 @@ function drawGroundEffects(ctx, state) {
     }
     ctx.restore();
   }
+
+  for (const hazard of state.eruptions) {
+    ctx.save();
+
+    if (hazard.warning > 0) {
+      const progress = 1 - hazard.warning / 0.95;
+      ctx.globalAlpha = 0.22 + progress * 0.4;
+      ctx.strokeStyle = "#f2c26a";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(hazard.x, hazard.y, hazard.radius + Math.sin(state.time * 12) * 2, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(176, 54, 33, 0.16)";
+      ctx.beginPath();
+      ctx.arc(hazard.x, hazard.y, hazard.radius * 0.72, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      const progress = Math.max(0, hazard.active / 0.26);
+      ctx.globalAlpha = 0.24 + progress * 0.55;
+      ctx.fillStyle = "#85e96d";
+      ctx.beginPath();
+      ctx.arc(hazard.x, hazard.y, hazard.radius * (1.05 + (1 - progress) * 0.2), 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "#fff0ad";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(hazard.x, hazard.y, hazard.radius + 6, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+}
+
+function drawBossTelegraphs(ctx, state) {
+  const boss = state.boss;
+  if (!boss || boss.dead || !boss.currentAttack) return;
+
+  if (boss.currentAttack.type === "slam") {
+    const pulse = Math.sin(state.time * 14) * 4;
+
+    ctx.save();
+    ctx.globalAlpha = 0.56;
+    ctx.strokeStyle = "#ffbb72";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(
+      boss.currentAttack.targetX,
+      boss.currentAttack.targetY,
+      boss.currentAttack.radius + pulse,
+      0,
+      Math.PI * 2
+    );
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(159, 46, 33, 0.2)";
+    ctx.beginPath();
+    ctx.arc(boss.currentAttack.targetX, boss.currentAttack.targetY, boss.currentAttack.radius * 0.66, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  if (boss.currentAttack.type === "volley") {
+    ctx.save();
+    ctx.globalAlpha = 0.7;
+    ctx.strokeStyle = "#f1cf77";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(boss.x, boss.y, boss.radius + 26, boss.facing - 0.54, boss.facing + 0.54);
+    ctx.stroke();
+    ctx.restore();
+  }
 }
 
 function drawProjectiles(ctx, state) {
@@ -136,6 +252,26 @@ function drawProjectiles(ctx, state) {
   }
 }
 
+function drawHostileProjectiles(ctx, state) {
+  for (const projectile of state.hostileProjectiles) {
+    ctx.save();
+    ctx.translate(Math.round(projectile.x), Math.round(projectile.y));
+    ctx.rotate(Math.atan2(projectile.vy, projectile.vx));
+    ctx.fillStyle = "#cf6448";
+    ctx.beginPath();
+    ctx.moveTo(10, 0);
+    ctx.lineTo(-4, -7);
+    ctx.lineTo(-9, 0);
+    ctx.lineTo(-4, 7);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = "#f2d57c";
+    ctx.fillRect(1, -2, 6, 4);
+    ctx.restore();
+  }
+}
+
 function drawSortedWorld(ctx, state) {
   const renderables = [
     ...state.arena.obstacles.map((obstacle) => ({
@@ -148,13 +284,20 @@ function drawSortedWorld(ctx, state) {
       item: image,
       y: image.y,
     })),
-    ...state.enemies
-      .filter((enemy) => !enemy.dead)
-      .map((enemy) => ({
-        kind: "enemy",
-        item: enemy,
-        y: enemy.y + enemy.radius,
-      })),
+    ...state.enemies.map((enemy) => ({
+      kind: "enemy",
+      item: enemy,
+      y: enemy.y + enemy.radius,
+    })),
+    ...(state.boss && !state.boss.dead
+      ? [
+          {
+            kind: "boss",
+            item: state.boss,
+            y: state.boss.y + state.boss.radius + 12,
+          },
+        ]
+      : []),
     {
       kind: "player",
       item: state.player,
@@ -168,6 +311,7 @@ function drawSortedWorld(ctx, state) {
     if (renderable.kind === "obstacle") drawObstacle(ctx, renderable.item);
     if (renderable.kind === "afterImage") drawAfterImage(ctx, renderable.item);
     if (renderable.kind === "enemy") drawEnemy(ctx, renderable.item, state);
+    if (renderable.kind === "boss") drawBoss(ctx, renderable.item, state);
     if (renderable.kind === "player") drawPlayer(ctx, renderable.item);
   }
 }
@@ -191,7 +335,12 @@ function drawTree(ctx, tree) {
   ctx.fill();
 
   ctx.fillStyle = "#5a3824";
-  ctx.fillRect(Math.round(cx - tree.w * 0.12), Math.round(tree.y + tree.h * 0.48), Math.round(tree.w * 0.24), Math.round(tree.h * 0.42));
+  ctx.fillRect(
+    Math.round(cx - tree.w * 0.12),
+    Math.round(tree.y + tree.h * 0.48),
+    Math.round(tree.w * 0.24),
+    Math.round(tree.h * 0.42)
+  );
   ctx.fillStyle = "#7a5131";
   ctx.fillRect(Math.round(cx - tree.w * 0.04), Math.round(tree.y + tree.h * 0.52), 4, Math.round(tree.h * 0.32));
 
@@ -372,6 +521,57 @@ function drawBrute(ctx, enemy, state) {
   drawEnemyStatus(ctx, enemy, state);
 }
 
+function drawBoss(ctx, boss, state) {
+  ctx.save();
+  ctx.translate(Math.round(boss.x), Math.round(boss.y));
+  ctx.rotate(boss.facing);
+
+  ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
+  ctx.beginPath();
+  ctx.ellipse(0, 18, 42, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = boss.hitFlash > 0 ? "#ffd7bb" : "#5a2219";
+  ctx.beginPath();
+  ctx.moveTo(34, 0);
+  ctx.lineTo(20, -28);
+  ctx.lineTo(-8, -34);
+  ctx.lineTo(-28, -10);
+  ctx.lineTo(-34, 0);
+  ctx.lineTo(-23, 20);
+  ctx.lineTo(-3, 34);
+  ctx.lineTo(24, 24);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#7e3628";
+  ctx.fillRect(-10, -15, 24, 30);
+
+  ctx.fillStyle = "#f0cc75";
+  ctx.fillRect(12, -5, 10, 10);
+
+  ctx.strokeStyle = "#8de56f";
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(-18, -8);
+  ctx.lineTo(-34, -28);
+  ctx.moveTo(-18, 8);
+  ctx.lineTo(-34, 28);
+  ctx.stroke();
+
+  ctx.strokeStyle = "#f1be6e";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(26, -12);
+  ctx.lineTo(44, -28);
+  ctx.moveTo(26, 12);
+  ctx.lineTo(44, 28);
+  ctx.stroke();
+  ctx.restore();
+
+  drawBossStatus(ctx, boss, state);
+}
+
 function drawEnemyStatus(ctx, enemy, state) {
   if (enemy.rooted > 0) {
     ctx.save();
@@ -418,6 +618,39 @@ function drawEnemyStatus(ctx, enemy, state) {
     ctx.beginPath();
     ctx.arc(enemy.x, enemy.y, enemy.radius + 9, enemy.facing - 0.9, enemy.facing + 0.9);
     ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawBossStatus(ctx, boss, state) {
+  if (boss.rooted > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.8;
+    ctx.strokeStyle = "#89e86c";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(boss.x, boss.y, boss.radius + 10 + Math.sin(state.time * 9) * 2, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if (boss.bloom > 0) {
+    const radius = boss.radius + 17;
+    ctx.save();
+    ctx.globalAlpha = 0.82;
+    ctx.strokeStyle = "#f3f49b";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(boss.x, boss.y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    for (let i = 0; i < 5; i += 1) {
+      const angle = state.time * 2.4 + (Math.PI * 2 * i) / 5;
+      const px = boss.x + Math.cos(angle) * radius;
+      const py = boss.y + Math.sin(angle) * radius;
+      ctx.fillStyle = i % 2 === 0 ? "#ecffac" : "#9eeb85";
+      ctx.fillRect(Math.round(px - 4), Math.round(py - 4), 8, 8);
+    }
     ctx.restore();
   }
 }

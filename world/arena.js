@@ -36,11 +36,28 @@ export function createArena() {
     height: 820,
     boundsPadding: 26,
     playerSpawn: { x: 245, y: 420 },
-    enemySpawns: [
-      { x: 835, y: 210, type: "basic" },
-      { x: 1010, y: 370, type: "basic" },
-      { x: 625, y: 600, type: "basic" },
-      { x: 1060, y: 600, type: "brute" },
+    spawnPoints: [
+      { x: 188, y: 112 },
+      { x: 520, y: 88 },
+      { x: 898, y: 96 },
+      { x: 1178, y: 156 },
+      { x: 1238, y: 412 },
+      { x: 1112, y: 678 },
+      { x: 738, y: 718 },
+      { x: 372, y: 708 },
+      { x: 112, y: 580 },
+      { x: 102, y: 296 },
+    ],
+    bossZone: {
+      x: 828,
+      y: 404,
+      radius: 222,
+    },
+    bossAddSpawns: [
+      { x: 638, y: 404 },
+      { x: 828, y: 206 },
+      { x: 1012, y: 404 },
+      { x: 828, y: 602 },
     ],
     obstacles: [
       tree(105, 92, 98),

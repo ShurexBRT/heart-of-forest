@@ -2,7 +2,10 @@ export function drawHud(ctx, state, abilityInfo) {
   const { viewport, player } = state;
 
   drawBars(ctx, player);
+  drawEncounterInfo(ctx, state);
+  drawBossBar(ctx, state);
   drawAbilitySlots(ctx, viewport, player, abilityInfo);
+  drawBanner(ctx, state);
   drawEndState(ctx, state);
 }
 
@@ -27,6 +30,61 @@ function drawMeter(ctx, x, y, width, height, ratio, backColor, fillColor, label)
   ctx.font = "700 12px Segoe UI, Arial";
   ctx.fillStyle = "#f6fff1";
   ctx.fillText(label, x + 8, y + 12);
+}
+
+function drawEncounterInfo(ctx, state) {
+  if (state.areaCleared || state.gameOver) return;
+
+  const encounter = state.encounter;
+  const x = state.viewport.width - 214;
+  const y = 20;
+  const aliveThreats = state.enemies.length + encounter.spawnQueue.length + (state.boss && !state.boss.dead ? 1 : 0);
+  const displayedWave =
+    encounter.phase === "waveIntro"
+      ? 1
+      : encounter.phase === "intermission"
+        ? Math.min(encounter.totalWaves, encounter.waveIndex + 2)
+        : Math.min(encounter.totalWaves, encounter.waveIndex + 1);
+  const waveLabel =
+    encounter.phase === "boss" || encounter.phase === "bossIntro" || (state.boss && !state.boss.dead)
+      ? "Boss Encounter"
+      : `Wave ${displayedWave}/${encounter.totalWaves}`;
+
+  ctx.fillStyle = "rgba(0, 0, 0, 0.44)";
+  ctx.fillRect(x, y, 192, 46);
+  ctx.fillStyle = "#f6fff1";
+  ctx.font = "700 13px Segoe UI, Arial";
+  ctx.fillText(waveLabel, x + 12, y + 18);
+  ctx.font = "12px Segoe UI, Arial";
+  ctx.fillText(`Threats ${aliveThreats}`, x + 12, y + 36);
+}
+
+function drawBossBar(ctx, state) {
+  const showBossBar =
+    state.encounter.phase === "bossIntro" ||
+    (state.boss && (!state.boss.dead || state.areaCleared));
+
+  if (!showBossBar) return;
+
+  const width = 360;
+  const height = 18;
+  const x = state.viewport.width / 2 - width / 2;
+  const y = 22;
+  const boss = state.boss;
+  const ratio = boss ? Math.max(0, boss.hp / boss.maxHp) : 1;
+
+  ctx.fillStyle = "rgba(0, 0, 0, 0.52)";
+  ctx.fillRect(x - 4, y - 18, width + 8, height + 24);
+  ctx.fillStyle = "#4f1b17";
+  ctx.fillRect(x, y, width, height);
+  ctx.fillStyle = "#db6748";
+  ctx.fillRect(x, y, width * ratio, height);
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#fff4d4";
+  ctx.font = "700 14px Segoe UI, Arial";
+  ctx.fillText("Heart Guardian", state.viewport.width / 2, y - 4);
+  ctx.textAlign = "left";
 }
 
 function drawAbilitySlots(ctx, viewport, player, abilityInfo) {
@@ -75,12 +133,26 @@ function drawAbilitySlots(ctx, viewport, player, abilityInfo) {
   }
 }
 
+function drawBanner(ctx, state) {
+  if (state.encounter.bannerTimer <= 0) return;
+
+  const alpha = Math.min(1, state.encounter.bannerTimer / 0.5);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.textAlign = "center";
+  ctx.font = "700 24px Segoe UI, Arial";
+  ctx.fillStyle = "#f7f7d8";
+  ctx.fillText(state.encounter.bannerText, state.viewport.width / 2, 94);
+  ctx.restore();
+  ctx.textAlign = "left";
+}
+
 function drawEndState(ctx, state) {
   if (!state.areaCleared && !state.gameOver) return;
 
   const { viewport } = state;
-  const panelW = 330;
-  const panelH = 104;
+  const panelW = 350;
+  const panelH = 108;
   const x = viewport.width / 2 - panelW / 2;
   const y = viewport.height / 2 - panelH / 2;
 
@@ -90,10 +162,10 @@ function drawEndState(ctx, state) {
   ctx.textAlign = "center";
   ctx.font = "700 28px Segoe UI, Arial";
   ctx.fillStyle = state.areaCleared ? "#dfffd3" : "#ffd5cd";
-  ctx.fillText(state.areaCleared ? "Area Cleansed" : "Ayla Has Fallen", viewport.width / 2, y + 44);
+  ctx.fillText(state.areaCleared ? "Heart Restored" : "Ayla Has Fallen", viewport.width / 2, y + 44);
 
   ctx.font = "15px Segoe UI, Arial";
   ctx.fillStyle = "#eff7e8";
-  ctx.fillText("Press R to restart", viewport.width / 2, y + 74);
+  ctx.fillText("Press R to restart", viewport.width / 2, y + 76);
   ctx.textAlign = "left";
 }

@@ -21,10 +21,12 @@ A small, polished HTML5 Canvas gameplay prototype for a 2D top-down action RPG. 
 - Spirit Bolt projectile with travel, spirit cost, cooldown, obstacle collision, and impact feedback
 - Quick Dash with a short invulnerability window and afterimage feedback
 - Root Snare short-range nature skill with visible vines and enemy root effect
-- One forest clearing arena with textured grass, solid trees, rocks, and readable room bounds
-- Two enemy types: basic corrupted creatures and a slower tankier brute
+- One forest clearing arena with textured grass, solid trees, rocks, readable room bounds, and a boss arena overlay
+- Two enemy types: basic corrupted creatures and a slower tankier brute with higher survivability
+- Three randomized combat waves using controlled spawn points around the arena
+- A boss finale against the Heart Guardian with slam, thorn volley, eruption attacks, and add spawns
 - Enemy AI states for idle, wander, chase, attack windup, and recover
-- Minimal HUD with HP, Spirit, ability cooldowns, cleared state, game over state, and restart
+- Minimal HUD with HP, Spirit, ability cooldowns, wave/boss info, cleared state, game over state, and restart
 
 ## How To Run Locally
 

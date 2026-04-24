@@ -2,13 +2,13 @@ import { startGameLoop } from "./core/gameLoop.js";
 import { createInput, wasPressed } from "./core/input.js";
 import { clamp } from "./core/math.js";
 import { Player } from "./entities/player.js";
-import { Enemy } from "./entities/enemy.js";
 import { createArena } from "./world/arena.js";
 import {
   handlePlayerAbilities,
   resolveEnemyCrowding,
   updateCombatEffects,
 } from "./systems/combat.js";
+import { createEncounterState, updateEncounter } from "./systems/encounter.js";
 import { updateParticles } from "./systems/particles.js";
 import { renderGame } from "./rendering/renderer.js";
 
@@ -23,12 +23,16 @@ function createState() {
   return {
     arena,
     player: new Player(arena.playerSpawn),
-    enemies: arena.enemySpawns.map((spawn) => new Enemy(spawn.x, spawn.y, spawn.type)),
+    enemies: [],
+    boss: null,
     projectiles: [],
+    hostileProjectiles: [],
+    eruptions: [],
     roots: [],
     swings: [],
     particles: [],
     afterImages: [],
+    encounter: createEncounterState(arena),
     time: 0,
     shake: 0,
     gameOver: false,
@@ -44,11 +48,15 @@ function resetGame() {
   state.arena = next.arena;
   state.player = next.player;
   state.enemies = next.enemies;
+  state.boss = next.boss;
   state.projectiles = next.projectiles;
+  state.hostileProjectiles = next.hostileProjectiles;
+  state.eruptions = next.eruptions;
   state.roots = next.roots;
   state.swings = next.swings;
   state.particles = next.particles;
   state.afterImages = next.afterImages;
+  state.encounter = next.encounter;
   state.time = 0;
   state.shake = 0;
   state.gameOver = false;
@@ -115,15 +123,12 @@ function update(dt) {
       enemy.update(dt, state);
     }
 
-    resolveEnemyCrowding(state);
+    state.enemies = state.enemies.filter((enemy) => !enemy.dead);
 
-    if (state.enemies.every((enemy) => enemy.dead)) {
-      state.areaCleared = true;
-      state.shake = Math.max(state.shake, 6);
-    }
-  } else {
-    updateCombatEffects(state, dt);
+    resolveEnemyCrowding(state);
   }
+
+  updateEncounter(state, dt);
 
   updateParticles(state, dt);
   updateCamera(dt);

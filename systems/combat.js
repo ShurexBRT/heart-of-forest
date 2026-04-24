@@ -130,23 +130,24 @@ function castStaffStrike(state) {
     const isInArc = Math.abs(angleDifference(enemyAngle, player.aimAngle)) <= STAFF_ARC / 2;
 
     if (enemyDistance <= STAFF_RANGE + enemy.radius && isInArc) {
-      hit = true;
-      const wasRooted = enemy.rooted > 0;
-      damageEnemy(state, enemy, 22, player.x, player.y, 285, 0.18);
-      spiritGain += wasRooted ? STAFF_SPIRIT_GAIN + ROOTED_STAFF_SPIRIT_GAIN : STAFF_SPIRIT_GAIN;
+      const result = applyStaffHit(state, enemy, 22);
+      hit = hit || result.hit;
+      spiritGain += result.spiritGain;
+      openedBloom = openedBloom || result.openedBloom;
+    }
+  }
 
-      if (wasRooted && !enemy.dead) {
-        enemy.bloom = Math.max(enemy.bloom, BLOOM_WINDOW);
-        openedBloom = true;
+  const boss = getActiveBoss(state);
+  if (boss) {
+    const bossDistance = distance(player.x, player.y, boss.x, boss.y);
+    const bossAngle = angleTo(player.x, player.y, boss.x, boss.y);
+    const isBossInArc = Math.abs(angleDifference(bossAngle, player.aimAngle)) <= STAFF_ARC / 2;
 
-        spawnBurst(state, enemy.x, enemy.y, {
-          count: 10,
-          colors: ["#eaff9f", "#9eec72", "#fff0aa"],
-          speed: 160,
-          size: [2, 4],
-          life: [0.12, 0.34],
-        });
-      }
+    if (bossDistance <= STAFF_RANGE + boss.radius && isBossInArc) {
+      const result = applyStaffHit(state, boss, 22);
+      hit = hit || result.hit;
+      spiritGain += result.spiritGain;
+      openedBloom = openedBloom || result.openedBloom;
     }
   }
 
@@ -281,6 +282,13 @@ function castRootSnare(state) {
     }
   }
 
+  const boss = getActiveBoss(state);
+  if (boss && distance(x, y, boss.x, boss.y) <= ROOT_RADIUS + boss.radius) {
+    boss.rooted = Math.max(boss.rooted, 0.7);
+    boss.stun = Math.max(boss.stun, 0.06);
+    boss.hitFlash = 0.08;
+  }
+
   spawnBurst(state, x, y, {
     count: 22,
     colors: ["#99f081", "#5fcf64", "#d7ffc7"],
@@ -319,6 +327,31 @@ function updateProjectiles(state, dt) {
       continue;
     }
 
+    const boss = getActiveBoss(state);
+    if (
+      boss &&
+      distance(projectile.x, projectile.y, boss.x, boss.y) <= projectile.radius + boss.radius
+    ) {
+      const bloomBonus = boss.bloom > 0 ? BLOOM_BOLT_BONUS : 0;
+
+      if (bloomBonus > 0) {
+        boss.bloom = 0;
+        state.shake = Math.max(state.shake, 4.8);
+
+        spawnBurst(state, boss.x, boss.y, {
+          count: 20,
+          colors: ["#f3ffaf", "#8ef27a", "#a9f7ff", "#f3f3c2"],
+          speed: 260,
+          size: [2, 5],
+          life: [0.18, 0.45],
+        });
+      }
+
+      damageHostile(state, boss, projectile.damage + bloomBonus, projectile.x, projectile.y, 235, 0.12);
+      impactProjectile(state, projectile);
+      continue;
+    }
+
     for (const enemy of state.enemies) {
       if (enemy.dead) continue;
 
@@ -338,7 +371,7 @@ function updateProjectiles(state, dt) {
           });
         }
 
-        damageEnemy(state, enemy, projectile.damage + bloomBonus, projectile.x, projectile.y, 235, 0.12);
+        damageHostile(state, enemy, projectile.damage + bloomBonus, projectile.x, projectile.y, 235, 0.12);
         impactProjectile(state, projectile);
         break;
       }
@@ -393,6 +426,33 @@ function impactProjectile(state, projectile) {
   });
 }
 
+function getActiveBoss(state) {
+  return state.boss && !state.boss.dead ? state.boss : null;
+}
+
+function applyStaffHit(state, target, damage) {
+  const wasRooted = target.rooted > 0;
+  damageHostile(state, target, damage, state.player.x, state.player.y, 285, 0.18);
+
+  if (wasRooted && !target.dead) {
+    target.bloom = Math.max(target.bloom, target.isBoss ? 0.9 : BLOOM_WINDOW);
+
+    spawnBurst(state, target.x, target.y, {
+      count: target.isBoss ? 14 : 10,
+      colors: ["#eaff9f", "#9eec72", "#fff0aa"],
+      speed: target.isBoss ? 185 : 160,
+      size: [2, 4],
+      life: [0.12, 0.34],
+    });
+  }
+
+  return {
+    hit: true,
+    spiritGain: wasRooted ? STAFF_SPIRIT_GAIN + ROOTED_STAFF_SPIRIT_GAIN : STAFF_SPIRIT_GAIN,
+    openedBloom: wasRooted && !target.dead,
+  };
+}
+
 function gainSpirit(state, amount) {
   const player = state.player;
   const gained = Math.min(amount, player.maxSpirit - player.spirit);
@@ -412,35 +472,55 @@ function gainSpirit(state, amount) {
   });
 }
 
-function damageEnemy(state, enemy, amount, sourceX, sourceY, knockback, stun) {
-  const direction = normalize(enemy.x - sourceX, enemy.y - sourceY);
+function damageHostile(state, target, amount, sourceX, sourceY, knockback, stun) {
+  const direction = normalize(target.x - sourceX, target.y - sourceY);
 
-  enemy.hp = Math.max(0, enemy.hp - amount);
-  enemy.hitFlash = 0.12;
-  enemy.stun = Math.max(enemy.stun, stun);
-  enemy.vx += direction.x * knockback;
-  enemy.vy += direction.y * knockback;
-  enemy.state = enemy.hp > 0 ? "chase" : enemy.state;
+  target.hp = Math.max(0, target.hp - amount);
+  target.hitFlash = 0.12;
+  target.stun = Math.max(target.stun, stun);
+  target.vx += direction.x * knockback;
+  target.vy += direction.y * knockback;
 
-  spawnBurst(state, enemy.x, enemy.y, {
-    count: amount >= 24 ? 14 : 10,
-    colors: ["#ffb08d", "#d84e46", "#ffe3c7"],
-    speed: amount >= 24 ? 240 : 190,
-    size: [2, 5],
-    life: [0.16, 0.42],
+  if (!target.isBoss) {
+    target.state = target.hp > 0 ? "chase" : target.state;
+  } else {
+    target.recovery = Math.max(target.recovery || 0, 0.06);
+  }
+
+  spawnBurst(state, target.x, target.y, {
+    count: target.isBoss ? 18 : amount >= 24 ? 14 : 10,
+    colors: target.isBoss ? ["#ffb277", "#d85749", "#ffe4b2"] : ["#ffb08d", "#d84e46", "#ffe3c7"],
+    speed: target.isBoss ? 255 : amount >= 24 ? 240 : 190,
+    size: [2, target.isBoss ? 6 : 5],
+    life: [0.16, target.isBoss ? 0.5 : 0.42],
   });
 
-  if (enemy.hp <= 0) {
-    enemy.dead = true;
-    enemy.bloom = 0;
-    state.shake = Math.max(state.shake, enemy.type === "brute" ? 7 : 4);
+  if (target.hp <= 0) {
+    target.dead = true;
+    target.bloom = 0;
+    state.shake = Math.max(state.shake, target.isBoss ? 11 : target.type === "brute" ? 7 : 4);
 
-    spawnBurst(state, enemy.x, enemy.y, {
-      count: enemy.type === "brute" ? 28 : 18,
-      colors: ["#c9443d", "#612323", "#f3a86e"],
-      speed: enemy.type === "brute" ? 290 : 230,
-      size: [2, 6],
-      life: [0.24, 0.7],
-    });
+    if (target.isBoss) {
+      target.currentAttack = null;
+      target.recovery = 0;
+      state.hostileProjectiles = [];
+      state.eruptions = [];
+
+      spawnBurst(state, target.x, target.y, {
+        count: 48,
+        colors: ["#ffd07d", "#dd6646", "#96ee77", "#fff2b7"],
+        speed: 320,
+        size: [2, 7],
+        life: [0.24, 0.78],
+      });
+    } else {
+      spawnBurst(state, target.x, target.y, {
+        count: target.type === "brute" ? 28 : 18,
+        colors: ["#c9443d", "#612323", "#f3a86e"],
+        speed: target.type === "brute" ? 290 : 230,
+        size: [2, 6],
+        life: [0.24, 0.7],
+      });
+    }
   }
 }
