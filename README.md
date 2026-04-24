@@ -1,8 +1,15 @@
 # Heart of Forest
 
-A small, polished HTML5 Canvas gameplay prototype for a 2D top-down action RPG. This is intentionally a single-room combat feel demo, not a full game.
+An HTML5 Canvas action RPG prototype that has now grown into a small seeded regional slice. It still centers on Ayla's responsive combat, but now also includes a world map, points of interest, Waystations, quests, talents, inventory rewards, and browser save support.
 
 ## Controls
+
+### World Map
+
+- Mouse click: select regions, POIs, tabs, and Waystation actions
+- Enter: enter the selected combat POI in the current region
+
+### Combat
 
 - WASD: move
 - Mouse: aim
@@ -10,53 +17,68 @@ A small, polished HTML5 Canvas gameplay prototype for a 2D top-down action RPG. 
 - Right click: Spirit Bolt
 - Space: Quick Dash
 - 1: Root Snare
-- R: restart after victory or defeat
+- Enter: return to the world map after clearing an encounter
+- R: retreat to the world map after defeat
 
 ## Implemented Features
 
-- Smooth 8-direction movement with acceleration, deceleration, dash burst, and obstacle collision
-- Ayla, a readable white-hood forest guardian placeholder character
-- Staff Strike melee arc with hit flash, stun, knockback, particles, and light screen shake
-- Staff Strike restores Spirit on hit and primes rooted enemies for a stronger follow-up Spirit Bolt
-- Spirit Bolt projectile with travel, spirit cost, cooldown, obstacle collision, and impact feedback
-- Quick Dash with a short invulnerability window and afterimage feedback
-- Root Snare short-range nature skill with visible vines and enemy root effect
-- One forest clearing arena with textured grass, solid trees, rocks, readable room bounds, and a boss arena overlay
-- Two enemy types: basic corrupted creatures and a slower tankier brute with higher survivability
-- Three randomized combat waves using controlled spawn points around the arena
-- A boss finale against the Heart Guardian with slam, thorn volley, eruption attacks, and add spawns
-- Enemy AI states for idle, wander, chase, attack windup, and recover
-- Minimal HUD with HP, Spirit, ability cooldowns, wave/boss info, cleared state, game over state, and restart
+- Seeded regional overworld with connected regions, biome assignment, and procedural POI placement
+- Four biome themes: forest, marsh, highlands, and blight
+- Clickable world map UI with region travel, POI selection, station access, and message feedback
+- Waystations that act as safe stops for quest intake, talent unlocking, and save management
+- Quest boards generated from nearby POIs with accept, complete, and claim flow
+- Inventory reward loop tied to biome loot tables and encounter completion
+- Talent system that already modifies player stats and abilities for future encounters
+- Browser local-storage save and load
+- Procedural combat arenas themed from the selected biome
+- Responsive top-down combat with Staff Strike, Spirit Bolt, Quick Dash, and Root Snare
+- Spirit economy loop where Staff hits restore Spirit and rooted targets can be primed for stronger follow-up bolts
+- Enemy waves, tougher corrupted enemies, and a Heart Guardian boss encounter in lair sites
+- Encounter completion returning to the world map instead of hard-resetting the prototype
 
 ## How To Run Locally
 
-Because the prototype uses ES modules, run it from a tiny local web server:
+Because the project uses ES modules, run it from a local web server:
 
 ```bash
-python -m http.server 4174
+python -m http.server 4175
 ```
 
 Then open:
 
 ```text
-http://localhost:4174/
+http://localhost:4175/
 ```
+
+Any open port works; just match the URL to the port you start.
 
 ## Code Structure
 
-- `main.js`: game state, reset flow, camera, resize handling, update/render wiring
+- `main.js`: top-level game state, world/encounter mode switching, save flow, and UI action routing
+- `data/gameData.js`: biome, item, talent, POI, and quest definitions
 - `core/input.js`: keyboard and mouse input
-- `core/gameLoop.js`: fixed browser animation loop wrapper
+- `core/gameLoop.js`: animation loop wrapper
 - `core/math.js`: shared math helpers
-- `entities/player.js`: Ayla movement, stats, cooldowns, dash state
-- `entities/enemy.js`: enemy stats and AI states
-- `systems/combat.js`: abilities, projectiles, root snare, damage, knockback, enemy spacing
-- `systems/collision.js`: circle vs obstacle and boundary collision
-- `systems/particles.js`: simple particle bursts and updates
-- `world/arena.js`: arena dimensions, spawn points, trees, and rocks
-- `rendering/renderer.js`: Canvas world rendering and visual effects
-- `ui/hud.js`: HP, Spirit, cooldowns, and end-state messages
+- `world/worldGen.js`: seeded world graph, biome assignment, POI placement, and encounter context generation
+- `world/arena.js`: procedural biome-themed combat arena generation
+- `entities/player.js`: Ayla stats, movement, cooldowns, and progression-aware ability values
+- `entities/enemy.js`: regular enemy stats and AI states
+- `entities/boss.js`: Heart Guardian boss behavior
+- `systems/combat.js`: abilities, projectiles, damage, Spirit gain, and combat effects
+- `systems/encounter.js`: wave pacing, spawn direction, and boss encounter flow
+- `systems/progression.js`: inventory storage, rewards, talent unlocks, and player bonus calculation
+- `systems/quests.js`: station quest generation and quest-state updates
+- `systems/save.js`: browser save/load snapshot handling
+- `systems/particles.js`: particles and impact bursts
+- `rendering/renderer.js`: combat arena rendering
+- `rendering/worldRenderer.js`: world map, panel UI, and clickable button layout
+- `ui/hud.js`: combat HUD, boss bar, banners, and encounter end-state prompts
 
-## Scope Notes
+## Current Scope
 
-The prototype deliberately avoids quests, inventory, saves, dialogue, shops, networking, and content pipelines. The focus is moment-to-moment movement, combat readability, and code that can later be ported to a game engine such as Godot.
+This is still a prototype, not a full open-world game. The current target is a clean JS-based vertical slice that proves:
+
+- the combat loop works
+- the world-to-encounter-to-reward loop works
+- quests, talents, and inventory can already sit on top of the combat foundation
+- seeded world generation rules are in place before a future engine migration

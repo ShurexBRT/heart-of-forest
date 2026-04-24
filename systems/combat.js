@@ -7,16 +7,11 @@ import {
   TAU,
 } from "../core/math.js";
 import { getMovementVector, wasPressed } from "../core/input.js";
-import { PLAYER_ABILITY_INFO } from "../entities/player.js";
 import { collidesWithObstacle } from "./collision.js";
 import { spawnBurst } from "./particles.js";
 
 const STAFF_RANGE = 68;
 const STAFF_ARC = Math.PI * 0.78;
-const STAFF_SPIRIT_GAIN = 6;
-const ROOTED_STAFF_SPIRIT_GAIN = 6;
-const BOLT_SPEED = 485;
-const BOLT_MAX_DISTANCE = 360;
 const ROOT_RANGE = 190;
 const ROOT_RADIUS = 48;
 const BLOOM_WINDOW = 1.1;
@@ -48,12 +43,13 @@ export function damagePlayer(state, amount, sourceX, sourceY, knockback) {
 
   const direction = normalize(player.x - sourceX, player.y - sourceY);
 
-  player.hp = Math.max(0, player.hp - amount);
+  const actualDamage = Math.round(amount * (player.incomingDamageMult || 1));
+  player.hp = Math.max(0, player.hp - actualDamage);
   player.hurtFlash = 0.18;
   player.invulnerable = 0.48;
   player.vx += direction.x * knockback;
   player.vy += direction.y * knockback;
-  state.shake = Math.max(state.shake, amount >= 20 ? 8 : 5);
+  state.shake = Math.max(state.shake, actualDamage >= 20 ? 8 : 5);
 
   spawnBurst(state, player.x, player.y, {
     count: 14,
@@ -104,7 +100,7 @@ export function resolveEnemyCrowding(state) {
 
 function castStaffStrike(state) {
   const player = state.player;
-  const info = PLAYER_ABILITY_INFO.staff;
+  const info = player.abilityInfo.staff;
 
   if (player.cooldowns.staff > 0) return;
 
@@ -131,7 +127,7 @@ function castStaffStrike(state) {
     const isInArc = Math.abs(angleDifference(enemyAngle, player.aimAngle)) <= STAFF_ARC / 2;
 
     if (enemyDistance <= STAFF_RANGE + enemy.radius && isInArc) {
-      const result = applyStaffHit(state, enemy, 22);
+      const result = applyStaffHit(state, enemy, info.damage);
       hit = hit || result.hit;
       spiritGain += result.spiritGain;
       openedBloom = openedBloom || result.openedBloom;
@@ -145,7 +141,7 @@ function castStaffStrike(state) {
     const isBossInArc = Math.abs(angleDifference(bossAngle, player.aimAngle)) <= STAFF_ARC / 2;
 
     if (bossDistance <= STAFF_RANGE + boss.radius && isBossInArc) {
-      const result = applyStaffHit(state, boss, 22);
+      const result = applyStaffHit(state, boss, info.damage);
       hit = hit || result.hit;
       spiritGain += result.spiritGain;
       openedBloom = openedBloom || result.openedBloom;
@@ -178,7 +174,7 @@ function castStaffStrike(state) {
 
 function castSpiritBolt(state) {
   const player = state.player;
-  const info = PLAYER_ABILITY_INFO.bolt;
+  const info = player.abilityInfo.bolt;
 
   if (player.cooldowns.bolt > 0 || !player.canSpend(info.cost)) return;
 
@@ -190,12 +186,12 @@ function castSpiritBolt(state) {
   state.projectiles.push({
     x: player.x + direction.x * 26,
     y: player.y + direction.y * 26,
-    vx: direction.x * BOLT_SPEED,
-    vy: direction.y * BOLT_SPEED,
+    vx: direction.x * info.speed,
+    vy: direction.y * info.speed,
     radius: 6,
     life: 0.9,
-    damage: 24,
-    distanceLeft: BOLT_MAX_DISTANCE,
+    damage: info.damage,
+    distanceLeft: info.range,
   });
 
   spawnBurst(state, player.x + direction.x * 18, player.y + direction.y * 18, {
@@ -211,7 +207,7 @@ function castSpiritBolt(state) {
 
 function castDash(state, input) {
   const player = state.player;
-  const info = PLAYER_ABILITY_INFO.dash;
+  const info = player.abilityInfo.dash;
 
   if (player.cooldowns.dash > 0) return;
 
@@ -244,7 +240,7 @@ function castDash(state, input) {
 
 function castRootSnare(state) {
   const player = state.player;
-  const info = PLAYER_ABILITY_INFO.root;
+  const info = player.abilityInfo.root;
 
   if (player.cooldowns.root > 0 || !player.canSpend(info.cost)) return;
 
@@ -278,7 +274,7 @@ function castRootSnare(state) {
 
   for (const enemy of state.enemies) {
     if (!enemy.dead && distance(x, y, enemy.x, enemy.y) <= ROOT_RADIUS + enemy.radius) {
-      enemy.rooted = Math.max(enemy.rooted, 1.35);
+      enemy.rooted = Math.max(enemy.rooted, info.duration);
       enemy.stun = Math.max(enemy.stun, 0.08);
       enemy.hitFlash = 0.08;
     }
@@ -286,7 +282,7 @@ function castRootSnare(state) {
 
   const boss = getActiveBoss(state);
   if (boss && distance(x, y, boss.x, boss.y) <= ROOT_RADIUS + boss.radius) {
-    boss.rooted = Math.max(boss.rooted, 0.7);
+    boss.rooted = Math.max(boss.rooted, Math.min(1.15, info.duration * 0.52));
     boss.stun = Math.max(boss.stun, 0.06);
     boss.hitFlash = 0.08;
   }
@@ -338,7 +334,7 @@ function updateProjectiles(state, dt) {
       boss &&
       distance(projectile.x, projectile.y, boss.x, boss.y) <= projectile.radius + boss.radius
     ) {
-      const bloomBonus = boss.bloom > 0 ? BLOOM_BOLT_BONUS : 0;
+      const bloomBonus = boss.bloom > 0 ? BLOOM_BOLT_BONUS + (state.player.abilityInfo.bloomBonus || 0) : 0;
 
       if (bloomBonus > 0) {
         boss.bloom = 0;
@@ -362,7 +358,7 @@ function updateProjectiles(state, dt) {
       if (enemy.dead) continue;
 
       if (distance(projectile.x, projectile.y, enemy.x, enemy.y) <= projectile.radius + enemy.radius) {
-        const bloomBonus = enemy.bloom > 0 ? BLOOM_BOLT_BONUS : 0;
+        const bloomBonus = enemy.bloom > 0 ? BLOOM_BOLT_BONUS + (state.player.abilityInfo.bloomBonus || 0) : 0;
 
         if (bloomBonus > 0) {
           enemy.bloom = 0;
@@ -454,7 +450,9 @@ function applyStaffHit(state, target, damage) {
 
   return {
     hit: true,
-    spiritGain: wasRooted ? STAFF_SPIRIT_GAIN + ROOTED_STAFF_SPIRIT_GAIN : STAFF_SPIRIT_GAIN,
+    spiritGain: wasRooted
+      ? state.player.abilityInfo.staff.spiritGain + state.player.abilityInfo.staff.rootedSpiritGain
+      : state.player.abilityInfo.staff.spiritGain,
     openedBloom: wasRooted && !target.dead,
   };
 }

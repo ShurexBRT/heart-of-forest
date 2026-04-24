@@ -3,19 +3,48 @@ import { getMovementVector } from "../core/input.js";
 import { moveCircleWithCollisions } from "../systems/collision.js";
 
 export const PLAYER_ABILITY_INFO = {
-  staff: { label: "Staff Strike", key: "LMB", cooldown: 0.28, cost: 0 },
-  bolt: { label: "Spirit Bolt", key: "RMB", cooldown: 0.42, cost: 14 },
-  dash: { label: "Quick Dash", key: "Space", cooldown: 1.05, cost: 0 },
-  root: { label: "Root Snare", key: "1", cooldown: 2.6, cost: 24 },
+  staff: {
+    label: "Staff Strike",
+    key: "LMB",
+    cooldown: 0.28,
+    cost: 0,
+    damage: 22,
+    spiritGain: 6,
+    rootedSpiritGain: 6,
+  },
+  bolt: {
+    label: "Spirit Bolt",
+    key: "RMB",
+    cooldown: 0.42,
+    cost: 14,
+    damage: 24,
+    range: 360,
+    speed: 485,
+  },
+  dash: {
+    label: "Quick Dash",
+    key: "Space",
+    cooldown: 1.05,
+    cost: 0,
+  },
+  root: {
+    label: "Root Snare",
+    key: "1",
+    cooldown: 2.6,
+    cost: 24,
+    duration: 1.35,
+  },
 };
 
 export class Player {
-  constructor(spawn) {
+  constructor(spawn, modifiers = {}) {
     this.radius = 16;
-    this.maxHp = 100;
-    this.maxSpirit = 100;
+    this.maxHp = 100 + (modifiers.maxHpBonus || 0);
+    this.maxSpirit = 100 + (modifiers.maxSpiritBonus || 0);
     this.maxSpeed = 238;
-    this.spiritRegen = 12;
+    this.spiritRegen = 12 + (modifiers.spiritRegenBonus || 0);
+    this.incomingDamageMult = modifiers.incomingDamageMult || 1;
+    this.abilityInfo = buildAbilityInfo(modifiers);
     this.reset(spawn);
   }
 
@@ -92,4 +121,30 @@ export class Player {
   isInvulnerable() {
     return this.invulnerable > 0 || this.dashTime > 0;
   }
+}
+
+function buildAbilityInfo(modifiers) {
+  return {
+    staff: {
+      ...PLAYER_ABILITY_INFO.staff,
+      damage: PLAYER_ABILITY_INFO.staff.damage + (modifiers.staffDamageBonus || 0),
+      spiritGain: PLAYER_ABILITY_INFO.staff.spiritGain + (modifiers.staffSpiritBonus || 0),
+      rootedSpiritGain:
+        PLAYER_ABILITY_INFO.staff.rootedSpiritGain + Math.floor((modifiers.staffSpiritBonus || 0) / 2),
+    },
+    bolt: {
+      ...PLAYER_ABILITY_INFO.bolt,
+      damage: PLAYER_ABILITY_INFO.bolt.damage + (modifiers.boltDamageBonus || 0),
+      range: PLAYER_ABILITY_INFO.bolt.range + (modifiers.boltRangeBonus || 0),
+    },
+    dash: {
+      ...PLAYER_ABILITY_INFO.dash,
+      cooldown: Math.max(0.5, PLAYER_ABILITY_INFO.dash.cooldown - (modifiers.dashCooldownBonus || 0)),
+    },
+    root: {
+      ...PLAYER_ABILITY_INFO.root,
+      duration: PLAYER_ABILITY_INFO.root.duration + (modifiers.rootDurationBonus || 0),
+    },
+    bloomBonus: modifiers.bloomBonus || 0,
+  };
 }

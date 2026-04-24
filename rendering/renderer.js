@@ -1,17 +1,23 @@
-import { PLAYER_ABILITY_INFO } from "../entities/player.js";
 import { drawHud } from "../ui/hud.js";
 
 let backgroundCache = null;
+let backgroundCacheKey = "";
 
 export function renderGame(ctx, state) {
-  const { viewport } = state;
+  const { viewport, arena, player } = state;
+
+  if (!arena || !player) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    return;
+  }
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   ctx.setTransform(viewport.dpr, 0, 0, viewport.dpr, 0, 0);
   ctx.imageSmoothingEnabled = false;
 
-  ctx.fillStyle = "#06100c";
+  ctx.fillStyle = arena.theme.boundary;
   ctx.fillRect(0, 0, viewport.width, viewport.height);
 
   const shakeX = state.shake > 0 ? (Math.random() - 0.5) * state.shake : 0;
@@ -20,7 +26,7 @@ export function renderGame(ctx, state) {
   ctx.save();
   ctx.translate(Math.round(-state.camera.x + shakeX), Math.round(-state.camera.y + shakeY));
 
-  drawBackground(ctx, state.arena);
+  drawBackground(ctx, arena);
   drawEncounterGround(ctx, state);
   drawGroundEffects(ctx, state);
   drawProjectiles(ctx, state);
@@ -30,12 +36,21 @@ export function renderGame(ctx, state) {
   drawParticles(ctx, state);
 
   ctx.restore();
-  drawHud(ctx, state, PLAYER_ABILITY_INFO);
+  drawHud(ctx, state, player.abilityInfo);
 }
 
 function drawBackground(ctx, arena) {
-  if (!backgroundCache || backgroundCache.width !== arena.width || backgroundCache.height !== arena.height) {
+  const key = [
+    arena.width,
+    arena.height,
+    arena.biomeId,
+    arena.theme.groundBase,
+    arena.theme.boundary,
+  ].join("|");
+
+  if (!backgroundCache || backgroundCacheKey !== key) {
     backgroundCache = buildBackground(arena);
+    backgroundCacheKey = key;
   }
 
   ctx.drawImage(backgroundCache, 0, 0);
@@ -46,36 +61,37 @@ function buildBackground(arena) {
   canvas.width = arena.width;
   canvas.height = arena.height;
   const ctx = canvas.getContext("2d");
+  const theme = arena.theme;
   ctx.imageSmoothingEnabled = false;
 
-  ctx.fillStyle = "#17391f";
+  ctx.fillStyle = theme.groundBase;
   ctx.fillRect(0, 0, arena.width, arena.height);
 
   for (let y = 0; y < arena.height; y += 20) {
     for (let x = 0; x < arena.width; x += 20) {
       const n = noise(x * 0.11, y * 0.17);
-      ctx.fillStyle = n < 0.34 ? "#1b4226" : n < 0.68 ? "#214e2d" : "#183b23";
+      ctx.fillStyle = n < 0.34 ? theme.groundMid : n < 0.68 ? theme.groundLight : theme.groundDark;
       ctx.fillRect(x, y, 20, 20);
 
       if (n > 0.72) {
-        ctx.fillStyle = "#356b3b";
+        ctx.fillStyle = theme.grass;
         ctx.fillRect(x + 13, y + 7, 2, 6);
       }
 
       if (n < 0.08) {
-        ctx.fillStyle = "#d7dd96";
+        ctx.fillStyle = theme.sparkle;
         ctx.fillRect(x + 5, y + 14, 2, 2);
       }
     }
   }
 
-  ctx.fillStyle = "#0d2118";
+  ctx.fillStyle = theme.boundary;
   ctx.fillRect(0, 0, arena.width, arena.boundsPadding);
   ctx.fillRect(0, arena.height - arena.boundsPadding, arena.width, arena.boundsPadding);
   ctx.fillRect(0, 0, arena.boundsPadding, arena.height);
   ctx.fillRect(arena.width - arena.boundsPadding, 0, arena.boundsPadding, arena.height);
 
-  ctx.strokeStyle = "#2d6a3c";
+  ctx.strokeStyle = theme.boundaryStroke;
   ctx.lineWidth = 3;
   ctx.strokeRect(
     arena.boundsPadding + 2,
@@ -98,11 +114,12 @@ function drawEncounterGround(ctx, state) {
   if (alpha <= 0.02) return;
 
   const zone = state.arena.bossZone;
+  const theme = state.arena.theme;
   const outerRadius = zone.radius + Math.sin(state.time * 2.5) * 4;
   const gradient = ctx.createRadialGradient(zone.x, zone.y, zone.radius * 0.25, zone.x, zone.y, zone.radius);
-  gradient.addColorStop(0, `rgba(78, 18, 10, ${0.08 + alpha * 0.09})`);
-  gradient.addColorStop(0.6, `rgba(44, 11, 10, ${0.14 + alpha * 0.09})`);
-  gradient.addColorStop(1, "rgba(13, 8, 7, 0)");
+  gradient.addColorStop(0, withAlpha(theme.zoneInner, 0.08 + alpha * 0.1));
+  gradient.addColorStop(0.6, withAlpha(theme.boundary, 0.18 + alpha * 0.12));
+  gradient.addColorStop(1, withAlpha(theme.boundary, 0));
 
   ctx.save();
   ctx.fillStyle = gradient;
@@ -111,13 +128,13 @@ function drawEncounterGround(ctx, state) {
   ctx.fill();
 
   ctx.globalAlpha = 0.25 + alpha * 0.3;
-  ctx.strokeStyle = "#8fe36e";
+  ctx.strokeStyle = theme.zoneOuter;
   ctx.lineWidth = 4;
   ctx.beginPath();
   ctx.arc(zone.x, zone.y, outerRadius, 0, Math.PI * 2);
   ctx.stroke();
 
-  ctx.strokeStyle = "#d56d4d";
+  ctx.strokeStyle = theme.zoneInner;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.arc(zone.x, zone.y, zone.radius - 14 + Math.sin(state.time * 5.4) * 2, 0, Math.PI * 2);
@@ -273,6 +290,7 @@ function drawHostileProjectiles(ctx, state) {
 }
 
 function drawSortedWorld(ctx, state) {
+  const theme = state.arena.theme;
   const renderables = [
     ...state.arena.obstacles.map((obstacle) => ({
       kind: "obstacle",
@@ -308,7 +326,7 @@ function drawSortedWorld(ctx, state) {
   renderables.sort((a, b) => a.y - b.y);
 
   for (const renderable of renderables) {
-    if (renderable.kind === "obstacle") drawObstacle(ctx, renderable.item);
+    if (renderable.kind === "obstacle") drawObstacle(ctx, renderable.item, theme);
     if (renderable.kind === "afterImage") drawAfterImage(ctx, renderable.item);
     if (renderable.kind === "enemy") drawEnemy(ctx, renderable.item, state);
     if (renderable.kind === "boss") drawBoss(ctx, renderable.item, state);
@@ -316,15 +334,15 @@ function drawSortedWorld(ctx, state) {
   }
 }
 
-function drawObstacle(ctx, obstacle) {
+function drawObstacle(ctx, obstacle, theme) {
   if (obstacle.type === "tree") {
-    drawTree(ctx, obstacle);
+    drawTree(ctx, obstacle, theme);
   } else {
-    drawRock(ctx, obstacle);
+    drawRock(ctx, obstacle, theme);
   }
 }
 
-function drawTree(ctx, tree) {
+function drawTree(ctx, tree, theme) {
   const cx = tree.x + tree.w / 2;
   const cy = tree.y + tree.h * 0.45;
 
@@ -334,42 +352,42 @@ function drawTree(ctx, tree) {
   ctx.ellipse(cx, tree.y + tree.h - 12, tree.w * 0.35, tree.w * 0.13, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = "#5a3824";
+  ctx.fillStyle = theme.trunk;
   ctx.fillRect(
     Math.round(cx - tree.w * 0.12),
     Math.round(tree.y + tree.h * 0.48),
     Math.round(tree.w * 0.24),
     Math.round(tree.h * 0.42)
   );
-  ctx.fillStyle = "#7a5131";
+  ctx.fillStyle = theme.trunkLight;
   ctx.fillRect(Math.round(cx - tree.w * 0.04), Math.round(tree.y + tree.h * 0.52), 4, Math.round(tree.h * 0.32));
 
-  ctx.fillStyle = "#173d25";
+  ctx.fillStyle = theme.treeDark;
   ctx.beginPath();
   ctx.arc(cx, cy, tree.w * 0.45, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = "#255b33";
+  ctx.fillStyle = theme.treeMid;
   ctx.beginPath();
   ctx.arc(cx - tree.w * 0.2, cy + tree.w * 0.02, tree.w * 0.27, 0, Math.PI * 2);
   ctx.arc(cx + tree.w * 0.19, cy - tree.w * 0.04, tree.w * 0.28, 0, Math.PI * 2);
   ctx.arc(cx, cy - tree.w * 0.22, tree.w * 0.28, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = "#3b8144";
+  ctx.fillStyle = theme.treeLight;
   ctx.fillRect(Math.round(cx - tree.w * 0.18), Math.round(cy - tree.w * 0.3), 7, 7);
   ctx.fillRect(Math.round(cx + tree.w * 0.2), Math.round(cy - tree.w * 0.1), 6, 6);
   ctx.restore();
 }
 
-function drawRock(ctx, rock) {
+function drawRock(ctx, rock, theme) {
   ctx.save();
   ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
   ctx.beginPath();
   ctx.ellipse(rock.x + rock.w / 2, rock.y + rock.h * 0.76, rock.w * 0.48, rock.h * 0.26, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = "#596861";
+  ctx.fillStyle = theme.rockBase;
   ctx.beginPath();
   ctx.moveTo(rock.x + rock.w * 0.1, rock.y + rock.h * 0.62);
   ctx.lineTo(rock.x + rock.w * 0.24, rock.y + rock.h * 0.22);
@@ -380,7 +398,7 @@ function drawRock(ctx, rock) {
   ctx.closePath();
   ctx.fill();
 
-  ctx.fillStyle = "#84928a";
+  ctx.fillStyle = theme.rockLight;
   ctx.fillRect(Math.round(rock.x + rock.w * 0.35), Math.round(rock.y + rock.h * 0.25), Math.round(rock.w * 0.18), 4);
   ctx.restore();
 }
@@ -703,4 +721,15 @@ function drawParticles(ctx, state) {
     );
     ctx.restore();
   }
+}
+
+function withAlpha(hex, alpha) {
+  const clean = hex.replace("#", "");
+  const full = clean.length === 3
+    ? clean.split("").map((char) => char + char).join("")
+    : clean;
+  const r = Number.parseInt(full.slice(0, 2), 16);
+  const g = Number.parseInt(full.slice(2, 4), 16);
+  const b = Number.parseInt(full.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }

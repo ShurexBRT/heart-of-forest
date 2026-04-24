@@ -1,41 +1,37 @@
-import { distance, randomRange } from "../core/math.js";
+import { distance } from "../core/math.js";
 import { Enemy } from "../entities/enemy.js";
 import { Boss } from "../entities/boss.js";
 import { collidesWithObstacle } from "./collision.js";
 import { damagePlayer } from "./combat.js";
 import { spawnBurst } from "./particles.js";
+import { createRng, randomRangeFrom, shuffleFrom } from "./rng.js";
 
-const WAVE_OPTIONS = [
-  [
-    ["basic", "basic", "basic"],
-    ["basic", "basic", "basic", "basic"],
-    ["basic", "basic", "brute"],
-  ],
-  [
-    ["basic", "basic", "brute", "basic"],
-    ["basic", "brute", "basic", "basic"],
-    ["basic", "basic", "basic", "brute"],
-  ],
-  [
-    ["basic", "basic", "brute", "brute"],
-    ["basic", "brute", "basic", "brute", "basic"],
-    ["basic", "basic", "basic", "brute", "brute"],
-  ],
-];
+export function createEncounterState(arena, config = {}) {
+  const waveTemplates = config.waveTemplates || [
+    [["basic", "basic"]],
+    [["basic", "basic", "basic"]],
+  ];
+  const rng = createRng(config.seed || `${config.poiTypeId || "site"}:${config.threatTier || 1}`);
 
-export function createEncounterState(arena) {
   return {
     phase: "waveIntro",
     waveIndex: -1,
-    totalWaves: WAVE_OPTIONS.length,
-    wavePlans: generateWavePlans(),
+    totalWaves: waveTemplates.length,
+    wavePlans: generateWavePlans(waveTemplates, rng),
     spawnQueue: [],
     spawnTimer: 0.8,
-    phaseTimer: 0.45,
+    phaseTimer: config.introDelay ?? 0.55,
     zoneAlpha: 0,
-    bannerText: "Wave 1 Incoming",
+    bannerText: config.title || "Expedition Begins",
     bannerTimer: 1.5,
     arena,
+    bossEnabled: Boolean(config.bossEnabled),
+    completionText: config.completionText || "Area Cleansed",
+    threatTier: config.threatTier || 1,
+    title: config.title || "Cleansing Site",
+    regionName: config.regionName || "",
+    poiTypeId: config.poiTypeId || "nest",
+    rng,
   };
 }
 
@@ -44,10 +40,8 @@ export function updateEncounter(state, dt) {
   encounter.bannerTimer = Math.max(0, encounter.bannerTimer - dt);
 
   const wantsZone =
-    encounter.phase === "bossIntro" ||
-    encounter.phase === "boss" ||
-    encounter.phase === "cleared" ||
-    Boolean(state.boss);
+    encounter.bossEnabled &&
+    (encounter.phase === "bossIntro" || encounter.phase === "boss" || encounter.phase === "cleared" || Boolean(state.boss));
   const targetZoneAlpha = wantsZone ? 1 : 0;
   encounter.zoneAlpha += (targetZoneAlpha - encounter.zoneAlpha) * Math.min(1, 3.5 * dt);
 
@@ -74,10 +68,10 @@ export function updateEncounter(state, dt) {
       if (encounter.spawnQueue.length === 0 && state.enemies.length === 0) {
         if (encounter.waveIndex < encounter.totalWaves - 1) {
           encounter.phase = "intermission";
-          encounter.phaseTimer = 1.35;
-          encounter.bannerText = `Wave ${encounter.waveIndex + 2} Incoming`;
-          encounter.bannerTimer = 1.4;
-        } else {
+          encounter.phaseTimer = 1.15;
+          encounter.bannerText = `Wave ${encounter.waveIndex + 2}`;
+          encounter.bannerTimer = 1.2;
+        } else if (encounter.bossEnabled) {
           encounter.phase = "bossIntro";
           encounter.phaseTimer = 1.8;
           encounter.bannerText = "Heart Guardian Awakens";
@@ -89,6 +83,12 @@ export function updateEncounter(state, dt) {
             size: [2, 6],
             life: [0.2, 0.6],
           });
+        } else {
+          state.areaCleared = true;
+          encounter.phase = "cleared";
+          encounter.bannerText = encounter.completionText;
+          encounter.bannerTimer = 1.8;
+          state.shake = Math.max(state.shake, 6);
         }
       }
       break;
@@ -111,7 +111,7 @@ export function updateEncounter(state, dt) {
       if (state.boss && state.boss.dead && state.enemies.length === 0) {
         state.areaCleared = true;
         encounter.phase = "cleared";
-        encounter.bannerText = "Heart Restored";
+        encounter.bannerText = encounter.completionText;
         encounter.bannerTimer = 2.4;
         state.shake = Math.max(state.shake, 7);
       }
@@ -121,14 +121,14 @@ export function updateEncounter(state, dt) {
   }
 }
 
-function generateWavePlans() {
-  return WAVE_OPTIONS.map((waveSet) => {
-    const template = waveSet[Math.floor(Math.random() * waveSet.length)];
-    const shuffled = [...template].sort(() => Math.random() - 0.5);
+function generateWavePlans(waveTemplates, rng) {
+  return waveTemplates.map((waveSet) => {
+    const template = waveSet[Math.floor(rng() * waveSet.length)];
+    const shuffled = shuffleFrom(rng, template);
 
     return shuffled.map((type, index) => ({
       type,
-      delay: index === 0 ? 0.28 : randomRange(0.5, 0.92),
+      delay: index === 0 ? 0.28 : randomRangeFrom(rng, 0.45, 0.85),
     }));
   });
 }
@@ -138,7 +138,7 @@ function beginWave(state, waveIndex) {
   encounter.waveIndex = waveIndex;
   encounter.phase = "wave";
   encounter.spawnQueue = encounter.wavePlans[waveIndex].map((item) => ({ ...item }));
-  encounter.spawnTimer = 0.28;
+  encounter.spawnTimer = 0.22;
 }
 
 function updateWaveSpawning(state, dt) {
@@ -157,10 +157,11 @@ function updateWaveSpawning(state, dt) {
 
 function spawnEnemyFromDirector(state, type) {
   const player = state.player;
-  const spawn = pickSpawnPoint(state.arena.spawnPoints, player.x, player.y);
+  const spawn = pickSpawnPoint(state.arena.spawnPoints, player.x, player.y, state.encounter.rng);
   const waveIndex = Math.max(0, state.encounter.waveIndex);
-  const hpScale = [1.25, 1.45, 1.7][waveIndex] || 1.7;
-  const damageScale = [1, 1.08, 1.18][waveIndex] || 1.18;
+  const threat = Math.max(1, state.encounter.threatTier);
+  const hpScale = 1 + threat * 0.18 + waveIndex * 0.18;
+  const damageScale = 1 + Math.max(0, threat - 1) * 0.08 + waveIndex * 0.06;
 
   state.enemies.push(new Enemy(spawn.x, spawn.y, type, { hpScale, damageScale }));
 
@@ -173,16 +174,16 @@ function spawnEnemyFromDirector(state, type) {
   });
 }
 
-function pickSpawnPoint(spawnPoints, avoidX, avoidY) {
+function pickSpawnPoint(spawnPoints, avoidX, avoidY, rng) {
   const valid = spawnPoints
     .map((point) => ({
       ...point,
-      score: distance(point.x, point.y, avoidX, avoidY) + randomRange(-70, 70),
+      score: distance(point.x, point.y, avoidX, avoidY) + randomRangeFrom(rng, -70, 70),
     }))
     .sort((a, b) => b.score - a.score);
 
   const topChoices = valid.slice(0, 4);
-  return topChoices[Math.floor(Math.random() * topChoices.length)];
+  return topChoices[Math.floor(rng() * topChoices.length)];
 }
 
 function spawnBoss(state) {

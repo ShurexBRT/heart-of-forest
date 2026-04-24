@@ -36,7 +36,7 @@ function drawEncounterInfo(ctx, state) {
   if (state.areaCleared || state.gameOver) return;
 
   const encounter = state.encounter;
-  const x = state.viewport.width - 214;
+  const x = state.viewport.width - 254;
   const y = 20;
   const aliveThreats = state.enemies.length + encounter.spawnQueue.length + (state.boss && !state.boss.dead ? 1 : 0);
   const displayedWave =
@@ -50,13 +50,17 @@ function drawEncounterInfo(ctx, state) {
       ? "Boss Encounter"
       : `Wave ${displayedWave}/${encounter.totalWaves}`;
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.44)";
-  ctx.fillRect(x, y, 192, 46);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.48)";
+  ctx.fillRect(x, y, 228, 72);
   ctx.fillStyle = "#f6fff1";
   ctx.font = "700 13px Segoe UI, Arial";
-  ctx.fillText(waveLabel, x + 12, y + 18);
+  ctx.fillText(encounter.title, x + 12, y + 18);
   ctx.font = "12px Segoe UI, Arial";
-  ctx.fillText(`Threats ${aliveThreats}`, x + 12, y + 36);
+  ctx.fillStyle = "rgba(246,255,241,0.82)";
+  ctx.fillText(encounter.regionName, x + 12, y + 34);
+  ctx.fillStyle = "#f6fff1";
+  ctx.fillText(waveLabel, x + 12, y + 52);
+  ctx.fillText(`Threats ${aliveThreats}`, x + 132, y + 52);
 }
 
 function drawBossBar(ctx, state) {
@@ -142,7 +146,7 @@ function drawBanner(ctx, state) {
   ctx.textAlign = "center";
   ctx.font = "700 24px Segoe UI, Arial";
   ctx.fillStyle = "#f7f7d8";
-  ctx.fillText(state.encounter.bannerText, state.viewport.width / 2, 94);
+  ctx.fillText(state.encounter.bannerText, state.viewport.width / 2, 104);
   ctx.restore();
   ctx.textAlign = "left";
 }
@@ -151,21 +155,23 @@ function drawEndState(ctx, state) {
   if (!state.areaCleared && !state.gameOver) return;
 
   const { viewport } = state;
-  const panelW = 350;
-  const panelH = 108;
+  const panelW = 390;
+  const panelH = 120;
   const x = viewport.width / 2 - panelW / 2;
   const y = viewport.height / 2 - panelH / 2;
+  const title = state.areaCleared ? state.encounter.completionText : "Ayla Has Fallen";
+  const prompt = state.areaCleared ? "Press Enter to return to the region map" : "Press R to retreat to the region map";
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.68)";
+  ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
   ctx.fillRect(x, y, panelW, panelH);
 
   ctx.textAlign = "center";
   ctx.font = "700 28px Segoe UI, Arial";
   ctx.fillStyle = state.areaCleared ? "#dfffd3" : "#ffd5cd";
-  ctx.fillText(state.areaCleared ? "Heart Restored" : "Ayla Has Fallen", viewport.width / 2, y + 44);
+  ctx.fillText(title, viewport.width / 2, y + 44);
 
   ctx.font = "15px Segoe UI, Arial";
   ctx.fillStyle = "#eff7e8";
-  ctx.fillText("Press R to restart", viewport.width / 2, y + 76);
+  ctx.fillText(prompt, viewport.width / 2, y + 78);
   ctx.textAlign = "left";
 }
