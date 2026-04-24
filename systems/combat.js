@@ -15,7 +15,8 @@ const STAFF_RANGE = 68;
 const STAFF_ARC = Math.PI * 0.78;
 const STAFF_SPIRIT_GAIN = 6;
 const ROOTED_STAFF_SPIRIT_GAIN = 6;
-const BOLT_SPEED = 535;
+const BOLT_SPEED = 485;
+const BOLT_MAX_DISTANCE = 360;
 const ROOT_RANGE = 190;
 const ROOT_RADIUS = 48;
 const BLOOM_WINDOW = 1.1;
@@ -192,8 +193,9 @@ function castSpiritBolt(state) {
     vx: direction.x * BOLT_SPEED,
     vy: direction.y * BOLT_SPEED,
     radius: 6,
-    life: 1.25,
+    life: 0.9,
     damage: 24,
+    distanceLeft: BOLT_MAX_DISTANCE,
   });
 
   spawnBurst(state, player.x + direction.x * 18, player.y + direction.y * 18, {
@@ -300,9 +302,12 @@ function castRootSnare(state) {
 
 function updateProjectiles(state, dt) {
   for (const projectile of state.projectiles) {
-    projectile.x += projectile.vx * dt;
-    projectile.y += projectile.vy * dt;
+    const moveX = projectile.vx * dt;
+    const moveY = projectile.vy * dt;
+    projectile.x += moveX;
+    projectile.y += moveY;
     projectile.life -= dt;
+    projectile.distanceLeft -= Math.hypot(moveX, moveY);
 
     projectile.trailTimer = (projectile.trailTimer || 0) - dt;
     if (projectile.trailTimer <= 0) {
@@ -321,6 +326,7 @@ function updateProjectiles(state, dt) {
       projectile.y < 0 ||
       projectile.x > state.arena.width ||
       projectile.y > state.arena.height ||
+      projectile.distanceLeft <= 0 ||
       collidesWithObstacle(projectile.x, projectile.y, projectile.radius, state.arena)
     ) {
       impactProjectile(state, projectile);

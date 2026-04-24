@@ -32,16 +32,19 @@ const ENEMY_CONFIG = {
 };
 
 export class Enemy {
-  constructor(x, y, type = "basic") {
+  constructor(x, y, type = "basic", options = {}) {
     const config = ENEMY_CONFIG[type] || ENEMY_CONFIG.basic;
+    const hpScale = options.hpScale ?? 1;
+    const damageScale = options.damageScale ?? 1;
 
     this.x = x;
     this.y = y;
     this.type = type;
     this.config = config;
     this.radius = config.radius;
-    this.maxHp = config.maxHp;
-    this.hp = config.maxHp;
+    this.maxHp = Math.round(config.maxHp * hpScale);
+    this.hp = this.maxHp;
+    this.damage = Math.round(config.damage * damageScale);
     this.vx = 0;
     this.vy = 0;
     this.state = "idle";
@@ -165,7 +168,7 @@ export class Enemy {
     if (this.stateTimer > 0) return;
 
     if (playerDistance < this.config.attackRange + state.player.radius + 8) {
-      damagePlayer(state, this.config.damage, this.x, this.y, this.config.knockback);
+      damagePlayer(state, this.damage, this.x, this.y, this.config.knockback);
     }
 
     const lunge = this.type === "brute" ? 170 : 85;

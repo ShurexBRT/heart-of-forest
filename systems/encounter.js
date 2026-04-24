@@ -31,7 +31,7 @@ export function createEncounterState(arena) {
     wavePlans: generateWavePlans(),
     spawnQueue: [],
     spawnTimer: 0.8,
-    phaseTimer: 1.1,
+    phaseTimer: 0.45,
     zoneAlpha: 0,
     bannerText: "Wave 1 Incoming",
     bannerTimer: 1.5,
@@ -158,8 +158,11 @@ function updateWaveSpawning(state, dt) {
 function spawnEnemyFromDirector(state, type) {
   const player = state.player;
   const spawn = pickSpawnPoint(state.arena.spawnPoints, player.x, player.y);
+  const waveIndex = Math.max(0, state.encounter.waveIndex);
+  const hpScale = [1.25, 1.45, 1.7][waveIndex] || 1.7;
+  const damageScale = [1, 1.08, 1.18][waveIndex] || 1.18;
 
-  state.enemies.push(new Enemy(spawn.x, spawn.y, type));
+  state.enemies.push(new Enemy(spawn.x, spawn.y, type, { hpScale, damageScale }));
 
   spawnBurst(state, spawn.x, spawn.y, {
     count: type === "brute" ? 18 : 14,

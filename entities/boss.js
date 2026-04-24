@@ -12,7 +12,7 @@ export class Boss {
     this.y = spawn.y;
     this.zone = zone;
     this.radius = 38;
-    this.maxHp = 560;
+    this.maxHp = 920;
     this.hp = this.maxHp;
     this.vx = 0;
     this.vy = 0;
