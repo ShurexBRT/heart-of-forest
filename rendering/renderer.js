@@ -384,6 +384,33 @@ function drawEnemyStatus(ctx, enemy, state) {
     ctx.restore();
   }
 
+  if (enemy.bloom > 0) {
+    const orbitRadius = enemy.radius + 12;
+
+    ctx.save();
+    ctx.globalAlpha = 0.7;
+    ctx.strokeStyle = "#eff59a";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(enemy.x, enemy.y, orbitRadius + Math.sin(state.time * 10) * 1.2, 0, Math.PI * 2);
+    ctx.stroke();
+
+    for (let i = 0; i < 4; i += 1) {
+      const angle = state.time * 3.2 + (Math.PI * 2 * i) / 4;
+      const px = enemy.x + Math.cos(angle) * orbitRadius;
+      const py = enemy.y + Math.sin(angle) * orbitRadius;
+
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate(angle);
+      ctx.fillStyle = i % 2 === 0 ? "#dff68a" : "#9be98d";
+      ctx.fillRect(-3, -3, 6, 6);
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
   if (enemy.state === "windup") {
     ctx.save();
     ctx.strokeStyle = enemy.type === "brute" ? "#ffb45d" : "#ffd27a";

@@ -52,6 +52,7 @@ export class Enemy {
     this.hitFlash = 0;
     this.stun = 0;
     this.rooted = 0;
+    this.bloom = 0;
     this.dead = false;
   }
 
@@ -61,6 +62,7 @@ export class Enemy {
     this.hitFlash = Math.max(0, this.hitFlash - dt);
     this.stun = Math.max(0, this.stun - dt);
     this.rooted = Math.max(0, this.rooted - dt);
+    this.bloom = Math.max(0, this.bloom - dt);
 
     const player = state.player;
     const toPlayer = normalize(player.x - this.x, player.y - this.y);

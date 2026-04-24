@@ -17,6 +17,7 @@ A small, polished HTML5 Canvas gameplay prototype for a 2D top-down action RPG. 
 - Smooth 8-direction movement with acceleration, deceleration, dash burst, and obstacle collision
 - Ayla, a readable white-hood forest guardian placeholder character
 - Staff Strike melee arc with hit flash, stun, knockback, particles, and light screen shake
+- Staff Strike restores Spirit on hit and primes rooted enemies for a stronger follow-up Spirit Bolt
 - Spirit Bolt projectile with travel, spirit cost, cooldown, obstacle collision, and impact feedback
 - Quick Dash with a short invulnerability window and afterimage feedback
 - Root Snare short-range nature skill with visible vines and enemy root effect

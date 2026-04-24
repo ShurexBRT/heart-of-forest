@@ -13,9 +13,13 @@ import { spawnBurst } from "./particles.js";
 
 const STAFF_RANGE = 68;
 const STAFF_ARC = Math.PI * 0.78;
+const STAFF_SPIRIT_GAIN = 6;
+const ROOTED_STAFF_SPIRIT_GAIN = 6;
 const BOLT_SPEED = 535;
 const ROOT_RANGE = 190;
 const ROOT_RADIUS = 48;
+const BLOOM_WINDOW = 1.1;
+const BLOOM_BOLT_BONUS = 12;
 
 export function handlePlayerAbilities(state, input) {
   const player = state.player;
@@ -115,6 +119,8 @@ function castStaffStrike(state) {
   });
 
   let hit = false;
+  let spiritGain = 0;
+  let openedBloom = false;
 
   for (const enemy of state.enemies) {
     if (enemy.dead) continue;
@@ -125,8 +131,27 @@ function castStaffStrike(state) {
 
     if (enemyDistance <= STAFF_RANGE + enemy.radius && isInArc) {
       hit = true;
+      const wasRooted = enemy.rooted > 0;
       damageEnemy(state, enemy, 22, player.x, player.y, 285, 0.18);
+      spiritGain += wasRooted ? STAFF_SPIRIT_GAIN + ROOTED_STAFF_SPIRIT_GAIN : STAFF_SPIRIT_GAIN;
+
+      if (wasRooted && !enemy.dead) {
+        enemy.bloom = Math.max(enemy.bloom, BLOOM_WINDOW);
+        openedBloom = true;
+
+        spawnBurst(state, enemy.x, enemy.y, {
+          count: 10,
+          colors: ["#eaff9f", "#9eec72", "#fff0aa"],
+          speed: 160,
+          size: [2, 4],
+          life: [0.12, 0.34],
+        });
+      }
     }
+  }
+
+  if (spiritGain > 0) {
+    gainSpirit(state, spiritGain);
   }
 
   const burstX = player.x + Math.cos(player.aimAngle) * 32;
@@ -134,7 +159,11 @@ function castStaffStrike(state) {
 
   spawnBurst(state, burstX, burstY, {
     count: hit ? 12 : 6,
-    colors: hit ? ["#fff0a8", "#ffe08a", "#f6c36a"] : ["#d7e7c6", "#f5f3df"],
+    colors: openedBloom
+      ? ["#efffaa", "#9eed7b", "#f3d27a"]
+      : hit
+        ? ["#fff0a8", "#ffe08a", "#f6c36a"]
+        : ["#d7e7c6", "#f5f3df"],
     speed: hit ? 235 : 140,
     size: [2, 4],
     life: [0.12, 0.32],
@@ -294,7 +323,22 @@ function updateProjectiles(state, dt) {
       if (enemy.dead) continue;
 
       if (distance(projectile.x, projectile.y, enemy.x, enemy.y) <= projectile.radius + enemy.radius) {
-        damageEnemy(state, enemy, projectile.damage, projectile.x, projectile.y, 235, 0.12);
+        const bloomBonus = enemy.bloom > 0 ? BLOOM_BOLT_BONUS : 0;
+
+        if (bloomBonus > 0) {
+          enemy.bloom = 0;
+          state.shake = Math.max(state.shake, 4.4);
+
+          spawnBurst(state, enemy.x, enemy.y, {
+            count: 18,
+            colors: ["#f3ffaf", "#8ef27a", "#a9f7ff", "#f3f3c2"],
+            speed: 250,
+            size: [2, 5],
+            life: [0.18, 0.45],
+          });
+        }
+
+        damageEnemy(state, enemy, projectile.damage + bloomBonus, projectile.x, projectile.y, 235, 0.12);
         impactProjectile(state, projectile);
         break;
       }
@@ -349,6 +393,25 @@ function impactProjectile(state, projectile) {
   });
 }
 
+function gainSpirit(state, amount) {
+  const player = state.player;
+  const gained = Math.min(amount, player.maxSpirit - player.spirit);
+
+  if (gained <= 0) return;
+
+  player.spirit += gained;
+
+  spawnBurst(state, player.x, player.y - 14, {
+    count: 8 + Math.min(6, gained),
+    colors: ["#97ebff", "#dffff1", "#9eed7b"],
+    speed: 150,
+    size: [2, 4],
+    life: [0.14, 0.34],
+    spread: Math.PI * 0.8,
+    angle: -Math.PI / 2,
+  });
+}
+
 function damageEnemy(state, enemy, amount, sourceX, sourceY, knockback, stun) {
   const direction = normalize(enemy.x - sourceX, enemy.y - sourceY);
 
@@ -369,6 +432,7 @@ function damageEnemy(state, enemy, amount, sourceX, sourceY, knockback, stun) {
 
   if (enemy.hp <= 0) {
     enemy.dead = true;
+    enemy.bloom = 0;
     state.shake = Math.max(state.shake, enemy.type === "brute" ? 7 : 4);
 
     spawnBurst(state, enemy.x, enemy.y, {
