@@ -1,6 +1,12 @@
 import { startGameLoop } from "./core/gameLoop.js";
 import { createInput, wasPressed } from "./core/input.js";
 import { clamp } from "./core/math.js";
+import {
+  CAMERA_SCREEN_Y,
+  getProjectedArenaBounds,
+  projectWorld,
+  screenToWorld,
+} from "./core/projection.js";
 import { INITIAL_SCENE_ID, SCENES } from "./data/sceneNetwork.js";
 import { Player } from "./entities/player.js";
 import { renderGame } from "./rendering/renderer.js";
@@ -10,11 +16,23 @@ import {
   updateCombatEffects,
 } from "./systems/combat.js";
 import { createEncounterState, updateEncounter } from "./systems/encounter.js";
+import { updateEnvironment } from "./systems/environment.js";
 import { updateParticles } from "./systems/particles.js";
 import { createProgression, getPlayerBonuses } from "./systems/progression.js";
+import {
+  advanceDialogue,
+  beginInteraction,
+  consumeStoryEvents,
+  createStoryState,
+  getActiveQuestEntries,
+  getNearestInteractionTarget,
+  refreshQuestStates,
+  updateQuestAvailability,
+  updateStoryRuntime,
+} from "./systems/story.js";
 import { createArena } from "./world/arena.js";
 
-const TRANSITION_DURATION = 0.3;
+const TRANSITION_DURATION = 0.34;
 const EXIT_HOLD_TIME = 0.22;
 
 const canvas = document.getElementById("game");
@@ -36,6 +54,8 @@ function createState(currentProgression) {
     currentSceneId,
     currentEntryId,
     sceneProgress,
+    story: createStoryState(),
+    storyEvents: [],
     nearExit: null,
     exitCharge: 0,
     transition: createTransitionState(),
@@ -64,10 +84,20 @@ function createTransitionState() {
 function buildSceneState(sceneId, entryId, currentProgression, sceneProgress) {
   const scene = SCENES[sceneId];
   const arena = createArena(scene);
+  const savedSceneState = sceneProgress[sceneId];
+
+  if (savedSceneState?.objectStates) {
+    for (const interactable of arena.interactables) {
+      if (savedSceneState.objectStates[interactable.id]) {
+        interactable.disabled = true;
+      }
+    }
+  }
+
   const spawn = arena.entrySpawns?.[entryId] || arena.entrySpawns?.default || arena.playerSpawn;
   const encounter = createEncounterState(arena, scene);
 
-  if (sceneProgress[sceneId]?.cleared) {
+  if (savedSceneState?.cleared) {
     deactivateEncounter(encounter);
   }
 
@@ -100,6 +130,16 @@ function deactivateEncounter(encounter) {
   encounter.bannerTimer = 0;
 }
 
+function ensureSceneProgress(sceneId) {
+  if (!state.sceneProgress[sceneId]) {
+    state.sceneProgress[sceneId] = {};
+  }
+
+  const sceneProgress = state.sceneProgress[sceneId];
+  sceneProgress.objectStates = sceneProgress.objectStates || {};
+  return sceneProgress;
+}
+
 function applySceneState(sceneId, entryId) {
   const next = buildSceneState(sceneId, entryId, state.progression, state.sceneProgress);
 
@@ -123,11 +163,18 @@ function applySceneState(sceneId, entryId) {
   state.shake = 0;
   state.gameOver = false;
   state.areaCleared = false;
+  state.story.focus = null;
+  state.story.prompt = "";
+  state.story.dialogue = null;
+  updateQuestAvailability(state);
+  refreshQuestStates(state);
   updateCamera(0);
   updateMouseWorld();
 }
 
 function reloadCurrentScene() {
+  const sceneProgress = ensureSceneProgress(state.currentSceneId);
+  sceneProgress.cleared = false;
   applySceneState(state.currentSceneId, state.currentEntryId || "default");
 }
 
@@ -146,10 +193,19 @@ function resizeCanvas() {
 
 function updateCamera(dt) {
   const { arena, player, viewport, camera } = state;
-  const maxX = arena.width - viewport.width;
-  const maxY = arena.height - viewport.height;
-  const targetX = maxX > 0 ? clamp(player.x - viewport.width / 2, 0, maxX) : maxX / 2;
-  const targetY = maxY > 0 ? clamp(player.y - viewport.height / 2, 0, maxY) : maxY / 2;
+  const target = projectWorld(player.x, player.y);
+  const bounds = getProjectedArenaBounds(arena);
+  const anchorX = viewport.width / 2;
+  const anchorY = viewport.height * CAMERA_SCREEN_Y;
+  const padding = 110;
+
+  const minX = bounds.minX + anchorX - padding;
+  const maxX = bounds.maxX - (viewport.width - anchorX) + padding;
+  const minY = bounds.minY + anchorY - padding;
+  const maxY = bounds.maxY - (viewport.height - anchorY) + padding;
+
+  const targetX = minX <= maxX ? clamp(target.x, minX, maxX) : (minX + maxX) / 2;
+  const targetY = minY <= maxY ? clamp(target.y, minY, maxY) : (minY + maxY) / 2;
 
   if (dt <= 0) {
     camera.x = targetX;
@@ -157,23 +213,30 @@ function updateCamera(dt) {
     return;
   }
 
-  const follow = Math.min(1, 10 * dt);
+  const follow = Math.min(1, 7.5 * dt);
   camera.x += (targetX - camera.x) * follow;
   camera.y += (targetY - camera.y) * follow;
 }
 
 function updateMouseWorld() {
-  state.mouseWorld.x = input.mouse.x + state.camera.x;
-  state.mouseWorld.y = input.mouse.y + state.camera.y;
+  const projectedX = input.mouse.x + state.camera.x - state.viewport.width / 2;
+  const projectedY = input.mouse.y + state.camera.y - state.viewport.height * CAMERA_SCREEN_Y;
+  const world = screenToWorld(projectedX, projectedY);
+
+  state.mouseWorld.x = clamp(world.x, 0, state.arena.width);
+  state.mouseWorld.y = clamp(world.y, 0, state.arena.height);
 }
 
 function findExitForPlayer() {
-  return state.arena.exits.find((exit) =>
-    state.player.x >= exit.x &&
-    state.player.x <= exit.x + exit.w &&
-    state.player.y >= exit.y &&
-    state.player.y <= exit.y + exit.h
-  ) || null;
+  return (
+    state.arena.exits.find(
+      (exit) =>
+        state.player.x >= exit.x &&
+        state.player.x <= exit.x + exit.w &&
+        state.player.y >= exit.y &&
+        state.player.y <= exit.y + exit.h
+    ) || null
+  );
 }
 
 function startTransition(exit) {
@@ -210,12 +273,13 @@ function updateTransition(dt) {
 }
 
 function handleSceneCleared() {
-  if (state.sceneProgress[state.currentSceneId]?.cleared) {
+  const sceneProgress = ensureSceneProgress(state.currentSceneId);
+  if (sceneProgress.cleared) {
     state.areaCleared = false;
     return;
   }
 
-  state.sceneProgress[state.currentSceneId] = { cleared: true };
+  sceneProgress.cleared = true;
   state.areaCleared = false;
   state.boss = null;
   state.enemies = [];
@@ -227,7 +291,7 @@ function handleSceneCleared() {
 }
 
 function updateExitCharge(dt) {
-  if (state.gameOver || state.transition.active) {
+  if (state.gameOver || state.transition.active || state.story.dialogue) {
     state.nearExit = null;
     state.exitCharge = 0;
     return;
@@ -248,10 +312,48 @@ function updateExitCharge(dt) {
   }
 }
 
+function updateInteractionState() {
+  updateQuestAvailability(state);
+  refreshQuestStates(state);
+  consumeStoryEvents(state);
+
+  if (state.story.dialogue) {
+    state.story.focus = null;
+    state.story.prompt = "";
+    return;
+  }
+
+  getNearestInteractionTarget(state);
+}
+
+function handleInteractionInput() {
+  if (state.story.dialogue) {
+    if (
+      wasPressed(input, "e", "KeyE") ||
+      wasPressed(input, "enter", "Enter") ||
+      wasPressed(input, " ", "Space")
+    ) {
+      advanceDialogue(state);
+      return true;
+    }
+
+    return true;
+  }
+
+  if (wasPressed(input, "e", "KeyE") && state.story.focus) {
+    beginInteraction(state, state.story.focus);
+    return true;
+  }
+
+  return false;
+}
+
 function update(dt) {
   state.time += dt;
   state.shake = Math.max(0, state.shake - 30 * dt);
   updateMouseWorld();
+  updateStoryRuntime(state, dt);
+  updateInteractionState();
 
   if (state.gameOver && (wasPressed(input, "r", "KeyR") || wasPressed(input, "enter", "Enter"))) {
     reloadCurrentScene();
@@ -266,10 +368,13 @@ function update(dt) {
 
   state.player.tick(dt);
 
-  if (!state.gameOver) {
+  const interactionBlocked = handleInteractionInput();
+
+  if (!state.gameOver && !interactionBlocked) {
     handlePlayerAbilities(state, input);
     state.player.move(dt, input, state);
     updateCombatEffects(state, dt);
+    updateEnvironment(state, dt);
 
     for (const enemy of state.enemies) {
       enemy.update(dt, state);
@@ -280,6 +385,7 @@ function update(dt) {
   }
 
   updateEncounter(state, dt);
+  consumeStoryEvents(state);
 
   if (state.areaCleared) {
     handleSceneCleared();
@@ -291,11 +397,14 @@ function update(dt) {
 }
 
 function render() {
+  state.activeQuests = getActiveQuestEntries(state.progression);
   renderGame(ctx, state);
 }
 
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
+updateQuestAvailability(state);
+refreshQuestStates(state);
 updateMouseWorld();
 
 window.__heartOfForestDebug = {

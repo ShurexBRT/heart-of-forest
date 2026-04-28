@@ -74,7 +74,7 @@ export function updateEncounter(state, dt) {
         } else if (encounter.bossEnabled) {
           encounter.phase = "bossIntro";
           encounter.phaseTimer = 1.8;
-          encounter.bannerText = "Heart Guardian Awakens";
+          encounter.bannerText = state.scene.bossName ? `${state.scene.bossName} Awakens` : "Heart Guardian Awakens";
           encounter.bannerTimer = 1.8;
           spawnBurst(state, state.arena.bossZone.x, state.arena.bossZone.y, {
             count: 34,
@@ -188,7 +188,7 @@ function pickSpawnPoint(spawnPoints, avoidX, avoidY, rng) {
 
 function spawnBoss(state) {
   const zone = state.arena.bossZone;
-  state.boss = new Boss({ x: zone.x, y: zone.y }, zone);
+  state.boss = new Boss({ x: zone.x, y: zone.y }, zone, state.scene);
   state.hostileProjectiles = [];
   state.eruptions = [];
 

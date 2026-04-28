@@ -1,4 +1,5 @@
 import { BIOMES } from "../data/gameData.js";
+import { NPC_DEFS } from "../data/storyData.js";
 import { createRng, randomIntFrom } from "../systems/rng.js";
 
 const TILE_SIZE = 16;
@@ -6,13 +7,13 @@ const COLS = 100;
 const ROWS = 60;
 const WIDTH = COLS * TILE_SIZE;
 const HEIGHT = ROWS * TILE_SIZE;
-const BOUNDS_PADDING = 32;
+const BOUNDS_PADDING = 28;
 
 function createTile(rng) {
   return {
     ground: "grass",
     variant: randomIntFrom(rng, 0, 2),
-    overlay: rng() > 0.9 ? "clover" : null,
+    overlay: rng() > 0.94 ? "clover" : null,
   };
 }
 
@@ -53,18 +54,18 @@ function stampRect(tiles, x, y, w, h, ground, variant = 0) {
   }
 }
 
-function paintPath(tiles, x0, y0, x1, y1, radius, variant = 0) {
+function paintPath(tiles, x0, y0, x1, y1, radius, ground = "path", variant = 0) {
   const steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
 
   for (let i = 0; i <= steps; i += 1) {
     const t = steps === 0 ? 0 : i / steps;
     const x = x0 + (x1 - x0) * t;
     const y = y0 + (y1 - y0) * t;
-    stampEllipse(tiles, x, y, radius, radius * 0.8, "path", variant);
+    stampEllipse(tiles, x, y, radius, radius * 0.8, ground, variant);
   }
 }
 
-function scatterFlowers(tiles, rng, x, y, w, h, count, overlay) {
+function scatterOverlay(tiles, rng, x, y, w, h, count, overlay) {
   for (let i = 0; i < count; i += 1) {
     setOverlay(
       tiles,
@@ -83,175 +84,272 @@ function clearOverlayRect(tiles, x, y, w, h) {
   }
 }
 
-function tree(x, y, size, variant = 0) {
-  return {
-    type: "tree",
-    variant,
-    x,
-    y,
-    w: size,
-    h: size + 40,
-    sortY: y + size + 18,
-    solid: {
-      x: x + size * 0.3,
-      y: y + size * 0.64,
-      w: size * 0.38,
-      h: size * 0.32,
-    },
-  };
-}
+function createObstacle(type, x, y, w, h, solid, extra = {}) {
+  const anchorX = extra.anchorX ?? solid.x + solid.w / 2;
+  const anchorY = extra.anchorY ?? solid.y + solid.h;
 
-function rock(x, y, w, h, variant = 0) {
   return {
-    type: "rock",
-    variant,
+    type,
     x,
     y,
     w,
     h,
-    sortY: y + h,
-    solid: {
+    solid,
+    anchorX,
+    anchorY,
+    sortY: extra.sortY ?? anchorY,
+    ...extra,
+  };
+}
+
+function tree(x, y, size, style = "forest") {
+  return createObstacle(
+    style === "charredTree" ? "charredTree" : "tree",
+    x,
+    y,
+    size,
+    size + 58,
+    {
+      x: x + size * 0.32,
+      y: y + size * 0.76,
+      w: size * 0.36,
+      h: size * 0.24,
+    },
+    { style }
+  );
+}
+
+function rock(x, y, w, h, style = "stone") {
+  return createObstacle(
+    style === "iceRock" ? "iceRock" : "rock",
+    x,
+    y,
+    w,
+    h,
+    {
       x: x + 6,
-      y: y + 6,
+      y: y + 8,
       w: w - 12,
-      h: h - 10,
+      h: h - 12,
     },
-  };
+    { style }
+  );
 }
 
-function fenceH(x, y, width) {
-  return {
-    type: "fenceH",
+function bush(x, y, w, h, style = "forest") {
+  return createObstacle(
+    "bush",
     x,
     y,
-    w: width,
-    h: 28,
-    sortY: y + 24,
-    solid: {
+    w,
+    h,
+    {
       x: x + 4,
-      y: y + 12,
-      w: width - 8,
-      h: 8,
+      y: y + 10,
+      w: w - 8,
+      h: h - 14,
     },
-  };
+    { style }
+  );
 }
 
-function fenceV(x, y, height) {
-  return {
-    type: "fenceV",
+function water(x, y, w, h, style = "water") {
+  return createObstacle(
+    "water",
     x,
     y,
-    w: 28,
-    h: height,
-    sortY: y + height,
-    solid: {
-      x: x + 10,
-      y: y + 6,
-      w: 8,
-      h: height - 12,
+    w,
+    h,
+    {
+      x: x,
+      y: y,
+      w,
+      h,
     },
-  };
+    { style, anchorY: y + h }
+  );
+}
+
+function ruin(x, y, w, h, style = "ruin") {
+  return createObstacle(
+    "ruin",
+    x,
+    y,
+    w,
+    h,
+    {
+      x: x + 10,
+      y: y + 18,
+      w: w - 20,
+      h: h - 24,
+    },
+    { style }
+  );
 }
 
 function cottage(x, y) {
-  return {
-    type: "cottage",
+  return createObstacle(
+    "cottage",
     x,
     y,
-    w: 256,
-    h: 192,
-    sortY: y + 176,
-    solid: {
-      x: x + 28,
-      y: y + 94,
-      w: 200,
-      h: 70,
+    250,
+    200,
+    {
+      x: x + 30,
+      y: y + 110,
+      w: 188,
+      h: 58,
     },
-  };
+    { anchorX: x + 124, anchorY: y + 170 }
+  );
 }
 
 function well(x, y) {
-  return {
-    type: "well",
+  return createObstacle(
+    "well",
     x,
     y,
-    w: 88,
-    h: 90,
-    sortY: y + 78,
-    solid: {
-      x: x + 14,
-      y: y + 30,
-      w: 60,
-      h: 42,
+    82,
+    86,
+    {
+      x: x + 12,
+      y: y + 26,
+      w: 56,
+      h: 38,
     },
-  };
+    { anchorX: x + 41, anchorY: y + 64 }
+  );
+}
+
+function fenceH(x, y, width) {
+  return createObstacle(
+    "fenceH",
+    x,
+    y,
+    width,
+    22,
+    {
+      x: x + 2,
+      y: y + 8,
+      w: width - 4,
+      h: 8,
+    },
+    { anchorX: x + width / 2, anchorY: y + 14 }
+  );
+}
+
+function fenceV(x, y, height) {
+  return createObstacle(
+    "fenceV",
+    x,
+    y,
+    22,
+    height,
+    {
+      x: x + 8,
+      y: y + 2,
+      w: 8,
+      h: height - 4,
+    },
+    { anchorX: x + 11, anchorY: y + height }
+  );
 }
 
 function signpost(x, y) {
-  return {
-    type: "signpost",
+  return createObstacle(
+    "signpost",
     x,
     y,
-    w: 34,
-    h: 42,
-    sortY: y + 42,
-    solid: {
-      x: x + 10,
+    32,
+    42,
+    {
+      x: x + 9,
       y: y + 16,
-      w: 12,
-      h: 18,
+      w: 10,
+      h: 16,
     },
+    { anchorX: x + 16, anchorY: y + 34 }
+  );
+}
+
+function lantern(x, y, style = "warm") {
+  return createObstacle(
+    "lantern",
+    x,
+    y,
+    24,
+    50,
+    {
+      x: x + 9,
+      y: y + 16,
+      w: 6,
+      h: 22,
+    },
+    { style, anchorX: x + 12, anchorY: y + 40 }
+  );
+}
+
+function bridge(x, y, w, h) {
+  return createObstacle(
+    "bridge",
+    x,
+    y,
+    w,
+    h,
+    {
+      x,
+      y,
+      w,
+      h,
+    },
+    { anchorX: x + w / 2, anchorY: y + h }
+  );
+}
+
+function npc(id, x, y) {
+  const def = NPC_DEFS[id];
+  return {
+    id,
+    name: def.name,
+    role: def.role,
+    type: "npc",
+    x,
+    y,
+    w: 22,
+    h: 44,
+    interactionRadius: 58,
+    solid: {
+      x: x - 8,
+      y: y + 8,
+      w: 16,
+      h: 12,
+    },
+    anchorX: x,
+    anchorY: y + 18,
+    sortY: y + 18,
+    palette: def.palette,
   };
 }
 
-function cart(x, y) {
+function interactable(id, type, x, y, extra = {}) {
   return {
-    type: "cart",
+    id,
+    type,
     x,
     y,
-    w: 84,
-    h: 54,
-    sortY: y + 50,
-    solid: {
-      x: x + 10,
-      y: y + 18,
-      w: 64,
-      h: 24,
-    },
-  };
-}
-
-function lantern(x, y) {
-  return {
-    type: "lantern",
-    x,
-    y,
-    w: 24,
-    h: 50,
-    sortY: y + 48,
-    solid: {
-      x: x + 8,
-      y: y + 18,
-      w: 8,
-      h: 18,
-    },
-  };
-}
-
-function shrine(x, y) {
-  return {
-    type: "shrine",
-    x,
-    y,
-    w: 128,
-    h: 112,
-    sortY: y + 102,
-    solid: {
-      x: x + 22,
-      y: y + 46,
-      w: 84,
-      h: 44,
-    },
+    w: extra.w || 18,
+    h: extra.h || 18,
+    promptLabel: extra.promptLabel || extra.name || "Interact",
+    interactionRadius: extra.interactionRadius || 54,
+    requiresCleared: Boolean(extra.requiresCleared),
+    collectKey: extra.collectKey || null,
+    dialogueLines: extra.dialogueLines || null,
+    toastText: extra.toastText || null,
+    disabled: false,
+    name: extra.name || type,
+    sortY: extra.sortY ?? y + 10,
+    anchorX: extra.anchorX ?? x,
+    anchorY: extra.anchorY ?? y + 10,
   };
 }
 
@@ -286,286 +384,359 @@ function createBaseArena(context, tiles, props) {
     bossAddSpawns: props.bossAddSpawns,
     exits: props.exits,
     obstacles: props.obstacles,
+    npcs: props.npcs || [],
+    interactables: props.interactables || [],
+    hazards: props.hazards || [],
     theme: BIOMES[context.biomeId || "forest"].colors,
     biomeId: context.biomeId || "forest",
-    sceneStyle: context.sceneStyle || "villageClearing",
+    sceneStyle: context.sceneStyle,
   };
 }
 
-function buildVillageClearing(context, rng) {
+function buildWhisperingWoods(context, rng) {
   const tiles = createTiles(rng);
-  stampRect(tiles, 9, 8, 18, 10, "soil", 0);
-  stampRect(tiles, 10, 9, 16, 8, "path", 1);
-  stampEllipse(tiles, 46, 30, 14, 11, "path", 0);
-  stampEllipse(tiles, 46, 30, 9, 7, "soil", 1);
-  paintPath(tiles, 20, 19, 34, 25, 2, 1);
-  paintPath(tiles, 34, 25, 46, 30, 2, 0);
-  paintPath(tiles, 46, 30, 64, 27, 2, 0);
-  paintPath(tiles, 46, 30, 41, 40, 2, 1);
-  paintPath(tiles, 64, 27, 94, 29, 2, 1);
-  paintPath(tiles, 46, 18, 48, 5, 2, 1);
-  clearOverlayRect(tiles, 58, 22, 26, 16);
+  stampRect(tiles, 8, 8, 18, 10, "soil", 0);
+  stampEllipse(tiles, 48, 31, 16, 12, "path", 0);
+  stampEllipse(tiles, 48, 31, 9, 7, "soil", 1);
+  paintPath(tiles, 20, 18, 48, 31, 3, "path", 1);
+  paintPath(tiles, 48, 31, 90, 28, 3, "path", 1);
+  paintPath(tiles, 48, 31, 53, 7, 3, "path", 0);
+  scatterOverlay(tiles, rng, 10, 8, 18, 10, 24, "flowersWarm");
+  scatterOverlay(tiles, rng, 65, 16, 14, 10, 18, "flowersCool");
 
-  scatterFlowers(tiles, rng, 11, 9, 14, 8, 32, "flowersWarm");
-  scatterFlowers(tiles, rng, 31, 16, 12, 6, 18, "flowersCool");
-  scatterFlowers(tiles, rng, 64, 16, 12, 9, 22, "flowersWarm");
-  scatterFlowers(tiles, rng, 67, 39, 10, 8, 16, "flowersCool");
-  scatterFlowers(tiles, rng, 16, 40, 10, 8, 14, "flowersWarm");
+  const npcs = [
+    npc("elder_rowan", 366, 556),
+    npc("lysa", 468, 610),
+    npc("nettle", 536, 532),
+  ];
 
-  const obstacles = [
-    cottage(144, 96),
-    fenceH(144, 290, 72),
-    fenceH(252, 290, 56),
-    fenceH(356, 290, 48),
-    fenceV(144, 242, 96),
-    fenceV(380, 238, 100),
-    well(716, 340),
-    signpost(600, 394),
-    cart(964, 518),
-    lantern(520, 292),
-    lantern(866, 286),
-    tree(472, 164, 108, 0),
-    tree(1128, 118, 124, 1),
-    tree(1278, 630, 116, 0),
-    tree(368, 696, 120, 1),
-    tree(952, 730, 110, 0),
-    tree(1308, 318, 104, 1),
-    rock(870, 252, 72, 46, 0),
-    rock(520, 524, 74, 44, 1),
-    rock(1094, 476, 68, 42, 0),
-    rock(934, 648, 70, 44, 1),
+  const interactables = [
+    interactable("spirit-flower-1", "flower", 854, 334, {
+      name: "Spirit Flower",
+      promptLabel: "Spirit Flower",
+      collectKey: "spiritFlowers",
+      toastText: "Spirit Flower gathered",
+      sortY: 344,
+    }),
+    interactable("spirit-flower-2", "flower", 1026, 464, {
+      name: "Spirit Flower",
+      promptLabel: "Spirit Flower",
+      collectKey: "spiritFlowers",
+      toastText: "Spirit Flower gathered",
+      sortY: 474,
+    }),
+    interactable("spirit-flower-3", "flower", 894, 704, {
+      name: "Spirit Flower",
+      promptLabel: "Spirit Flower",
+      collectKey: "spiritFlowers",
+      toastText: "Spirit Flower gathered",
+      sortY: 714,
+    }),
   ];
 
   return createBaseArena(context, tiles, {
-    playerSpawn: { x: 632, y: 644 },
+    playerSpawn: { x: 392, y: 716 },
     entrySpawns: {
-      default: { x: 632, y: 644 },
-      eastRoad: { x: 1450, y: 466 },
-      northTrail: { x: 782, y: 106 },
+      default: { x: 392, y: 716 },
+      eastRoad: { x: 1438, y: 452 },
+      northTrail: { x: 850, y: 124 },
     },
     spawnPoints: [
-      { x: 112, y: 196 },
-      { x: 840, y: 112 },
-      { x: 1456, y: 238 },
-      { x: 1500, y: 470 },
-      { x: 1370, y: 820 },
-      { x: 948, y: 864 },
-      { x: 250, y: 834 },
-      { x: 84, y: 538 },
+      { x: 1060, y: 174 },
+      { x: 1470, y: 278 },
+      { x: 1490, y: 516 },
+      { x: 1210, y: 792 },
+      { x: 836, y: 844 },
     ],
-    bossZone: { x: 920, y: 420, radius: 192 },
+    bossZone: { x: 1080, y: 456, radius: 188 },
     bossAddSpawns: [
-      { x: 780, y: 420 },
-      { x: 920, y: 252 },
-      { x: 1080, y: 420 },
-      { x: 920, y: 592 },
+      { x: 918, y: 458 },
+      { x: 1080, y: 290 },
+      { x: 1238, y: 458 },
+      { x: 1080, y: 620 },
     ],
     exits: [
-      makeExit("eastRoad", 1480, 400, 72, 144, "right", context.connections.eastRoad),
-      makeExit("northTrail", 688, 24, 160, 64, "up", context.connections.northTrail),
+      makeExit("eastRoad", 1480, 364, 72, 164, "right", context.connections.eastRoad),
+      makeExit("northTrail", 752, 24, 196, 64, "up", context.connections.northTrail),
     ],
-    obstacles,
+    obstacles: [
+      cottage(140, 110),
+      well(584, 350),
+      fenceH(138, 306, 278),
+      fenceV(138, 250, 98),
+      fenceV(394, 248, 100),
+      signpost(694, 376),
+      lantern(486, 320),
+      lantern(664, 278),
+      bush(232, 676, 88, 54),
+      bush(636, 726, 92, 56),
+      tree(804, 168, 108, "forest"),
+      tree(1086, 176, 120, "forest"),
+      tree(1324, 284, 118, "forest"),
+      tree(1250, 682, 114, "forest"),
+      tree(824, 792, 114, "forest"),
+      tree(428, 820, 110, "forest"),
+      tree(100, 618, 116, "forest"),
+      rock(906, 312, 74, 44),
+      rock(1154, 500, 82, 46),
+      rock(986, 702, 72, 42),
+      rock(716, 612, 66, 42),
+    ],
+    npcs,
+    interactables,
+    hazards: [],
   });
 }
 
-function buildForestPass(context, rng) {
+function buildMossrootMarsh(context, rng) {
   const tiles = createTiles(rng);
-  stampEllipse(tiles, 20, 31, 13, 8, "path", 0);
-  stampEllipse(tiles, 46, 28, 10, 8, "path", 1);
-  stampEllipse(tiles, 74, 31, 13, 8, "path", 0);
-  paintPath(tiles, 6, 31, 94, 31, 2, 1);
-  paintPath(tiles, 31, 29, 46, 28, 3, 0);
-  paintPath(tiles, 46, 28, 74, 31, 3, 1);
-  stampEllipse(tiles, 52, 22, 8, 5, "soil", 0);
-  clearOverlayRect(tiles, 0, 24, 100, 14);
-  scatterFlowers(tiles, rng, 10, 10, 20, 10, 14, "flowersCool");
-  scatterFlowers(tiles, rng, 60, 42, 14, 10, 12, "flowersWarm");
+  stampRect(tiles, 0, 0, COLS, ROWS, "grass", 0);
+  stampEllipse(tiles, 24, 25, 14, 9, "water", 0);
+  stampEllipse(tiles, 52, 34, 12, 9, "water", 1);
+  stampEllipse(tiles, 78, 20, 11, 8, "water", 0);
+  paintPath(tiles, 8, 31, 92, 30, 2, "planks", 0);
+  paintPath(tiles, 44, 30, 50, 52, 2, "planks", 1);
+  clearOverlayRect(tiles, 0, 22, 100, 14);
+  scatterOverlay(tiles, rng, 10, 8, 18, 10, 20, "reeds");
+  scatterOverlay(tiles, rng, 60, 40, 16, 8, 18, "reeds");
 
-  const obstacles = [
-    tree(110, 112, 118, 0),
-    tree(282, 690, 114, 1),
-    tree(524, 116, 120, 0),
-    tree(718, 664, 122, 1),
-    tree(1036, 120, 118, 0),
-    tree(1326, 654, 112, 1),
-    tree(1416, 166, 106, 0),
-    tree(142, 670, 108, 1),
-    rock(440, 384, 72, 42, 0),
-    rock(868, 414, 70, 42, 1),
-    rock(1180, 362, 76, 44, 0),
-    cart(640, 324),
-    lantern(614, 288),
-    lantern(714, 296),
-    signpost(282, 432),
+  const interactables = [
+    interactable("marsh-root-1", "corruptedRoot", 852, 260, {
+      name: "Corrupted Root",
+      promptLabel: "Cleanse Root",
+      collectKey: "rootsCleansed",
+      toastText: "Corrupted root cleansed",
+      requiresCleared: true,
+      sortY: 276,
+    }),
+    interactable("marsh-root-2", "corruptedRoot", 1064, 640, {
+      name: "Corrupted Root",
+      promptLabel: "Cleanse Root",
+      collectKey: "rootsCleansed",
+      toastText: "Corrupted root cleansed",
+      requiresCleared: true,
+      sortY: 654,
+    }),
   ];
 
   return createBaseArena(context, tiles, {
-    playerSpawn: { x: 130, y: 496 },
+    playerSpawn: { x: 128, y: 492 },
     entrySpawns: {
-      default: { x: 130, y: 496 },
-      westGate: { x: 132, y: 492 },
-      eastGate: { x: 1450, y: 492 },
+      default: { x: 128, y: 492 },
+      westGate: { x: 128, y: 492 },
+      northGate: { x: 814, y: 108 },
     },
     spawnPoints: [
-      { x: 106, y: 182 },
-      { x: 300, y: 838 },
-      { x: 634, y: 160 },
-      { x: 960, y: 812 },
-      { x: 1276, y: 174 },
-      { x: 1490, y: 310 },
+      { x: 306, y: 184 },
+      { x: 646, y: 178 },
+      { x: 1348, y: 222 },
+      { x: 1398, y: 594 },
+      { x: 978, y: 812 },
     ],
-    bossZone: { x: 1240, y: 480, radius: 178 },
+    bossZone: { x: 980, y: 474, radius: 182 },
     bossAddSpawns: [
-      { x: 1140, y: 330 },
-      { x: 1330, y: 330 },
-      { x: 1140, y: 620 },
-      { x: 1330, y: 620 },
+      { x: 812, y: 472 },
+      { x: 980, y: 316 },
+      { x: 1148, y: 472 },
+      { x: 980, y: 622 },
     ],
     exits: [
-      makeExit("westGate", 24, 410, 72, 156, "left", context.connections.westGate),
-      makeExit("eastGate", 1504, 410, 56, 156, "right", context.connections.eastGate),
+      makeExit("westGate", 24, 394, 72, 160, "left", context.connections.westGate),
+      makeExit("northGate", 708, 24, 196, 64, "up", context.connections.northGate),
     ],
-    obstacles,
+    obstacles: [
+      water(176, 226, 284, 170, "marsh"),
+      water(712, 468, 286, 186, "marsh"),
+      water(1124, 150, 226, 154, "marsh"),
+      bridge(236, 450, 224, 44),
+      bridge(794, 356, 46, 232),
+      tree(182, 150, 110, "swamp"),
+      tree(422, 118, 108, "swamp"),
+      tree(1222, 364, 112, "swamp"),
+      tree(1324, 698, 110, "swamp"),
+      bush(546, 162, 96, 58, "marsh"),
+      bush(1186, 556, 88, 54, "marsh"),
+      rock(598, 410, 78, 44),
+      rock(928, 222, 72, 42),
+      lantern(508, 430, "cool"),
+      lantern(820, 322, "cool"),
+      signpost(448, 402),
+    ],
+    npcs: [],
+    interactables,
+    hazards: [],
   });
 }
 
-function buildShrineGrove(context, rng) {
+function buildEmberpineGrove(context, rng) {
   const tiles = createTiles(rng);
-  stampEllipse(tiles, 50, 34, 12, 10, "path", 0);
-  stampEllipse(tiles, 50, 34, 7, 6, "soil", 1);
-  paintPath(tiles, 50, 58, 50, 34, 2, 1);
-  paintPath(tiles, 50, 34, 92, 28, 2, 1);
-  stampRect(tiles, 43, 22, 14, 5, "path", 1);
-  clearOverlayRect(tiles, 40, 20, 20, 16);
-  scatterFlowers(tiles, rng, 30, 14, 12, 10, 14, "flowersWarm");
-  scatterFlowers(tiles, rng, 62, 16, 12, 10, 12, "flowersCool");
-  scatterFlowers(tiles, rng, 24, 42, 12, 10, 10, "flowersCool");
+  stampRect(tiles, 0, 0, COLS, ROWS, "emberGrass", 0);
+  stampEllipse(tiles, 50, 30, 14, 10, "ash", 0);
+  paintPath(tiles, 50, 56, 50, 30, 2, "ashPath", 0);
+  paintPath(tiles, 50, 30, 92, 30, 2, "ashPath", 1);
+  stampEllipse(tiles, 24, 24, 8, 5, "ember", 0);
+  stampEllipse(tiles, 68, 18, 8, 5, "ember", 1);
+  stampEllipse(tiles, 72, 44, 7, 5, "ember", 0);
+  clearOverlayRect(tiles, 40, 18, 26, 24);
 
-  const obstacles = [
-    shrine(736, 280),
-    lantern(716, 402),
-    lantern(860, 402),
-    tree(150, 146, 120, 0),
-    tree(1224, 148, 124, 1),
-    tree(184, 654, 116, 0),
-    tree(1184, 684, 118, 1),
-    tree(456, 192, 106, 0),
-    tree(1002, 224, 108, 1),
-    rock(520, 538, 76, 44, 0),
-    rock(1008, 520, 74, 42, 1),
-    rock(660, 716, 70, 42, 0),
-    signpost(602, 706),
+  const interactables = [
+    interactable("totem-1", "totem", 650, 408, {
+      name: "Warding Totem",
+      promptLabel: "Rekindle Totem",
+      collectKey: "totemsActivated",
+      toastText: "Totem rekindled",
+      requiresCleared: true,
+      sortY: 420,
+    }),
+    interactable("totem-2", "totem", 966, 314, {
+      name: "Warding Totem",
+      promptLabel: "Rekindle Totem",
+      collectKey: "totemsActivated",
+      toastText: "Totem rekindled",
+      requiresCleared: true,
+      sortY: 326,
+    }),
+    interactable("totem-3", "totem", 1102, 640, {
+      name: "Warding Totem",
+      promptLabel: "Rekindle Totem",
+      collectKey: "totemsActivated",
+      toastText: "Totem rekindled",
+      requiresCleared: true,
+      sortY: 652,
+    }),
   ];
 
   return createBaseArena(context, tiles, {
-    playerSpawn: { x: 804, y: 846 },
+    playerSpawn: { x: 808, y: 840 },
     entrySpawns: {
-      default: { x: 804, y: 846 },
-      southGate: { x: 804, y: 846 },
-      eastGate: { x: 1462, y: 472 },
+      default: { x: 808, y: 840 },
+      southGate: { x: 808, y: 840 },
+      eastGate: { x: 1454, y: 470 },
     },
     spawnPoints: [
-      { x: 128, y: 170 },
-      { x: 1460, y: 204 },
-      { x: 1324, y: 762 },
-      { x: 274, y: 760 },
-      { x: 788, y: 110 },
+      { x: 186, y: 166 },
+      { x: 566, y: 130 },
+      { x: 1366, y: 184 },
+      { x: 1314, y: 744 },
+      { x: 322, y: 760 },
     ],
-    bossZone: { x: 812, y: 466, radius: 180 },
+    bossZone: { x: 922, y: 470, radius: 184 },
     bossAddSpawns: [
-      { x: 676, y: 466 },
-      { x: 812, y: 312 },
-      { x: 950, y: 466 },
-      { x: 812, y: 620 },
+      { x: 760, y: 470 },
+      { x: 922, y: 312 },
+      { x: 1082, y: 470 },
+      { x: 922, y: 628 },
     ],
     exits: [
-      makeExit("southGate", 704, 884, 192, 52, "down", context.connections.southGate),
+      makeExit("southGate", 710, 884, 198, 52, "down", context.connections.southGate),
       makeExit("eastGate", 1498, 396, 56, 160, "right", context.connections.eastGate),
     ],
-    obstacles,
+    obstacles: [
+      ruin(754, 242, 180, 108, "altar"),
+      ruin(498, 606, 110, 82, "shard"),
+      ruin(1182, 524, 118, 90, "shard"),
+      tree(144, 146, 118, "charredTree"),
+      tree(1194, 152, 122, "charredTree"),
+      tree(248, 690, 114, "charredTree"),
+      tree(1264, 686, 114, "charredTree"),
+      bush(420, 272, 84, 48, "ember"),
+      bush(1080, 252, 84, 48, "ember"),
+      rock(582, 500, 76, 44),
+      rock(986, 716, 76, 44),
+      lantern(720, 386, "ember"),
+      lantern(990, 272, "ember"),
+      signpost(640, 720),
+    ],
+    npcs: [],
+    interactables,
+    hazards: [
+      { id: "ember-pool-1", x: 302, y: 220, w: 120, h: 82, damage: 8, interval: 0.72, type: "ember" },
+      { id: "ember-pool-2", x: 1032, y: 598, w: 116, h: 80, damage: 8, interval: 0.72, type: "ember" },
+    ],
   });
 }
 
-function buildBlightPass(context, rng) {
+function buildFrostveilTundra(context, rng) {
   const tiles = createTiles(rng);
-  stampEllipse(tiles, 20, 28, 10, 8, "path", 0);
-  stampEllipse(tiles, 48, 33, 12, 9, "soil", 1);
-  stampEllipse(tiles, 78, 20, 11, 8, "path", 0);
-  paintPath(tiles, 6, 28, 46, 32, 2, 1);
-  paintPath(tiles, 46, 32, 50, 56, 2, 1);
-  paintPath(tiles, 46, 32, 78, 20, 2, 0);
-  clearOverlayRect(tiles, 0, 14, 100, 20);
-  clearOverlayRect(tiles, 36, 32, 24, 26);
-  scatterFlowers(tiles, rng, 60, 40, 12, 8, 10, "flowersWarm");
+  stampRect(tiles, 0, 0, COLS, ROWS, "snow", 0);
+  stampEllipse(tiles, 36, 28, 12, 8, "ice", 0);
+  stampEllipse(tiles, 66, 20, 10, 7, "ice", 1);
+  paintPath(tiles, 8, 30, 42, 30, 2, "snowPath", 0);
+  paintPath(tiles, 42, 30, 72, 18, 2, "snowPath", 1);
+  paintPath(tiles, 42, 30, 52, 54, 2, "snowPath", 0);
+  clearOverlayRect(tiles, 8, 24, 80, 12);
+  scatterOverlay(tiles, rng, 18, 10, 20, 10, 16, "frostFlowers");
+  scatterOverlay(tiles, rng, 60, 38, 14, 12, 12, "frostFlowers");
 
-  const obstacles = [
-    shrine(666, 438),
-    lantern(640, 516),
-    lantern(804, 516),
-    tree(194, 166, 114, 0),
-    tree(448, 134, 112, 1),
-    tree(1226, 204, 112, 0),
-    tree(1228, 664, 110, 1),
-    tree(202, 654, 116, 1),
-    rock(380, 408, 76, 44, 0),
-    rock(1024, 362, 76, 44, 1),
-    rock(920, 744, 74, 44, 0),
-    rock(560, 720, 74, 44, 1),
-    signpost(884, 250),
+  const interactables = [
+    interactable("lost-scout", "scout", 994, 248, {
+      name: "Lost Scout",
+      promptLabel: "Inspect Camp",
+      collectKey: "scoutFound",
+      toastText: "Scout signal recovered",
+      sortY: 262,
+      dialogueLines: [
+        "A frozen satchel rests beside the collapsed tent.",
+        "The scout's message points north. Whatever rules the ruins is awake.",
+      ],
+    }),
   ];
 
   return createBaseArena(context, tiles, {
-    playerSpawn: { x: 130, y: 462 },
+    playerSpawn: { x: 132, y: 458 },
     entrySpawns: {
-      default: { x: 130, y: 462 },
-      westGate: { x: 130, y: 462 },
-      southGate: { x: 814, y: 846 },
-      northGate: { x: 1248, y: 106 },
+      default: { x: 132, y: 458 },
+      westGate: { x: 132, y: 458 },
+      southGate: { x: 804, y: 846 },
+      northGate: { x: 1188, y: 108 },
     },
     spawnPoints: [
-      { x: 132, y: 166 },
-      { x: 1460, y: 194 },
-      { x: 1414, y: 760 },
-      { x: 274, y: 776 },
-      { x: 812, y: 110 },
+      { x: 154, y: 184 },
+      { x: 608, y: 132 },
+      { x: 1340, y: 196 },
+      { x: 1382, y: 740 },
+      { x: 364, y: 782 },
     ],
-    bossZone: { x: 802, y: 490, radius: 184 },
+    bossZone: { x: 936, y: 462, radius: 180 },
     bossAddSpawns: [
-      { x: 650, y: 490 },
-      { x: 802, y: 330 },
-      { x: 960, y: 490 },
-      { x: 802, y: 644 },
+      { x: 780, y: 462 },
+      { x: 936, y: 308 },
+      { x: 1088, y: 462 },
+      { x: 936, y: 616 },
     ],
     exits: [
-      makeExit("westGate", 24, 378, 72, 156, "left", context.connections.westGate),
-      makeExit("southGate", 722, 884, 188, 52, "down", context.connections.southGate),
-      makeExit("northGate", 1172, 24, 176, 64, "up", context.connections.northGate),
+      makeExit("westGate", 24, 382, 72, 156, "left", context.connections.westGate),
+      makeExit("southGate", 706, 884, 196, 52, "down", context.connections.southGate),
+      makeExit("northGate", 1106, 24, 176, 64, "up", context.connections.northGate),
     ],
-    obstacles,
+    obstacles: [
+      water(306, 264, 248, 156, "ice"),
+      water(910, 132, 222, 142, "ice"),
+      ruin(940, 214, 122, 84, "camp"),
+      ruin(662, 602, 142, 94, "camp"),
+      tree(166, 166, 112, "frost"),
+      tree(458, 156, 108, "frost"),
+      tree(1290, 178, 116, "frost"),
+      tree(1322, 650, 112, "frost"),
+      rock(806, 470, 74, 42, "iceRock"),
+      rock(1144, 556, 80, 46, "iceRock"),
+      bush(522, 748, 86, 52, "frost"),
+      lantern(982, 286, "frost"),
+      signpost(848, 258),
+    ],
+    npcs: [],
+    interactables,
+    hazards: [],
   });
 }
 
-function buildHeartLair(context, rng) {
+function buildHollowheartRuins(context, rng) {
   const tiles = createTiles(rng);
-  stampEllipse(tiles, 50, 30, 20, 14, "soil", 1);
-  stampEllipse(tiles, 50, 30, 15, 10, "path", 0);
-  stampEllipse(tiles, 50, 30, 10, 7, "soil", 0);
-  paintPath(tiles, 50, 58, 50, 40, 2, 1);
-  clearOverlayRect(tiles, 26, 12, 48, 40);
-
-  const obstacles = [
-    shrine(730, 214),
-    lantern(632, 528),
-    lantern(950, 528),
-    rock(486, 314, 84, 48, 0),
-    rock(1070, 314, 84, 48, 1),
-    rock(488, 642, 84, 48, 0),
-    rock(1070, 642, 84, 48, 1),
-    tree(190, 150, 118, 0),
-    tree(1300, 150, 118, 1),
-    tree(182, 662, 118, 1),
-    tree(1300, 662, 118, 0),
-  ];
+  stampRect(tiles, 0, 0, COLS, ROWS, "blight", 0);
+  stampEllipse(tiles, 52, 30, 18, 13, "ruinStone", 0);
+  stampEllipse(tiles, 52, 30, 12, 8, "ash", 1);
+  paintPath(tiles, 50, 57, 52, 38, 2, "ruinStone", 1);
+  clearOverlayRect(tiles, 28, 12, 48, 38);
 
   return createBaseArena(context, tiles, {
     playerSpawn: { x: 806, y: 838 },
@@ -574,43 +745,65 @@ function buildHeartLair(context, rng) {
       southGate: { x: 806, y: 838 },
     },
     spawnPoints: [
-      { x: 132, y: 228 },
-      { x: 1464, y: 226 },
-      { x: 1418, y: 754 },
-      { x: 246, y: 754 },
+      { x: 180, y: 212 },
+      { x: 468, y: 172 },
+      { x: 1326, y: 228 },
+      { x: 1360, y: 742 },
+      { x: 288, y: 744 },
     ],
-    bossZone: { x: 810, y: 468, radius: 210 },
+    bossZone: { x: 914, y: 452, radius: 212 },
     bossAddSpawns: [
-      { x: 640, y: 468 },
-      { x: 810, y: 290 },
-      { x: 980, y: 468 },
-      { x: 810, y: 642 },
+      { x: 738, y: 452 },
+      { x: 914, y: 274 },
+      { x: 1090, y: 452 },
+      { x: 914, y: 630 },
     ],
     exits: [
       makeExit("southGate", 706, 884, 196, 52, "down", context.connections.southGate),
     ],
-    obstacles,
+    obstacles: [
+      ruin(756, 198, 216, 128, "throne"),
+      ruin(514, 310, 118, 86, "pillar"),
+      ruin(1182, 308, 118, 86, "pillar"),
+      ruin(530, 642, 124, 90, "pillar"),
+      ruin(1164, 638, 124, 90, "pillar"),
+      tree(176, 154, 118, "charredTree"),
+      tree(1302, 156, 118, "charredTree"),
+      tree(176, 674, 118, "charredTree"),
+      tree(1302, 674, 118, "charredTree"),
+      bush(680, 734, 92, 56, "blight"),
+      bush(1046, 734, 92, 56, "blight"),
+      rock(848, 580, 86, 48),
+      lantern(748, 354, "ember"),
+      lantern(1030, 354, "ember"),
+    ],
+    npcs: [],
+    interactables: [],
+    hazards: [
+      { id: "blight-pool-1", x: 648, y: 560, w: 122, h: 88, damage: 10, interval: 0.68, type: "blight" },
+      { id: "blight-pool-2", x: 1052, y: 560, w: 122, h: 88, damage: 10, interval: 0.68, type: "blight" },
+    ],
   });
 }
 
 export function createArena(context = {}) {
   const rng = createRng(context.seed || context.id || "arena");
 
-  if (context.sceneStyle === "forestPass") {
-    return buildForestPass(context, rng);
+  if (context.sceneStyle === "mossrootMarsh") {
+    return buildMossrootMarsh(context, rng);
   }
 
-  if (context.sceneStyle === "shrineGrove") {
-    return buildShrineGrove(context, rng);
+  if (context.sceneStyle === "emberpineGrove") {
+    return buildEmberpineGrove(context, rng);
   }
 
-  if (context.sceneStyle === "blightPass") {
-    return buildBlightPass(context, rng);
+  if (context.sceneStyle === "frostveilTundra") {
+    return buildFrostveilTundra(context, rng);
   }
 
-  if (context.sceneStyle === "heartLair") {
-    return buildHeartLair(context, rng);
+  if (context.sceneStyle === "hollowheartRuins") {
+    return buildHollowheartRuins(context, rng);
   }
 
-  return buildVillageClearing(context, rng);
+  return buildWhisperingWoods(context, rng);
 }

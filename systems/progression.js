@@ -1,6 +1,11 @@
 import { ITEM_DEFS, TALENT_DEFS } from "../data/gameData.js";
+import { QUEST_DEFS } from "../data/storyData.js";
 
 export function createProgression() {
+  const questStates = Object.fromEntries(
+    Object.values(QUEST_DEFS).map((quest) => [quest.id, quest.startState || "inactive"])
+  );
+
   return {
     inventory: {
       spirit_bloom: 3,
@@ -9,6 +14,16 @@ export function createProgression() {
     talentPoints: 1,
     talents: {},
     journal: [],
+    questStates,
+    questCounters: {
+      spiritFlowers: 0,
+      thornlingsDefeated: 0,
+      rootsCleansed: 0,
+      totemsActivated: 0,
+      scoutFound: 0,
+      elderHollowDefeated: 0,
+    },
+    conversationFlags: {},
   };
 }
 
@@ -75,4 +90,12 @@ export function getPlayerBonuses(progression) {
   }
 
   return bonuses;
+}
+
+export function getQuestCounter(progression, key) {
+  return progression.questCounters[key] || 0;
+}
+
+export function incrementQuestCounter(progression, key, amount = 1) {
+  progression.questCounters[key] = (progression.questCounters[key] || 0) + amount;
 }

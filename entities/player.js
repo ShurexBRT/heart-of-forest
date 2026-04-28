@@ -60,6 +60,7 @@ export class Player {
     this.hurtFlash = 0;
     this.dashTime = 0;
     this.lastTrailAt = -1;
+    this.hazardTimer = 0;
     this.cooldowns = {
       staff: 0,
       bolt: 0,

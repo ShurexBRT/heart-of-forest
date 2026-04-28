@@ -274,7 +274,7 @@ function castRootSnare(state) {
 
   for (const enemy of state.enemies) {
     if (!enemy.dead && distance(x, y, enemy.x, enemy.y) <= ROOT_RADIUS + enemy.radius) {
-      enemy.rooted = Math.max(enemy.rooted, info.duration);
+      enemy.rooted = Math.max(enemy.rooted, info.duration * (enemy.config.rootMultiplier || 1));
       enemy.stun = Math.max(enemy.stun, 0.08);
       enemy.hitFlash = 0.08;
     }
@@ -391,7 +391,7 @@ function updateRoots(state, dt) {
       if (enemy.dead) continue;
 
       if (distance(root.x, root.y, enemy.x, enemy.y) <= root.radius + enemy.radius) {
-        enemy.rooted = Math.max(enemy.rooted, 0.32);
+        enemy.rooted = Math.max(enemy.rooted, 0.32 * (enemy.config.rootMultiplier || 1));
       }
     }
   }
@@ -502,7 +502,16 @@ function damageHostile(state, target, amount, sourceX, sourceY, knockback, stun)
   if (target.hp <= 0) {
     target.dead = true;
     target.bloom = 0;
-    state.shake = Math.max(state.shake, target.isBoss ? 11 : target.type === "brute" ? 7 : 4);
+    state.shake = Math.max(
+      state.shake,
+      target.isBoss ? 11 : target.type === "mire_brute" ? 7 : 4
+    );
+
+    if (target.isBoss) {
+      state.storyEvents.push({ type: "bossDefeated", bossId: target.id || "elder_hollow" });
+    } else {
+      state.storyEvents.push({ type: "enemyDefeated", enemyType: target.type });
+    }
 
     if (target.isBoss) {
       target.currentAttack = null;
@@ -519,9 +528,9 @@ function damageHostile(state, target, amount, sourceX, sourceY, knockback, stun)
       });
     } else {
       spawnBurst(state, target.x, target.y, {
-        count: target.type === "brute" ? 28 : 18,
+        count: target.type === "mire_brute" ? 28 : 18,
         colors: ["#c9443d", "#612323", "#f3a86e"],
-        speed: target.type === "brute" ? 290 : 230,
+        speed: target.type === "mire_brute" ? 290 : 230,
         size: [2, 6],
         life: [0.24, 0.7],
       });
