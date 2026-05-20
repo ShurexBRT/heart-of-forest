@@ -1,66 +1,108 @@
 # Heart of Forest
 
-An HTML5 Canvas prototype focused on a small connected forest region: Ayla can fight through cozy pixel-art clearings, follow paths into neighboring maps, and push toward a boss encounter deeper in the woods.
+`Heart of Forest` je browser-based 2D pixel-art action RPG prototip građen u plain HTML5 Canvas + vanilla JavaScript. Fokus je sada na malom connected-region vertical slice-u: Ayla ima pravi sprite sheet, više povezanih mapa, quest/NPC loop, inventory, opremu, talente, levelovanje i lokalni save.
 
 ## Controls
 
-- `WASD`: Move
-- `Mouse`: Aim
+- `WASD`: kretanje
+- `Mouse`: aim
 - `Left Click`: Staff Strike
 - `Right Click`: Spirit Bolt
 - `Space`: Quick Dash
 - `1`: Root Snare
-- Stand on a glowing path exit briefly to travel to the next map
-- `R` or `Enter`: Restart the current scene after defeat
+- `5`: Health Potion
+- `6`: Spirit Tonic
+- `E`: interakcija / dialogue advance
+- `Q`: quest log
+- `C`: character tab
+- `I`: inventory tab
+- `T`: talent tab
+- `Esc`: zatvaranje otvorenog UI panela
+- stani kratko na exit zonu da pređeš na drugu mapu
+- `R` ili `Enter`: restart scene posle poraza
 
-## Current Focus
+## Implementirano
 
-This build is intentionally scene-first.
-
-- The prototype opens directly into a handcrafted forest region instead of a detached world-map flow
-- Presentation is inspired by cozy pixel-art farm RPGs with light action combat
-- Existing combat systems remain in place, but the current emphasis is on readability, layering, environment feel, and moment-to-moment play
-- Multiple connected maps now let you walk from the village clearing into shrine, trail, and blight scenes before the boss lair
-
-## Implemented Highlights
-
-- Tile-based connected forest maps with village, trail, shrine, blight, and heart-grove scenes
-- Y-depth sorting for Ayla, enemies, and props so movement around scenery reads more like a real RPG scene
-- Pixel-art-style placeholder rendering drawn directly in Canvas
-- Screen-to-screen path transitions with scene-specific enemy encounters and a final boss area
-- Existing combat kit preserved:
+- connected scene network:
+  - `Whispering Woods`
+  - `Moonlit Marsh`
+  - `Mossy Ruins`
+  - `Ember Hollow`
+  - `Frostpine Tundra`
+  - `Blighted Woods`
+  - `Hollowheart Ruins`
+  - `Ancient Heart`
+- Ayla sprite sheet integracija iz pravog atlasa
+- biome environment atlas pipeline sa fallback renderom
+- Diablo-style bottom HUD sa HP/Spirit orbovima, ability barom, XP barom i potion slotovima
+- quest log na `Q`
+- unified `Character / Inventory / Talents` panel
+- equipment slotovi:
+  - trinket
+  - amulet
+  - talisman
+  - relic
+- consumables:
+  - `Health Potion`
+  - `Greater Health Potion`
+  - `Spirit Tonic`
+- XP + level sistem
+- talent points i unlockable talenti
+- local save preko `localStorage`
+- health regen kada Ayla nije u combatu
+- više NPC-jeva i quest hookova po regionima
+- quest rewards koji daju korisne iteme i equipment
+- postojeći combat loop ostaje aktivan:
   - Staff Strike
   - Spirit Bolt
   - Quick Dash
   - Root Snare
-- Enemy waves still active inside the new cozy clearing presentation
 
-## How To Run
+## Pokretanje
 
-Run a local web server because the project uses ES modules:
+Koristi lokalni web server zbog ES modula:
 
 ```bash
-python -m http.server 4175
+python -m http.server 4177
 ```
 
-Then open:
+Otvori:
 
 ```text
-http://localhost:4175/
+http://localhost:4177/
 ```
 
-## Main Files
+## Struktura
 
-- `main.js`: boots the scene network, scene transitions, and per-map state
-- `data/sceneNetwork.js`: connected map definitions and links between exits
-- `world/arena.js`: handcrafted tile-based layouts for each forest scene
-- `rendering/renderer.js`: tile rendering, depth sorting, exit markers, and pixel-art-style scene drawing
-- `ui/hud.js`: combat HUD, travel prompts, and transition overlays
-- `systems/combat.js`: abilities, hits, projectiles, and combat feel
-- `entities/player.js`: Ayla movement and combat stats
-- `entities/enemy.js`: enemy movement and melee behavior
-- `systems/encounter.js`: per-scene wave flow and boss escalation
+- `main.js`
+  - game state, scene transitions, UI state, save/load, regen loop
+- `data/sceneNetwork.js`
+  - definicije mapa i veza između izlaza
+- `data/storyData.js`
+  - questovi, NPC definicije, dialogue tekst
+- `data/gameData.js`
+  - biomi, itemi, equipment, talenti
+- `world/arena.js`
+  - handcrafted scene layout-ovi, spawnovi, quest objekti, NPC placement
+- `rendering/renderer.js`
+  - isometric-ish tile render, depth sorting, atlas props, combat FX
+- `rendering/atlasAssets.js`
+  - loading/cropping Ayla sprite sheet-a i biome environment sheet-ova
+- `ui/hud.js`
+  - Diablo-style HUD, quest log, character/inventory/talent overlay
+- `systems/combat.js`
+  - ability handling, projectile logic, XP/loot on kill, combat tagging
+- `systems/progression.js`
+  - inventory, equipment, consumables, xp/level, player bonuses
+- `systems/story.js`
+  - interaction flow, quest availability/progress/rewards
+- `systems/save.js`
+  - local storage snapshot helperi
 
-## Notes
+## Sledeći logičan korak
 
-The older world-map/progression foundations are still in the repo, but they are no longer the front-and-center experience in this build. Right now the goal is to make a handful of connected scenes feel like a small real game before expanding outward again.
+- click-driven inventory/talent UI umesto samo keyboard-first flow
+- pravi atlas/sprite sheet za neprijatelje i NPC-jeve
+- bolji loot economy i vendor/crafting loop
+- dodatni biome-specific hazards i quest scripting
+- stabilniji scene-specific encounter pacing i boss phase polish

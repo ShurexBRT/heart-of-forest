@@ -7,6 +7,7 @@ import {
   TAU,
 } from "../core/math.js";
 import { getMovementVector, wasPressed } from "../core/input.js";
+import { getPlayerBonuses, awardEnemyLoot, grantExperience } from "./progression.js";
 import { collidesWithObstacle } from "./collision.js";
 import { spawnBurst } from "./particles.js";
 
@@ -16,6 +17,13 @@ const ROOT_RANGE = 190;
 const ROOT_RADIUS = 48;
 const BLOOM_WINDOW = 1.1;
 const BLOOM_BOLT_BONUS = 12;
+const COMBAT_TAG_DURATION = 4.2;
+
+const ENEMY_XP = {
+  thornling: 16,
+  wisp_archer: 22,
+  mire_brute: 34,
+};
 
 export function handlePlayerAbilities(state, input) {
   const player = state.player;
@@ -34,6 +42,10 @@ export function updateCombatEffects(state, dt) {
   updateAfterImages(state, dt);
 }
 
+export function markCombat(state, duration = COMBAT_TAG_DURATION) {
+  state.combatTimer = Math.max(state.combatTimer || 0, duration);
+}
+
 export function damagePlayer(state, amount, sourceX, sourceY, knockback) {
   const player = state.player;
 
@@ -50,6 +62,7 @@ export function damagePlayer(state, amount, sourceX, sourceY, knockback) {
   player.vx += direction.x * knockback;
   player.vy += direction.y * knockback;
   state.shake = Math.max(state.shake, actualDamage >= 20 ? 8 : 5);
+  markCombat(state);
 
   spawnBurst(state, player.x, player.y, {
     count: 14,
@@ -106,6 +119,7 @@ function castStaffStrike(state) {
 
   player.cooldowns.staff = info.cooldown;
   player.playPose("attack", 0.16);
+  markCombat(state);
   state.swings.push({
     x: player.x,
     y: player.y,
@@ -182,6 +196,7 @@ function castSpiritBolt(state) {
   player.cooldowns.bolt = info.cooldown;
   player.spendSpirit(info.cost);
   player.playPose("cast", 0.2);
+  markCombat(state);
 
   const direction = normalize(state.mouseWorld.x - player.x, state.mouseWorld.y - player.y);
 
@@ -226,6 +241,7 @@ function castDash(state, input) {
   player.dashTime = 0.16;
   player.invulnerable = 0.22;
   player.playPose("dash", 0.18);
+  markCombat(state);
   player.vx = direction.x * 760;
   player.vy = direction.y * 760;
   state.shake = Math.max(state.shake, 2);
@@ -266,6 +282,7 @@ function castRootSnare(state) {
   player.cooldowns.root = info.cooldown;
   player.spendSpirit(info.cost);
   player.playPose("cast", 0.26);
+  markCombat(state);
 
   state.roots.push({
     x,
@@ -483,6 +500,7 @@ function gainSpirit(state, amount) {
 function damageHostile(state, target, amount, sourceX, sourceY, knockback, stun) {
   const direction = normalize(target.x - sourceX, target.y - sourceY);
 
+  markCombat(state);
   target.hp = Math.max(0, target.hp - amount);
   target.hitFlash = 0.12;
   target.stun = Math.max(target.stun, stun);
@@ -517,6 +535,21 @@ function damageHostile(state, target, amount, sourceX, sourceY, knockback, stun)
       state.storyEvents.push({ type: "enemyDefeated", enemyType: target.type });
     }
 
+    const xpValue = target.isBoss ? 180 : ENEMY_XP[target.type] || 14;
+    const xpResult = grantExperience(state.progression, xpValue);
+    if (xpResult.levelsGained > 0) {
+      state.player.refreshFromModifiers(getPlayerBonuses(state.progression));
+      state.player.hp = Math.min(state.player.maxHp, state.player.hp + Math.round(state.player.maxHp * 0.34));
+      state.player.spirit = Math.min(state.player.maxSpirit, state.player.spirit + Math.round(state.player.maxSpirit * 0.38));
+      setToast(state, `Level ${state.progression.level} reached`, 2.6);
+    }
+
+    const loot = awardEnemyLoot(state.progression, target.type, state.scene.biomeId, Boolean(target.isBoss));
+    if (loot.length > 0 && (target.isBoss || loot.some((entry) => entry.itemId.includes("potion")))) {
+      const lead = loot[0];
+      setToast(state, `Looted ${lead.amount} ${formatItemName(lead.itemId)}`, 1.9);
+    }
+
     if (target.isBoss) {
       target.currentAttack = null;
       target.recovery = 0;
@@ -540,4 +573,16 @@ function damageHostile(state, target, amount, sourceX, sourceY, knockback, stun)
       });
     }
   }
+}
+
+function formatItemName(itemId) {
+  return itemId
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function setToast(state, text, duration) {
+  state.story.toastText = text;
+  state.story.toastTimer = duration;
 }

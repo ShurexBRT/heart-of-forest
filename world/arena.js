@@ -411,7 +411,7 @@ function buildWhisperingWoods(context, rng) {
   const npcs = [
     npc("elder_rowan", 366, 556),
     npc("lysa", 468, 610),
-    npc("nettle", 536, 532),
+    npc("tamsin", 246, 560),
   ];
 
   const interactables = [
@@ -435,6 +435,20 @@ function buildWhisperingWoods(context, rng) {
       collectKey: "spiritFlowers",
       toastText: "Spirit Flower gathered",
       sortY: 714,
+    }),
+    interactable("moonleaf-bundle-1", "flower", 742, 448, {
+      name: "Moonleaf Bundle",
+      promptLabel: "Gather Moonleaf",
+      collectKey: "moonleafBundles",
+      toastText: "Moonleaf bundle gathered",
+      sortY: 458,
+    }),
+    interactable("moonleaf-bundle-2", "flower", 612, 796, {
+      name: "Moonleaf Bundle",
+      promptLabel: "Gather Moonleaf",
+      collectKey: "moonleafBundles",
+      toastText: "Moonleaf bundle gathered",
+      sortY: 806,
     }),
   ];
 
@@ -521,6 +535,22 @@ function buildMossrootMarsh(context, rng) {
       requiresCleared: true,
       sortY: 654,
     }),
+    interactable("marsh-lantern-1", "totem", 536, 420, {
+      name: "Marsh Lantern",
+      promptLabel: "Relight Lantern",
+      collectKey: "marshLanternsLit",
+      toastText: "Marsh lantern relit",
+      requiresCleared: true,
+      sortY: 432,
+    }),
+    interactable("marsh-lantern-2", "totem", 834, 314, {
+      name: "Marsh Lantern",
+      promptLabel: "Relight Lantern",
+      collectKey: "marshLanternsLit",
+      toastText: "Marsh lantern relit",
+      requiresCleared: true,
+      sortY: 326,
+    }),
   ];
 
   return createBaseArena(context, tiles, {
@@ -529,6 +559,7 @@ function buildMossrootMarsh(context, rng) {
       default: { x: 128, y: 492 },
       westGate: { x: 128, y: 492 },
       northGate: { x: 814, y: 108 },
+      eastCauseway: { x: 1456, y: 436 },
     },
     spawnPoints: [
       { x: 306, y: 184 },
@@ -547,6 +578,7 @@ function buildMossrootMarsh(context, rng) {
     exits: [
       makeExit("westGate", 24, 394, 72, 160, "left", context.connections.westGate),
       makeExit("northGate", 708, 24, 196, 64, "up", context.connections.northGate),
+      makeExit("eastCauseway", 1490, 362, 58, 176, "right", context.connections.eastCauseway),
     ],
     obstacles: [
       water(176, 226, 284, 170, "marsh"),
@@ -566,7 +598,7 @@ function buildMossrootMarsh(context, rng) {
       lantern(820, 322, "cool"),
       signpost(448, 402),
     ],
-    npcs: [],
+    npcs: [npc("nettle", 236, 462)],
     interactables,
     hazards: [],
   });
@@ -614,7 +646,7 @@ function buildEmberpineGrove(context, rng) {
     playerSpawn: { x: 808, y: 840 },
     entrySpawns: {
       default: { x: 808, y: 840 },
-      southGate: { x: 808, y: 840 },
+      westGate: { x: 118, y: 486 },
       eastGate: { x: 1454, y: 470 },
     },
     spawnPoints: [
@@ -632,7 +664,7 @@ function buildEmberpineGrove(context, rng) {
       { x: 922, y: 628 },
     ],
     exits: [
-      makeExit("southGate", 710, 884, 198, 52, "down", context.connections.southGate),
+      makeExit("westGate", 24, 392, 68, 170, "left", context.connections.westGate),
       makeExit("eastGate", 1498, 396, 56, 160, "right", context.connections.eastGate),
     ],
     obstacles: [
@@ -651,7 +683,7 @@ function buildEmberpineGrove(context, rng) {
       lantern(990, 272, "ember"),
       signpost(640, 720),
     ],
-    npcs: [],
+    npcs: [npc("garrick", 188, 454)],
     interactables,
     hazards: [
       { id: "ember-pool-1", x: 302, y: 220, w: 120, h: 82, damage: 8, interval: 0.72, type: "ember" },
@@ -728,7 +760,7 @@ function buildFrostveilTundra(context, rng) {
       lantern(982, 286, "frost"),
       signpost(848, 258),
     ],
-    npcs: [],
+    npcs: [npc("vesper", 226, 430)],
     interactables,
     hazards: [],
   });
@@ -747,6 +779,8 @@ function buildHollowheartRuins(context, rng) {
     entrySpawns: {
       default: { x: 806, y: 838 },
       southGate: { x: 806, y: 838 },
+      westGate: { x: 132, y: 462 },
+      northGate: { x: 912, y: 106 },
     },
     spawnPoints: [
       { x: 180, y: 212 },
@@ -764,6 +798,8 @@ function buildHollowheartRuins(context, rng) {
     ],
     exits: [
       makeExit("southGate", 706, 884, 196, 52, "down", context.connections.southGate),
+      makeExit("westGate", 24, 384, 70, 164, "left", context.connections.westGate),
+      makeExit("northGate", 816, 24, 188, 62, "up", context.connections.northGate),
     ],
     obstacles: [
       ruin(756, 198, 216, 128, "throne"),
@@ -790,8 +826,241 @@ function buildHollowheartRuins(context, rng) {
   });
 }
 
+function buildMossyRuins(context, rng) {
+  const tiles = createTiles(rng);
+  stampRect(tiles, 0, 0, COLS, ROWS, "grass", 0);
+  stampEllipse(tiles, 46, 28, 18, 12, "ruinStone", 0);
+  paintPath(tiles, 50, 56, 50, 28, 2, "ruinStone", 1);
+  paintPath(tiles, 50, 28, 92, 28, 2, "path", 0);
+  paintPath(tiles, 50, 28, 10, 28, 2, "path", 1);
+  stampEllipse(tiles, 26, 18, 8, 6, "water", 0);
+  stampEllipse(tiles, 74, 42, 8, 6, "water", 0);
+  clearOverlayRect(tiles, 20, 18, 58, 24);
+  scatterOverlay(tiles, rng, 12, 10, 18, 12, 18, "flowersWarm");
+
+  const interactables = [
+    interactable("relic-cache-1", "totem", 714, 302, {
+      name: "Relic Cache",
+      promptLabel: "Recover Cache",
+      collectKey: "relicCachesRecovered",
+      toastText: "Relic cache secured",
+      requiresCleared: true,
+      sortY: 314,
+    }),
+    interactable("relic-cache-2", "totem", 1082, 548, {
+      name: "Relic Cache",
+      promptLabel: "Recover Cache",
+      collectKey: "relicCachesRecovered",
+      toastText: "Relic cache secured",
+      requiresCleared: true,
+      sortY: 560,
+    }),
+  ];
+
+  return createBaseArena(context, tiles, {
+    playerSpawn: { x: 806, y: 842 },
+    entrySpawns: {
+      default: { x: 806, y: 842 },
+      southGate: { x: 806, y: 842 },
+      eastGate: { x: 1450, y: 456 },
+    },
+    spawnPoints: [
+      { x: 192, y: 168 },
+      { x: 546, y: 154 },
+      { x: 1380, y: 210 },
+      { x: 1306, y: 710 },
+      { x: 274, y: 732 },
+    ],
+    bossZone: { x: 930, y: 456, radius: 180 },
+    bossAddSpawns: [
+      { x: 776, y: 456 },
+      { x: 930, y: 310 },
+      { x: 1080, y: 456 },
+      { x: 930, y: 604 },
+    ],
+    exits: [
+      makeExit("southGate", 710, 884, 196, 52, "down", context.connections.southGate),
+      makeExit("eastGate", 1498, 388, 54, 168, "right", context.connections.eastGate),
+    ],
+    obstacles: [
+      ruin(678, 228, 204, 120, "arch"),
+      ruin(992, 440, 138, 98, "pillar"),
+      ruin(480, 564, 132, 96, "pillar"),
+      water(240, 154, 214, 142, "marsh"),
+      water(1068, 630, 220, 142, "marsh"),
+      bridge(996, 572, 48, 176),
+      tree(164, 164, 112, "forest"),
+      tree(438, 136, 106, "forest"),
+      tree(1298, 188, 112, "forest"),
+      tree(1240, 706, 110, "forest"),
+      rock(808, 640, 74, 44),
+      rock(546, 404, 72, 42),
+      bush(310, 700, 88, 54, "forest"),
+      lantern(690, 334),
+      lantern(1090, 470),
+      signpost(900, 760),
+    ],
+    npcs: [npc("orras", 250, 666)],
+    interactables,
+    hazards: [],
+  });
+}
+
+function buildBlightedWoods(context, rng) {
+  const tiles = createTiles(rng);
+  stampRect(tiles, 0, 0, COLS, ROWS, "blight", 0);
+  stampEllipse(tiles, 52, 30, 16, 11, "ash", 0);
+  paintPath(tiles, 8, 30, 52, 30, 2, "ashPath", 0);
+  paintPath(tiles, 52, 30, 92, 30, 2, "ashPath", 1);
+  paintPath(tiles, 52, 30, 52, 56, 2, "ashPath", 0);
+  clearOverlayRect(tiles, 12, 18, 76, 30);
+
+  const interactables = [
+    interactable("blight-effigy-1", "corruptedRoot", 814, 316, {
+      name: "Blight Effigy",
+      promptLabel: "Shatter Effigy",
+      collectKey: "blightEffigiesBroken",
+      toastText: "Blight effigy shattered",
+      requiresCleared: true,
+      sortY: 332,
+    }),
+    interactable("blight-effigy-2", "corruptedRoot", 1128, 618, {
+      name: "Blight Effigy",
+      promptLabel: "Shatter Effigy",
+      collectKey: "blightEffigiesBroken",
+      toastText: "Blight effigy shattered",
+      requiresCleared: true,
+      sortY: 634,
+    }),
+  ];
+
+  return createBaseArena(context, tiles, {
+    playerSpawn: { x: 130, y: 472 },
+    entrySpawns: {
+      default: { x: 130, y: 472 },
+      westGate: { x: 130, y: 472 },
+      southGate: { x: 804, y: 840 },
+      eastGate: { x: 1450, y: 456 },
+    },
+    spawnPoints: [
+      { x: 184, y: 196 },
+      { x: 530, y: 162 },
+      { x: 1360, y: 214 },
+      { x: 1320, y: 724 },
+      { x: 322, y: 740 },
+    ],
+    bossZone: { x: 930, y: 456, radius: 188 },
+    bossAddSpawns: [
+      { x: 772, y: 456 },
+      { x: 930, y: 304 },
+      { x: 1088, y: 456 },
+      { x: 930, y: 610 },
+    ],
+    exits: [
+      makeExit("westGate", 24, 392, 70, 164, "left", context.connections.westGate),
+      makeExit("southGate", 708, 884, 196, 52, "down", context.connections.southGate),
+      makeExit("eastGate", 1496, 388, 56, 168, "right", context.connections.eastGate),
+    ],
+    obstacles: [
+      ruin(732, 248, 210, 120, "altar"),
+      ruin(486, 598, 128, 92, "pillar"),
+      ruin(1170, 542, 138, 96, "pillar"),
+      tree(178, 160, 118, "charredTree"),
+      tree(464, 142, 110, "charredTree"),
+      tree(1286, 176, 118, "charredTree"),
+      tree(1280, 700, 114, "charredTree"),
+      bush(608, 758, 92, 56, "blight"),
+      bush(1060, 764, 92, 56, "blight"),
+      rock(868, 690, 84, 46),
+      rock(590, 430, 74, 44),
+      lantern(754, 392, "ember"),
+      lantern(1020, 312, "ember"),
+      signpost(904, 762),
+    ],
+    npcs: [npc("bram", 238, 666)],
+    interactables,
+    hazards: [
+      { id: "blight-pool-a", x: 286, y: 248, w: 122, h: 84, damage: 10, interval: 0.68, type: "blight" },
+      { id: "blight-pool-b", x: 1042, y: 590, w: 132, h: 88, damage: 10, interval: 0.68, type: "blight" },
+    ],
+  });
+}
+
+function buildAncientHeart(context, rng) {
+  const tiles = createTiles(rng);
+  stampRect(tiles, 0, 0, COLS, ROWS, "ruinStone", 0);
+  stampEllipse(tiles, 52, 30, 18, 12, "path", 0);
+  stampEllipse(tiles, 52, 30, 8, 6, "water", 0);
+  paintPath(tiles, 52, 56, 52, 30, 2, "path", 1);
+  paintPath(tiles, 52, 30, 86, 18, 2, "path", 0);
+  clearOverlayRect(tiles, 18, 16, 64, 32);
+  scatterOverlay(tiles, rng, 26, 10, 40, 12, 24, "flowersCool");
+
+  const interactables = [
+    interactable("heart-bloom-1", "flower", 784, 352, {
+      name: "Heart Bloom",
+      promptLabel: "Gather Heart Bloom",
+      toastText: "Heart Bloom gathered",
+      sortY: 362,
+    }),
+    interactable("heart-bloom-2", "flower", 1032, 520, {
+      name: "Heart Bloom",
+      promptLabel: "Gather Heart Bloom",
+      toastText: "Heart Bloom gathered",
+      sortY: 530,
+    }),
+  ];
+
+  return createBaseArena(context, tiles, {
+    playerSpawn: { x: 804, y: 842 },
+    entrySpawns: {
+      default: { x: 804, y: 842 },
+      southGate: { x: 804, y: 842 },
+    },
+    spawnPoints: [
+      { x: 242, y: 194 },
+      { x: 594, y: 164 },
+      { x: 1322, y: 214 },
+      { x: 1298, y: 710 },
+      { x: 346, y: 724 },
+    ],
+    bossZone: { x: 934, y: 454, radius: 188 },
+    bossAddSpawns: [
+      { x: 770, y: 454 },
+      { x: 934, y: 304 },
+      { x: 1096, y: 454 },
+      { x: 934, y: 610 },
+    ],
+    exits: [
+      makeExit("southGate", 708, 884, 196, 52, "down", context.connections.southGate),
+    ],
+    obstacles: [
+      ruin(760, 208, 214, 128, "altar"),
+      ruin(520, 334, 124, 92, "pillar"),
+      ruin(1168, 330, 124, 92, "pillar"),
+      water(816, 382, 186, 116, "ice"),
+      tree(208, 170, 112, "frost"),
+      tree(422, 166, 108, "frost"),
+      tree(1260, 192, 120, "charredTree"),
+      rock(612, 650, 80, 46),
+      rock(1098, 648, 82, 46),
+      bush(324, 744, 88, 54, "frost"),
+      bush(1216, 742, 88, 54, "forest"),
+      lantern(892, 338, "frost"),
+      lantern(1034, 338, "warm"),
+    ],
+    npcs: [npc("selka", 254, 670)],
+    interactables,
+    hazards: [],
+  });
+}
+
 export function createArena(context = {}) {
   const rng = createRng(context.seed || context.id || "arena");
+
+  if (context.sceneStyle === "mossyRuins") {
+    return buildMossyRuins(context, rng);
+  }
 
   if (context.sceneStyle === "mossrootMarsh") {
     return buildMossrootMarsh(context, rng);
@@ -807,6 +1076,14 @@ export function createArena(context = {}) {
 
   if (context.sceneStyle === "hollowheartRuins") {
     return buildHollowheartRuins(context, rng);
+  }
+
+  if (context.sceneStyle === "blightedWoods") {
+    return buildBlightedWoods(context, rng);
+  }
+
+  if (context.sceneStyle === "ancientHeart") {
+    return buildAncientHeart(context, rng);
   }
 
   return buildWhisperingWoods(context, rng);

@@ -39,12 +39,14 @@ export const PLAYER_ABILITY_INFO = {
 export class Player {
   constructor(spawn, modifiers = {}) {
     this.radius = 16;
-    this.maxHp = 100 + (modifiers.maxHpBonus || 0);
-    this.maxSpirit = 100 + (modifiers.maxSpiritBonus || 0);
     this.maxSpeed = 238;
-    this.spiritRegen = 12 + (modifiers.spiritRegenBonus || 0);
-    this.incomingDamageMult = modifiers.incomingDamageMult || 1;
+    this.maxHp = 100;
+    this.maxSpirit = 100;
+    this.spiritRegen = 12;
+    this.outOfCombatRegen = 3;
+    this.incomingDamageMult = 1;
     this.abilityInfo = buildAbilityInfo(modifiers);
+    this.refreshFromModifiers(modifiers, { preserveVitals: false });
     this.reset(spawn);
   }
 
@@ -140,6 +142,28 @@ export class Player {
   playPose(pose, duration) {
     this.pose = pose;
     this.poseTimer = Math.max(this.poseTimer, duration);
+  }
+
+  refreshFromModifiers(modifiers = {}, options = {}) {
+    const preserveVitals = options.preserveVitals !== false;
+    const hpRatio = this.maxHp > 0 ? this.hp / this.maxHp : 1;
+    const spiritRatio = this.maxSpirit > 0 ? this.spirit / this.maxSpirit : 1;
+
+    this.maxHp = 100 + (modifiers.maxHpBonus || 0);
+    this.maxSpirit = 100 + (modifiers.maxSpiritBonus || 0);
+    this.spiritRegen = 12 + (modifiers.spiritRegenBonus || 0);
+    this.outOfCombatRegen = 4 + (modifiers.healthRegenBonus || 0);
+    this.incomingDamageMult = modifiers.incomingDamageMult || 1;
+    this.abilityInfo = buildAbilityInfo(modifiers);
+
+    if (!preserveVitals) {
+      this.hp = this.maxHp;
+      this.spirit = this.maxSpirit;
+      return;
+    }
+
+    this.hp = Math.max(1, Math.min(this.maxHp, Math.round(this.maxHp * hpRatio)));
+    this.spirit = Math.min(this.maxSpirit, Math.round(this.maxSpirit * spiritRatio));
   }
 }
 

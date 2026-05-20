@@ -1,6 +1,6 @@
 import { startGameLoop } from "./core/gameLoop.js";
 import { createInput, wasPressed } from "./core/input.js";
-import { clamp } from "./core/math.js";
+import { clamp, distance } from "./core/math.js";
 import {
   CAMERA_SCREEN_Y,
   getProjectedArenaBounds,
@@ -8,17 +8,29 @@ import {
   screenToWorld,
 } from "./core/projection.js";
 import { INITIAL_SCENE_ID, SCENES } from "./data/sceneNetwork.js";
+import { TALENT_DEFS } from "./data/gameData.js";
 import { Player } from "./entities/player.js";
 import { renderGame } from "./rendering/renderer.js";
 import {
   handlePlayerAbilities,
+  markCombat,
   resolveEnemyCrowding,
   updateCombatEffects,
 } from "./systems/combat.js";
 import { createEncounterState, updateEncounter } from "./systems/encounter.js";
 import { updateEnvironment } from "./systems/environment.js";
 import { updateParticles } from "./systems/particles.js";
-import { createProgression, getPlayerBonuses } from "./systems/progression.js";
+import {
+  createProgression,
+  equipItem,
+  getEquippedItems,
+  getInventoryEntries,
+  getPlayerBonuses,
+  unlockTalent,
+  unequipItem,
+  useConsumable,
+} from "./systems/progression.js";
+import { loadSnapshot, saveSnapshot } from "./systems/save.js";
 import {
   advanceDialogue,
   beginInteraction,
@@ -34,19 +46,30 @@ import { createArena } from "./world/arena.js";
 
 const TRANSITION_DURATION = 0.34;
 const EXIT_HOLD_TIME = 0.22;
+const AUTO_SAVE_INTERVAL = 6;
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d", { alpha: false });
 const input = createInput(canvas);
-const progression = createProgression();
-const state = createState(progression);
+const snapshot = loadSnapshot();
+const progression = createProgression(snapshot?.progression);
+const state = createState(progression, snapshot);
 
-function createState(currentProgression) {
-  const currentSceneId = INITIAL_SCENE_ID;
-  const currentEntryId = "default";
-  const sceneProgress = {};
+function createState(currentProgression, saveData = null) {
+  const currentSceneId =
+    saveData?.currentSceneId && SCENES[saveData.currentSceneId]
+      ? saveData.currentSceneId
+      : INITIAL_SCENE_ID;
+  const currentEntryId = saveData?.currentEntryId || "default";
+  const sceneProgress = saveData?.sceneProgress || {};
   const viewport = { width: window.innerWidth, height: window.innerHeight, dpr: 1 };
-  const sceneState = buildSceneState(currentSceneId, currentEntryId, currentProgression, sceneProgress);
+  const sceneState = buildSceneState(
+    currentSceneId,
+    currentEntryId,
+    currentProgression,
+    sceneProgress,
+    saveData?.playerVitals || null
+  );
 
   return {
     ...sceneState,
@@ -66,6 +89,21 @@ function createState(currentProgression) {
     viewport,
     camera: { x: 0, y: 0 },
     mouseWorld: { x: 0, y: 0 },
+    combatTimer: 0,
+    saveTimer: AUTO_SAVE_INTERVAL,
+    ui: createUiState(saveData?.ui),
+  };
+}
+
+function createUiState(saved = null) {
+  return {
+    questLogOpen: saved?.questLogOpen || false,
+    menuOpen: saved?.menuOpen || false,
+    activeTab: saved?.activeTab || "character",
+    selectedInventoryIndex: saved?.selectedInventoryIndex || 0,
+    selectedEquipmentIndex: saved?.selectedEquipmentIndex || 0,
+    selectedTalentIndex: saved?.selectedTalentIndex || 0,
+    selectedQuestIndex: saved?.selectedQuestIndex || 0,
   };
 }
 
@@ -81,7 +119,7 @@ function createTransitionState() {
   };
 }
 
-function buildSceneState(sceneId, entryId, currentProgression, sceneProgress) {
+function buildSceneState(sceneId, entryId, currentProgression, sceneProgress, vitals = null) {
   const scene = SCENES[sceneId];
   const arena = createArena(scene);
   const savedSceneState = sceneProgress[sceneId];
@@ -101,10 +139,13 @@ function buildSceneState(sceneId, entryId, currentProgression, sceneProgress) {
     deactivateEncounter(encounter);
   }
 
+  const player = new Player(spawn, getPlayerBonuses(currentProgression));
+  restorePlayerVitals(player, vitals);
+
   return {
     scene,
     arena,
-    player: new Player(spawn, getPlayerBonuses(currentProgression)),
+    player,
     enemies: [],
     boss: null,
     projectiles: [],
@@ -115,6 +156,19 @@ function buildSceneState(sceneId, entryId, currentProgression, sceneProgress) {
     particles: [],
     afterImages: [],
     encounter,
+  };
+}
+
+function restorePlayerVitals(player, vitals) {
+  if (!vitals) return;
+  player.hp = clamp(vitals.hp ?? player.maxHp, 1, player.maxHp);
+  player.spirit = clamp(vitals.spirit ?? player.maxSpirit, 0, player.maxSpirit);
+}
+
+function capturePlayerVitals(player) {
+  return {
+    hp: player.hp,
+    spirit: player.spirit,
   };
 }
 
@@ -140,8 +194,9 @@ function ensureSceneProgress(sceneId) {
   return sceneProgress;
 }
 
-function applySceneState(sceneId, entryId) {
-  const next = buildSceneState(sceneId, entryId, state.progression, state.sceneProgress);
+function applySceneState(sceneId, entryId, options = {}) {
+  const vitals = options.restoreFull ? null : capturePlayerVitals(state.player);
+  const next = buildSceneState(sceneId, entryId, state.progression, state.sceneProgress, vitals);
 
   state.scene = next.scene;
   state.arena = next.arena;
@@ -166,6 +221,8 @@ function applySceneState(sceneId, entryId) {
   state.story.focus = null;
   state.story.prompt = "";
   state.story.dialogue = null;
+  state.combatTimer = 0;
+  closePanels();
   updateQuestAvailability(state);
   refreshQuestStates(state);
   updateCamera(0);
@@ -175,7 +232,7 @@ function applySceneState(sceneId, entryId) {
 function reloadCurrentScene() {
   const sceneProgress = ensureSceneProgress(state.currentSceneId);
   sceneProgress.cleared = false;
-  applySceneState(state.currentSceneId, state.currentEntryId || "default");
+  applySceneState(state.currentSceneId, state.currentEntryId || "default", { restoreFull: true });
 }
 
 function resizeCanvas() {
@@ -291,7 +348,7 @@ function handleSceneCleared() {
 }
 
 function updateExitCharge(dt) {
-  if (state.gameOver || state.transition.active || state.story.dialogue) {
+  if (state.gameOver || state.transition.active || state.story.dialogue || isUiOpen()) {
     state.nearExit = null;
     state.exitCharge = 0;
     return;
@@ -340,6 +397,10 @@ function handleInteractionInput() {
     return true;
   }
 
+  if (isUiOpen()) {
+    return true;
+  }
+
   if (wasPressed(input, "e", "KeyE") && state.story.focus) {
     beginInteraction(state, state.story.focus);
     return true;
@@ -348,12 +409,291 @@ function handleInteractionInput() {
   return false;
 }
 
+function isUiOpen() {
+  return state.ui.questLogOpen || state.ui.menuOpen;
+}
+
+function closePanels() {
+  state.ui.questLogOpen = false;
+  state.ui.menuOpen = false;
+}
+
+function openMenu(tab) {
+  state.ui.menuOpen = true;
+  state.ui.questLogOpen = false;
+  state.ui.activeTab = tab;
+}
+
+function toggleQuestLog() {
+  state.ui.questLogOpen = !state.ui.questLogOpen;
+  if (state.ui.questLogOpen) {
+    state.ui.menuOpen = false;
+  }
+}
+
+function cycleMenuTab() {
+  const order = ["character", "inventory", "talents"];
+  const current = order.indexOf(state.ui.activeTab);
+  state.ui.activeTab = order[(current + 1) % order.length];
+}
+
+function moveSelection(delta, key) {
+  const next = Math.max(0, (state.ui[key] || 0) + delta);
+  state.ui[key] = next;
+}
+
+function clampSelection(key, max) {
+  state.ui[key] = clamp(state.ui[key] || 0, 0, Math.max(0, max - 1));
+}
+
+function refreshPlayerFromProgression(preserveVitals = true) {
+  state.player.refreshFromModifiers(getPlayerBonuses(state.progression), { preserveVitals });
+}
+
+function tryUseQuickItem(itemId) {
+  const result = useConsumable(state.progression, itemId, state.player);
+  if (!result.used) return false;
+  setToast(
+    result.healed > 0
+      ? `Recovered ${result.healed} HP`
+      : `Recovered ${result.restored} Spirit`,
+    1.8
+  );
+  return true;
+}
+
+function handleMenuNavigation() {
+  if (wasPressed(input, "tab", "Tab")) {
+    cycleMenuTab();
+    return true;
+  }
+
+  if (state.ui.activeTab === "inventory") {
+    const entries = getInventoryEntries(state.progression);
+    clampSelection("selectedInventoryIndex", entries.length);
+
+    if (wasPressed(input, "arrowup", "ArrowUp") || wasPressed(input, "w", "KeyW")) {
+      moveSelection(-1, "selectedInventoryIndex");
+      clampSelection("selectedInventoryIndex", entries.length);
+      return true;
+    }
+
+    if (wasPressed(input, "arrowdown", "ArrowDown") || wasPressed(input, "s", "KeyS")) {
+      moveSelection(1, "selectedInventoryIndex");
+      clampSelection("selectedInventoryIndex", entries.length);
+      return true;
+    }
+
+    if ((wasPressed(input, "enter", "Enter") || wasPressed(input, " ", "Space")) && entries.length > 0) {
+      const entry = entries[state.ui.selectedInventoryIndex];
+      if (!entry) return true;
+
+      if (entry.category === "equipment") {
+        if (equipItem(state.progression, entry.id)) {
+          refreshPlayerFromProgression();
+          setToast(`Equipped ${entry.name}`, 1.9);
+        }
+      } else if (entry.category === "consumable") {
+        const result = useConsumable(state.progression, entry.id, state.player);
+        if (result.used) {
+          setToast(
+            result.healed > 0
+              ? `${entry.name} restored ${result.healed} HP`
+              : `${entry.name} restored ${result.restored} Spirit`,
+            1.9
+          );
+        }
+      }
+
+      return true;
+    }
+  }
+
+  if (state.ui.activeTab === "character") {
+    const equipped = getEquippedItems(state.progression);
+    clampSelection("selectedEquipmentIndex", equipped.length);
+
+    if (wasPressed(input, "arrowup", "ArrowUp") || wasPressed(input, "w", "KeyW")) {
+      moveSelection(-1, "selectedEquipmentIndex");
+      clampSelection("selectedEquipmentIndex", equipped.length);
+      return true;
+    }
+
+    if (wasPressed(input, "arrowdown", "ArrowDown") || wasPressed(input, "s", "KeyS")) {
+      moveSelection(1, "selectedEquipmentIndex");
+      clampSelection("selectedEquipmentIndex", equipped.length);
+      return true;
+    }
+
+    if (
+      wasPressed(input, "backspace", "Backspace") ||
+      wasPressed(input, "delete", "Delete") ||
+      wasPressed(input, "u", "KeyU")
+    ) {
+      const slot = equipped[state.ui.selectedEquipmentIndex]?.slot;
+      if (slot && unequipItem(state.progression, slot)) {
+        refreshPlayerFromProgression();
+        setToast(`Unequipped ${slot}`, 1.7);
+      }
+      return true;
+    }
+  }
+
+  if (state.ui.activeTab === "talents") {
+    clampSelection("selectedTalentIndex", TALENT_DEFS.length);
+
+    if (wasPressed(input, "arrowup", "ArrowUp") || wasPressed(input, "w", "KeyW")) {
+      moveSelection(-1, "selectedTalentIndex");
+      clampSelection("selectedTalentIndex", TALENT_DEFS.length);
+      return true;
+    }
+
+    if (wasPressed(input, "arrowdown", "ArrowDown") || wasPressed(input, "s", "KeyS")) {
+      moveSelection(1, "selectedTalentIndex");
+      clampSelection("selectedTalentIndex", TALENT_DEFS.length);
+      return true;
+    }
+
+    if (wasPressed(input, "enter", "Enter") || wasPressed(input, " ", "Space")) {
+      const talent = TALENT_DEFS[state.ui.selectedTalentIndex];
+      if (talent && unlockTalent(state.progression, talent.id)) {
+        refreshPlayerFromProgression();
+        setToast(`Unlocked ${talent.name}`, 2);
+      }
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function handleUiInput() {
+  if (state.story.dialogue) {
+    return false;
+  }
+
+  if (wasPressed(input, "escape", "Escape")) {
+    if (isUiOpen()) {
+      closePanels();
+      return true;
+    }
+  }
+
+  if (wasPressed(input, "q", "KeyQ")) {
+    toggleQuestLog();
+    return true;
+  }
+
+  if (wasPressed(input, "c", "KeyC")) {
+    openMenu(state.ui.menuOpen && state.ui.activeTab === "character" ? "character" : "character");
+    return true;
+  }
+
+  if (wasPressed(input, "i", "KeyI")) {
+    openMenu("inventory");
+    return true;
+  }
+
+  if (wasPressed(input, "t", "KeyT")) {
+    openMenu("talents");
+    return true;
+  }
+
+  if (wasPressed(input, "5", "Digit5")) {
+    return tryUseQuickItem("health_potion");
+  }
+
+  if (wasPressed(input, "6", "Digit6")) {
+    return tryUseQuickItem("spirit_tonic");
+  }
+
+  if (state.ui.menuOpen) {
+    return handleMenuNavigation();
+  }
+
+  if (state.ui.questLogOpen) {
+    const quests = getActiveQuestEntries(state.progression);
+    clampSelection("selectedQuestIndex", quests.length);
+    if (wasPressed(input, "arrowup", "ArrowUp") || wasPressed(input, "w", "KeyW")) {
+      moveSelection(-1, "selectedQuestIndex");
+      clampSelection("selectedQuestIndex", quests.length);
+      return true;
+    }
+
+    if (wasPressed(input, "arrowdown", "ArrowDown") || wasPressed(input, "s", "KeyS")) {
+      moveSelection(1, "selectedQuestIndex");
+      clampSelection("selectedQuestIndex", quests.length);
+      return true;
+    }
+
+    return true;
+  }
+
+  return false;
+}
+
+function updateCombatPresence(dt) {
+  state.combatTimer = Math.max(0, state.combatTimer - dt);
+
+  const nearbyEnemy = state.enemies.some(
+    (enemy) => !enemy.dead && distance(enemy.x, enemy.y, state.player.x, state.player.y) < 290
+  );
+  const activeBoss = Boolean(state.boss && !state.boss.dead);
+
+  if (nearbyEnemy || activeBoss || state.hostileProjectiles.length > 0 || state.eruptions.length > 0) {
+    markCombat(state, 1.2);
+  }
+
+  if (state.combatTimer <= 0 && !state.gameOver && state.player.hp < state.player.maxHp) {
+    state.player.hp = Math.min(
+      state.player.maxHp,
+      state.player.hp + state.player.outOfCombatRegen * dt
+    );
+  }
+}
+
+function buildSnapshot() {
+  return {
+    progression: state.progression,
+    sceneProgress: state.sceneProgress,
+    currentSceneId: state.currentSceneId,
+    currentEntryId: state.currentEntryId,
+    playerVitals: capturePlayerVitals(state.player),
+    ui: {
+      questLogOpen: false,
+      menuOpen: false,
+      activeTab: state.ui.activeTab,
+      selectedInventoryIndex: state.ui.selectedInventoryIndex,
+      selectedEquipmentIndex: state.ui.selectedEquipmentIndex,
+      selectedTalentIndex: state.ui.selectedTalentIndex,
+      selectedQuestIndex: state.ui.selectedQuestIndex,
+    },
+  };
+}
+
+function persistState() {
+  saveSnapshot(buildSnapshot());
+}
+
+function updateAutosave(dt) {
+  state.saveTimer -= dt;
+  if (state.saveTimer > 0) return;
+  persistState();
+  state.saveTimer = AUTO_SAVE_INTERVAL;
+}
+
+function setToast(text, duration = 2) {
+  state.story.toastText = text;
+  state.story.toastTimer = duration;
+}
+
 function update(dt) {
   state.time += dt;
   state.shake = Math.max(0, state.shake - 30 * dt);
   updateMouseWorld();
   updateStoryRuntime(state, dt);
   updateInteractionState();
+  updateAutosave(dt);
 
   if (state.gameOver && (wasPressed(input, "r", "KeyR") || wasPressed(input, "enter", "Enter"))) {
     reloadCurrentScene();
@@ -368,9 +708,11 @@ function update(dt) {
 
   state.player.tick(dt);
 
+  const uiConsumed = handleUiInput();
   const interactionBlocked = handleInteractionInput();
+  const gameplayBlocked = uiConsumed || interactionBlocked || isUiOpen();
 
-  if (!state.gameOver && !interactionBlocked) {
+  if (!state.gameOver && !gameplayBlocked) {
     handlePlayerAbilities(state, input);
     state.player.move(dt, input, state);
     updateCombatEffects(state, dt);
@@ -382,10 +724,11 @@ function update(dt) {
 
     state.enemies = state.enemies.filter((enemy) => !enemy.dead);
     resolveEnemyCrowding(state);
+    updateEncounter(state, dt);
+    consumeStoryEvents(state);
   }
 
-  updateEncounter(state, dt);
-  consumeStoryEvents(state);
+  updateCombatPresence(dt);
 
   if (state.areaCleared) {
     handleSceneCleared();
@@ -402,6 +745,8 @@ function render() {
 }
 
 window.addEventListener("resize", resizeCanvas);
+window.addEventListener("beforeunload", persistState);
+
 resizeCanvas();
 updateQuestAvailability(state);
 refreshQuestStates(state);
@@ -414,6 +759,7 @@ window.__heartOfForestDebug = {
     applySceneState(sceneId, entryId);
     return true;
   },
+  save: persistState,
   reloadCurrentScene,
 };
 

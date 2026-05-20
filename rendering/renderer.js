@@ -7,6 +7,12 @@ import {
 } from "../core/projection.js";
 import { NPC_DEFS } from "../data/storyData.js";
 import {
+  drawAylaAtlasSprite,
+  drawBiomeProp,
+  getAtlasRevision,
+  getBiomePattern,
+} from "./atlasAssets.js";
+import {
   drawPixelSprite,
   getActorSprite,
   getBossSprite,
@@ -64,7 +70,14 @@ function toScreen(origin, x, y, height = 0) {
 }
 
 function drawBackground(ctx, arena, origin) {
-  const key = [arena.sceneId, arena.width, arena.height, arena.biomeId, arena.sceneStyle].join("|");
+  const key = [
+    arena.sceneId,
+    arena.width,
+    arena.height,
+    arena.biomeId,
+    arena.sceneStyle,
+    getAtlasRevision(),
+  ].join("|");
 
   if (!backgroundCache || backgroundCacheKey !== key) {
     backgroundCache = buildBackground(arena);
@@ -105,15 +118,29 @@ function drawTileMap(ctx, arena, offsetX, offsetY) {
       const worldX = tx * arena.tileSize + arena.tileSize / 2;
       const worldY = ty * arena.tileSize + arena.tileSize / 2;
       const point = projectWorld(worldX, worldY);
-      drawTile(ctx, Math.round(point.x + offsetX), Math.round(point.y + offsetY), halfW, halfH, arena.tiles[ty][tx], arena.theme);
+      drawTile(
+        ctx,
+        Math.round(point.x + offsetX),
+        Math.round(point.y + offsetY),
+        halfW,
+        halfH,
+        arena.tiles[ty][tx],
+        arena.theme,
+        arena.sceneStyle
+      );
     }
   }
 }
 
-function drawTile(ctx, x, y, halfW, halfH, tile, theme) {
+function drawTile(ctx, x, y, halfW, halfH, tile, theme, sceneStyle) {
   const palette = getGroundPalette(tile.ground, tile.variant, theme);
   const texture = getGroundTexture(tile.ground, theme);
-  const pattern = texture ? ctx.createPattern(texture, "repeat") : null;
+  const atlasPattern = getBiomePattern(sceneStyle, tile.ground, tile.variant);
+  const pattern = atlasPattern
+    ? ctx.createPattern(atlasPattern, "repeat")
+    : texture
+      ? ctx.createPattern(texture, "repeat")
+      : null;
   drawDiamond(ctx, x, y, halfW, halfH, pattern || palette.base);
   drawDiamondStroke(ctx, x, y, halfW, halfH, palette.edge);
   drawHalfDiamond(ctx, x, y - 1, halfW - 1, halfH - 1, palette.highlight);
@@ -429,7 +456,9 @@ function drawSortedWorld(ctx, state, origin) {
   renderables.sort((a, b) => a.y - b.y);
 
   for (const renderable of renderables) {
-    if (renderable.kind === "obstacle") drawObstacle(ctx, renderable.item, state.arena.theme, origin);
+    if (renderable.kind === "obstacle") {
+      drawObstacle(ctx, renderable.item, state.arena.theme, state.arena.sceneStyle, origin);
+    }
     if (renderable.kind === "interactable") drawInteractable(ctx, renderable.item, origin);
     if (renderable.kind === "npc") drawNpc(ctx, renderable.item, origin);
     if (renderable.kind === "afterImage") drawAfterImage(ctx, renderable.item, origin);
@@ -439,23 +468,34 @@ function drawSortedWorld(ctx, state, origin) {
   }
 }
 
-function drawObstacle(ctx, obstacle, theme, origin) {
-  if (obstacle.type === "tree" || obstacle.type === "charredTree") drawTree(ctx, obstacle, theme, origin);
-  if (obstacle.type === "rock" || obstacle.type === "iceRock") drawRock(ctx, obstacle, theme, origin);
-  if (obstacle.type === "bush") drawBush(ctx, obstacle, origin);
+function drawObstacle(ctx, obstacle, theme, sceneStyle, origin) {
+  if (obstacle.type === "tree" || obstacle.type === "charredTree") {
+    drawTree(ctx, obstacle, theme, sceneStyle, origin);
+  }
+  if (obstacle.type === "rock" || obstacle.type === "iceRock") {
+    drawRock(ctx, obstacle, theme, sceneStyle, origin);
+  }
+  if (obstacle.type === "bush") drawBush(ctx, obstacle, sceneStyle, origin);
   if (obstacle.type === "water") drawWater(ctx, obstacle, origin);
-  if (obstacle.type === "ruin") drawRuin(ctx, obstacle, origin);
+  if (obstacle.type === "ruin") drawRuin(ctx, obstacle, sceneStyle, origin);
   if (obstacle.type === "cottage") drawCottage(ctx, obstacle, origin);
   if (obstacle.type === "well") drawWell(ctx, obstacle, origin);
-  if (obstacle.type === "fenceH" || obstacle.type === "fenceV") drawFence(ctx, obstacle, origin);
-  if (obstacle.type === "signpost") drawSignpost(ctx, obstacle, origin);
-  if (obstacle.type === "lantern") drawLantern(ctx, obstacle, origin);
-  if (obstacle.type === "bridge") drawBridge(ctx, obstacle, origin);
+  if (obstacle.type === "fenceH" || obstacle.type === "fenceV") drawFence(ctx, obstacle, sceneStyle, origin);
+  if (obstacle.type === "signpost") drawSignpost(ctx, obstacle, sceneStyle, origin);
+  if (obstacle.type === "lantern") drawLantern(ctx, obstacle, sceneStyle, origin);
+  if (obstacle.type === "bridge") drawBridge(ctx, obstacle, sceneStyle, origin);
 }
 
-function drawTree(ctx, tree, theme, origin) {
+function drawTree(ctx, tree, theme, sceneStyle, origin) {
   const point = toScreen(origin, tree.anchorX, tree.anchorY);
   drawIsoShadow(ctx, point.x, point.y, 34, 14);
+  if (
+    drawBiomeProp(ctx, sceneStyle, "tree", point.x, point.y + 4, {
+      scale: Math.max(0.9, tree.w / 86),
+    })
+  ) {
+    return;
+  }
   const trunkDark = tree.type === "charredTree" ? "#40231e" : theme.trunk;
   const trunkLight = tree.type === "charredTree" ? "#6b4035" : theme.trunkLight;
   const canopyDark = tree.type === "charredTree" ? "#2f1816" : theme.treeDark;
@@ -475,9 +515,16 @@ function drawTree(ctx, tree, theme, origin) {
   pixelRect(ctx, point.x + 4, point.y - 16, 10, 4, trunkDark);
 }
 
-function drawRock(ctx, rock, theme, origin) {
+function drawRock(ctx, rock, theme, sceneStyle, origin) {
   const point = toScreen(origin, rock.anchorX, rock.anchorY);
   drawIsoShadow(ctx, point.x, point.y, 26, 10);
+  if (
+    drawBiomeProp(ctx, sceneStyle, rock.type, point.x, point.y + 2, {
+      scale: Math.max(0.72, rock.w / 96),
+    })
+  ) {
+    return;
+  }
   const base = rock.type === "iceRock" ? "#95b4cb" : theme.rockBase;
   const light = rock.type === "iceRock" ? "#dff3ff" : theme.rockLight;
   const dark = rock.type === "iceRock" ? "#6d8ba4" : "#46544e";
@@ -487,9 +534,16 @@ function drawRock(ctx, rock, theme, origin) {
   pixelRect(ctx, point.x - 8, point.y - 8, 16, 4, dark);
 }
 
-function drawBush(ctx, bush, origin) {
+function drawBush(ctx, bush, sceneStyle, origin) {
   const point = toScreen(origin, bush.anchorX, bush.anchorY);
   drawIsoShadow(ctx, point.x, point.y, 20, 8);
+  if (
+    drawBiomeProp(ctx, sceneStyle, "bush", point.x, point.y + 2, {
+      scale: Math.max(0.62, bush.w / 72),
+    })
+  ) {
+    return;
+  }
   const dark =
     bush.style === "ember" ? "#854832" : bush.style === "frost" ? "#7ea3c0" : bush.style === "blight" ? "#6f3c3a" : "#2d6a38";
   const mid =
@@ -540,9 +594,16 @@ function drawWater(ctx, water, origin) {
   }
 }
 
-function drawRuin(ctx, ruin, origin) {
+function drawRuin(ctx, ruin, sceneStyle, origin) {
   const point = toScreen(origin, ruin.anchorX, ruin.anchorY);
   drawIsoShadow(ctx, point.x, point.y, 30, 12);
+  if (
+    drawBiomeProp(ctx, sceneStyle, "ruin", point.x, point.y + 2, {
+      scale: Math.max(0.9, ruin.w / 114),
+    })
+  ) {
+    return;
+  }
   const topW = Math.round(ruin.w * 0.42);
   const midW = Math.round(ruin.w * 0.56);
   const topH = Math.round(ruin.h * 0.16);
@@ -577,9 +638,16 @@ function drawWell(ctx, well, origin) {
   pixelRect(ctx, point.x - 10, point.y - 14, 20, 8, "#4f7284");
 }
 
-function drawFence(ctx, fence, origin) {
+function drawFence(ctx, fence, sceneStyle, origin) {
   const point = toScreen(origin, fence.anchorX, fence.anchorY);
   drawIsoShadow(ctx, point.x, point.y, 16, 6);
+  if (
+    drawBiomeProp(ctx, sceneStyle, fence.type, point.x, point.y + 2, {
+      scale: fence.type === "fenceH" ? Math.max(0.9, fence.w / 128) : Math.max(0.9, fence.h / 92),
+    })
+  ) {
+    return;
+  }
   const width = Math.round(fence.w * 0.36);
   const left = Math.round(point.x - width / 2);
   pixelRect(ctx, left, point.y - 18, width, 4, "#cba16c");
@@ -589,18 +657,32 @@ function drawFence(ctx, fence, origin) {
   }
 }
 
-function drawSignpost(ctx, sign, origin) {
+function drawSignpost(ctx, sign, sceneStyle, origin) {
   const point = toScreen(origin, sign.anchorX, sign.anchorY);
   drawIsoShadow(ctx, point.x, point.y, 10, 4);
+  if (
+    drawBiomeProp(ctx, sceneStyle, "signpost", point.x, point.y + 2, {
+      scale: 0.9,
+    })
+  ) {
+    return;
+  }
   pixelRect(ctx, point.x - 3, point.y - 22, 6, 20, "#6b4a2e");
   pixelRect(ctx, point.x - 16, point.y - 32, 32, 12, "#d7be86");
   pixelRect(ctx, point.x - 14, point.y - 30, 28, 2, "#f4ddb2");
   pixelRect(ctx, point.x - 12, point.y - 26, 20, 2, "#9c7a4a");
 }
 
-function drawLantern(ctx, lantern, origin) {
+function drawLantern(ctx, lantern, sceneStyle, origin) {
   const point = toScreen(origin, lantern.anchorX, lantern.anchorY);
   drawIsoShadow(ctx, point.x, point.y, 8, 4);
+  if (
+    drawBiomeProp(ctx, sceneStyle, "lantern", point.x, point.y + 2, {
+      scale: 0.86,
+    })
+  ) {
+    return;
+  }
   pixelRect(ctx, point.x - 2, point.y - 24, 4, 22, "#6e4a34");
   pixelRect(ctx, point.x - 8, point.y - 36, 16, 12, "#4e3a28");
   pixelRect(
@@ -614,7 +696,16 @@ function drawLantern(ctx, lantern, origin) {
   pixelRect(ctx, point.x - 2, point.y - 30, 4, 2, "#fff6cf");
 }
 
-function drawBridge(ctx, bridge, origin) {
+function drawBridge(ctx, bridge, sceneStyle, origin) {
+  const center = toScreen(origin, bridge.x + bridge.w / 2, bridge.y + bridge.h);
+  if (
+    drawBiomeProp(ctx, sceneStyle, "bridge", center.x, center.y + 2, {
+      scale: bridge.w > bridge.h ? Math.max(1, bridge.w / 144) : Math.max(1, bridge.h / 144),
+    })
+  ) {
+    return;
+  }
+
   const corners = [
     toScreen(origin, bridge.x, bridge.y),
     toScreen(origin, bridge.x + bridge.w, bridge.y),
@@ -698,6 +789,16 @@ function drawPlayer(ctx, player, origin) {
   const speed = Math.hypot(player.vx, player.vy);
   const frame = speed > 20 ? Math.floor(player.animTime) % 4 : Math.floor(player.animTime) % 2;
   const facing = resolveFacing(player.aimAngle);
+  if (
+    drawAylaAtlasSprite(ctx, point.x, point.y, facing, frame, player.pose, {
+      alpha: player.invulnerable > 0 && Math.floor(performance.now() / 60) % 2 === 0 ? 0.72 : 1,
+      tint: player.hurtFlash > 0 ? "#ffd7ca" : null,
+      tintAlpha: 0.56,
+      scale: 0.74,
+    })
+  ) {
+    return;
+  }
   drawPixelSprite(
     ctx,
     getActorSprite(

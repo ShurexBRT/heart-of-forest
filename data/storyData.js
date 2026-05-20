@@ -6,10 +6,23 @@ export const QUEST_DEFS = {
     giverId: "elder_rowan",
     sceneId: "whispering_woods",
     startState: "available",
-    rewards: { spirit_bloom: 3, moonleaf: 1 },
+    rewards: { items: { spirit_bloom: 3, health_potion: 2 }, xp: 80 },
     objectives: [
       { key: "spiritFlowers", label: "Spirit Flowers gathered", required: 3 },
       { key: "thornlingsDefeated", label: "Thornlings defeated", required: 3 },
+    ],
+  },
+  apothecarys_route: {
+    id: "apothecarys_route",
+    title: "Apothecary's Route",
+    description: "Tamsin needs fresh herbs and safer roads before she can restock the village tonic shelf.",
+    giverId: "tamsin",
+    sceneId: "whispering_woods",
+    startState: "available",
+    rewards: { items: { spirit_tonic: 2, moonthread_amulet: 1 }, xp: 70 },
+    objectives: [
+      { key: "moonleafBundles", label: "Moonleaf bundles gathered", required: 2 },
+      { key: "marshLanternsLit", label: "Marsh lanterns relit", required: 2 },
     ],
   },
   bogbound_rot: {
@@ -18,35 +31,64 @@ export const QUEST_DEFS = {
     description: "Nettle marked tainted roots in the marsh. Cleanse them before the mire swallows the road.",
     giverId: "nettle",
     sceneId: "mossroot_marsh",
-    startState: "available",
-    rewards: { bog_amber: 2, spirit_bloom: 1, talentPoints: 1 },
+    startState: "inactive",
+    rewards: { items: { bog_amber: 2, health_potion: 1, rootwoven_talisman: 1 }, xp: 95 },
     objectives: [{ key: "rootsCleansed", label: "Corrupted roots cleansed", required: 2 }],
+  },
+  ruins_of_memory: {
+    id: "ruins_of_memory",
+    title: "Ruins of Memory",
+    description: "Orras is listening for old voices in the ruins. Bring back relic caches before the blight strips them bare.",
+    giverId: "orras",
+    sceneId: "mossy_ruins",
+    prerequisiteId: "whispering_call",
+    startState: "inactive",
+    rewards: { items: { relic_shard: 2, spirit_tonic: 1 }, talentPoints: 1, xp: 100 },
+    objectives: [{ key: "relicCachesRecovered", label: "Relic caches recovered", required: 2 }],
   },
   ember_totems: {
     id: "ember_totems",
     title: "Totems in the Ash",
     description: "The grove is burning from within. Reactivate the warding totems and reopen the mountain pass.",
-    autoActivateSceneId: "emberpine_grove",
-    prerequisiteId: "whispering_call",
-    rewards: { cinder_resin: 2, relic_shard: 1 },
+    giverId: "garrick",
+    sceneId: "emberpine_grove",
+    prerequisiteId: "ruins_of_memory",
+    startState: "inactive",
+    rewards: { items: { cinder_resin: 2, emberglass_relic: 1, greater_health_potion: 1 }, xp: 120 },
     objectives: [{ key: "totemsActivated", label: "Totems rekindled", required: 3 }],
   },
   lost_scout: {
     id: "lost_scout",
     title: "Frostbound Signal",
     description: "A missing scout vanished in the tundra. Find their camp and recover the message they carried.",
-    autoActivateSceneId: "frostveil_tundra",
+    giverId: "vesper",
+    sceneId: "frostveil_tundra",
     prerequisiteId: "ember_totems",
-    rewards: { stonebloom: 2, moonleaf: 1 },
+    startState: "inactive",
+    rewards: { items: { stonebloom: 2, frostband_charm: 1, spirit_tonic: 1 }, xp: 128 },
     objectives: [{ key: "scoutFound", label: "Lost scout located", required: 1 }],
+  },
+  blight_watch: {
+    id: "blight_watch",
+    title: "Blight Watch",
+    description: "Break the blight effigies and cut down the wisps feeding the rot before it swallows the old court.",
+    giverId: "bram",
+    sceneId: "blighted_woods",
+    prerequisiteId: "lost_scout",
+    startState: "inactive",
+    rewards: { items: { greater_health_potion: 2, heartseed: 1 }, xp: 150 },
+    objectives: [
+      { key: "blightEffigiesBroken", label: "Blight effigies shattered", required: 2 },
+      { key: "wispsDefeated", label: "Wisps driven off", required: 4 },
+    ],
   },
   elder_hollow: {
     id: "elder_hollow",
     title: "The Hollowheart",
     description: "Push into the ruins, survive the corrupted court, and break Elder Hollow before the forest falls silent.",
     autoActivateSceneId: "hollowheart_ruins",
-    prerequisiteId: "lost_scout",
-    rewards: { heartseed: 1, relic_shard: 2, talentPoints: 2 },
+    prerequisiteId: "blight_watch",
+    rewards: { items: { heartseed_pendant: 1, relic_shard: 2, greater_health_potion: 2 }, talentPoints: 2, xp: 220 },
     objectives: [{ key: "elderHollowDefeated", label: "Elder Hollow defeated", required: 1 }],
   },
 };
@@ -67,7 +109,7 @@ export const NPC_DEFS = {
       ],
       complete: [
         "Good. The grove can breathe again.",
-        "Follow the warm trail east when you are ready. Something older is waking beyond the marsh.",
+        "Tamsin and the others can move again now that the first trail is clear.",
       ],
       after: ["The forest remembers what you restored here. Keep moving."],
     },
@@ -99,9 +141,121 @@ export const NPC_DEFS = {
       ],
       complete: [
         "There it is. Cleaner water and less rot in the air.",
-        "Take these supplies before the damp steals them too.",
+        "Take this talisman. It was wasted hanging by my stove.",
       ],
       after: ["Marsh work never truly ends, but you bought us time."],
+    },
+  },
+  tamsin: {
+    id: "tamsin",
+    name: "Tamsin",
+    role: "Apothecary",
+    palette: { hood: "#f4ebde", cloak: "#8a5d8b", accent: "#f0b87b" },
+    dialogue: {
+      intro: [
+        "The tonic shelf is down to dust and stubborn hope.",
+        "Bring me moonleaf bundles and relight the marsh lanterns so the gatherers can walk again.",
+      ],
+      progress: [
+        "Moonleaf and safe lanterns, Ayla. I can brew the rest once the path is open.",
+      ],
+      complete: [
+        "Perfect. This is enough to stock the satchels and prime the spirit flasks.",
+        "Take the amulet. It keeps the pulse steady under pressure.",
+      ],
+      after: ["If the herbs keep flowing, I can keep the village standing."],
+    },
+  },
+  orras: {
+    id: "orras",
+    name: "Orras",
+    role: "Relic Keeper",
+    palette: { hood: "#e7e0d3", cloak: "#657f57", accent: "#ece39e" },
+    dialogue: {
+      intro: [
+        "The ruins still whisper when the rain is quiet.",
+        "Find the relic caches before the blight settles deeper into the stone.",
+      ],
+      progress: [
+        "Two caches should be enough to prove the old halls still remember us.",
+      ],
+      complete: [
+        "You can hear it, can't you? The place is quieter now.",
+        "Keep that shard-work close. It will matter in the fireward grove ahead.",
+      ],
+      after: ["Ancient stone rarely forgets. It only waits."],
+    },
+  },
+  garrick: {
+    id: "garrick",
+    name: "Garrick",
+    role: "Warden Captain",
+    palette: { hood: "#ece2d6", cloak: "#994f34", accent: "#ffbb7d" },
+    dialogue: {
+      intro: [
+        "Three warding totems are dark, and the grove is answering with ash.",
+        "Wake them and we'll have a road through the ember line again.",
+      ],
+      progress: [
+        "The totems hold the pass together. Three, Ayla. No fewer.",
+      ],
+      complete: [
+        "There. The air's still hot, but it isn't hungry anymore.",
+        "Vesper's scouts were last seen beyond the frozen ridge.",
+      ],
+      after: ["Keep the fire behind you. The cold won't be kinder."],
+    },
+  },
+  vesper: {
+    id: "vesper",
+    name: "Vesper",
+    role: "Scout Captain",
+    palette: { hood: "#e8edf3", cloak: "#5178aa", accent: "#d7f4ff" },
+    dialogue: {
+      intro: [
+        "One of ours never checked in from the ridge camp.",
+        "Find the satchel and I can chart the safe route into the old court.",
+      ],
+      progress: [
+        "The ridge is quiet in the wrong way. Find the scout before the trail disappears.",
+      ],
+      complete: [
+        "So they made it as far as the stones.",
+        "Take the frostband charm. You'll want the extra pace in the blight line.",
+      ],
+      after: ["The message was worth the cost. We'll honor it by finishing the route."],
+    },
+  },
+  bram: {
+    id: "bram",
+    name: "Bram",
+    role: "Border Ranger",
+    palette: { hood: "#ece2d7", cloak: "#7b5842", accent: "#bf876d" },
+    dialogue: {
+      intro: [
+        "Effigies are feeding the woods and the wisps are guarding them.",
+        "Break two effigies and thin the wisps before you march on the Hollow.",
+      ],
+      progress: [
+        "Two effigies. Four wisps. Then the road to the court is worth walking.",
+      ],
+      complete: [
+        "That's the first clean breath I've had out here in days.",
+        "Take these draughts. Elder Hollow won't pull punches.",
+      ],
+      after: ["You broke the screen. Now go for the thing casting the shadow."],
+    },
+  },
+  selka: {
+    id: "selka",
+    name: "Selka",
+    role: "Heart Pilgrim",
+    palette: { hood: "#efe7dd", cloak: "#7e67a6", accent: "#f0dd92" },
+    dialogue: {
+      default: [
+        "Past the court the forest still keeps one bright chamber.",
+        "If you reach the Ancient Heart, walk softly. The place remembers even the roots beneath you.",
+      ],
     },
   },
 };

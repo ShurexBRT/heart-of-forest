@@ -1,6 +1,11 @@
 import { distance } from "../core/math.js";
 import { NPC_DEFS, QUEST_DEFS } from "../data/storyData.js";
-import { awardRewards, getQuestCounter, incrementQuestCounter } from "./progression.js";
+import {
+  awardRewards,
+  getPlayerBonuses,
+  getQuestCounter,
+  incrementQuestCounter,
+} from "./progression.js";
 
 const INTERACTION_RADIUS = 60;
 
@@ -25,13 +30,20 @@ export function updateQuestAvailability(state) {
   const progression = state.progression;
 
   for (const quest of Object.values(QUEST_DEFS)) {
-    if (!quest.autoActivateSceneId) continue;
-    if (progression.questStates[quest.id] !== "inactive") continue;
+    const status = progression.questStates[quest.id];
+    if (status !== "inactive") continue;
     if (quest.prerequisiteId && !isQuestDone(progression, quest.prerequisiteId)) continue;
-    if (state.currentSceneId !== quest.autoActivateSceneId) continue;
 
-    progression.questStates[quest.id] = "active";
-    setToast(state, `Quest Started: ${quest.title}`, 2.4);
+    if (quest.giverId && state.currentSceneId === quest.sceneId) {
+      progression.questStates[quest.id] = "available";
+      setToast(state, `Quest Available: ${quest.title}`, 2.1);
+      continue;
+    }
+
+    if (quest.autoActivateSceneId && state.currentSceneId === quest.autoActivateSceneId) {
+      progression.questStates[quest.id] = "active";
+      setToast(state, `Quest Started: ${quest.title}`, 2.4);
+    }
   }
 }
 
@@ -47,6 +59,10 @@ export function consumeStoryEvents(state) {
     if (event.type === "enemyDefeated") {
       if (event.enemyType === "thornling") {
         incrementQuestCounter(state.progression, "thornlingsDefeated", 1);
+      }
+
+      if (event.enemyType === "wisp_archer") {
+        incrementQuestCounter(state.progression, "wispsDefeated", 1);
       }
     }
 
@@ -70,7 +86,20 @@ export function refreshQuestStates(state) {
 
     if (complete) {
       progression.questStates[quest.id] = "complete";
-      setToast(state, `Quest Complete: ${quest.title}`, 2.6);
+      if (quest.giverId) {
+        setToast(state, `Quest Complete: ${quest.title}`, 2.6);
+      } else {
+        const rewardSummary = awardRewards(progression, quest.rewards);
+        state.player.refreshFromModifiers(getPlayerBonuses(progression));
+        progression.questStates[quest.id] = "done";
+        setToast(
+          state,
+          rewardSummary.levelsGained > 0
+            ? `Quest Complete: ${quest.title} - Level up`
+            : `Quest Complete: ${quest.title}`,
+          2.8
+        );
+      }
     }
   }
 }
@@ -151,7 +180,7 @@ export function getActiveQuestEntries(progression) {
   return Object.values(QUEST_DEFS)
     .filter((quest) => {
       const status = progression.questStates[quest.id];
-      return status === "active" || status === "complete";
+      return status === "available" || status === "active" || status === "complete" || status === "done";
     })
     .map((quest) => ({
       ...quest,
@@ -187,8 +216,15 @@ function openNpcDialogue(state, npc) {
       lines = npcDef.dialogue.complete || lines;
       onClose = () => {
         progression.questStates[handledQuest.id] = "done";
-        awardRewards(progression, handledQuest.rewards);
-        setToast(state, `Rewards Received: ${handledQuest.title}`, 2.4);
+        const rewardSummary = awardRewards(progression, handledQuest.rewards);
+        state.player.refreshFromModifiers(getPlayerBonuses(progression));
+        setToast(
+          state,
+          rewardSummary.levelsGained > 0
+            ? `Rewards Received: ${handledQuest.title} - Level up`
+            : `Rewards Received: ${handledQuest.title}`,
+          2.4
+        );
       };
     } else {
       lines = npcDef.dialogue.after || lines;
