@@ -23,6 +23,8 @@ export class Boss {
     this.stun = 0;
     this.rooted = 0;
     this.bloom = 0;
+    this.animTime = 0;
+    this.pose = "idle";
     this.recovery = 0;
     this.currentAttack = null;
     this.cooldowns = {
@@ -54,6 +56,8 @@ export class Boss {
     this.checkSummonThresholds(state);
 
     if (this.stun > 0) {
+      this.pose = "stun";
+      this.animTime += dt * 5.5;
       this.applyFriction(dt, 7.2);
       this.move(dt, state);
       return;
@@ -72,6 +76,7 @@ export class Boss {
     }
 
     this.move(dt, state);
+    this.updateAnimation(dt);
   }
 
   chooseAction(state, dt) {
@@ -336,5 +341,22 @@ export class Boss {
 
   move(dt, state) {
     moveCircleWithCollisions(this, this.vx * dt, this.vy * dt, state.arena);
+  }
+
+  updateAnimation(dt) {
+    const speed = Math.hypot(this.vx, this.vy);
+    this.animTime += dt * (speed > 8 ? 2.8 + speed / 140 : 1.1);
+
+    if (this.rooted > 0) {
+      this.pose = "rooted";
+      return;
+    }
+
+    if (this.currentAttack) {
+      this.pose = this.currentAttack.type;
+      return;
+    }
+
+    this.pose = this.recovery > 0.05 ? "recover" : speed > 8 ? "walk" : "idle";
   }
 }

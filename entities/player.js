@@ -61,6 +61,9 @@ export class Player {
     this.dashTime = 0;
     this.lastTrailAt = -1;
     this.hazardTimer = 0;
+    this.animTime = 0;
+    this.pose = "idle";
+    this.poseTimer = 0;
     this.cooldowns = {
       staff: 0,
       bolt: 0,
@@ -74,6 +77,17 @@ export class Player {
     this.invulnerable = Math.max(0, this.invulnerable - dt);
     this.hurtFlash = Math.max(0, this.hurtFlash - dt);
     this.dashTime = Math.max(0, this.dashTime - dt);
+    this.poseTimer = Math.max(0, this.poseTimer - dt);
+
+    const speed = Math.hypot(this.vx, this.vy);
+    const animRate = this.dashTime > 0 ? 16 : speed > 12 ? 4.8 + speed / 75 : 1.25;
+    this.animTime += dt * animRate;
+
+    if (this.dashTime > 0) {
+      this.pose = "dash";
+    } else if (this.poseTimer <= 0) {
+      this.pose = speed > 12 ? "walk" : "idle";
+    }
 
     for (const key of Object.keys(this.cooldowns)) {
       this.cooldowns[key] = Math.max(0, this.cooldowns[key] - dt);
@@ -121,6 +135,11 @@ export class Player {
 
   isInvulnerable() {
     return this.invulnerable > 0 || this.dashTime > 0;
+  }
+
+  playPose(pose, duration) {
+    this.pose = pose;
+    this.poseTimer = Math.max(this.poseTimer, duration);
   }
 }
 

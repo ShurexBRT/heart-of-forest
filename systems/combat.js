@@ -105,6 +105,7 @@ function castStaffStrike(state) {
   if (player.cooldowns.staff > 0) return;
 
   player.cooldowns.staff = info.cooldown;
+  player.playPose("attack", 0.16);
   state.swings.push({
     x: player.x,
     y: player.y,
@@ -180,6 +181,7 @@ function castSpiritBolt(state) {
 
   player.cooldowns.bolt = info.cooldown;
   player.spendSpirit(info.cost);
+  player.playPose("cast", 0.2);
 
   const direction = normalize(state.mouseWorld.x - player.x, state.mouseWorld.y - player.y);
 
@@ -223,6 +225,7 @@ function castDash(state, input) {
   player.cooldowns.dash = info.cooldown;
   player.dashTime = 0.16;
   player.invulnerable = 0.22;
+  player.playPose("dash", 0.18);
   player.vx = direction.x * 760;
   player.vy = direction.y * 760;
   state.shake = Math.max(state.shake, 2);
@@ -262,6 +265,7 @@ function castRootSnare(state) {
 
   player.cooldowns.root = info.cooldown;
   player.spendSpirit(info.cost);
+  player.playPose("cast", 0.26);
 
   state.roots.push({
     x,

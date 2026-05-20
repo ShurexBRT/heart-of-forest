@@ -6,6 +6,15 @@ import {
   projectWorld,
 } from "../core/projection.js";
 import { NPC_DEFS } from "../data/storyData.js";
+import {
+  drawPixelSprite,
+  getActorSprite,
+  getBossSprite,
+  getEnemySprite,
+  getGroundTexture,
+  getProjectileSprite,
+  resolveFacing,
+} from "./pixelAssets.js";
 import { drawHud } from "../ui/hud.js";
 
 let backgroundCache = null;
@@ -103,7 +112,9 @@ function drawTileMap(ctx, arena, offsetX, offsetY) {
 
 function drawTile(ctx, x, y, halfW, halfH, tile, theme) {
   const palette = getGroundPalette(tile.ground, tile.variant, theme);
-  drawDiamond(ctx, x, y, halfW, halfH, palette.base);
+  const texture = getGroundTexture(tile.ground, theme);
+  const pattern = texture ? ctx.createPattern(texture, "repeat") : null;
+  drawDiamond(ctx, x, y, halfW, halfH, pattern || palette.base);
   drawDiamondStroke(ctx, x, y, halfW, halfH, palette.edge);
   drawHalfDiamond(ctx, x, y - 1, halfW - 1, halfH - 1, palette.highlight);
   drawFooting(ctx, x, y, halfW, halfH, palette.shadow);
@@ -386,19 +397,13 @@ function drawProjectiles(ctx, state, origin) {
 }
 
 function drawSpiritBolt(ctx, x, y) {
-  pixelRect(ctx, x - 6, y - 2, 12, 4, "#dff9ff");
-  pixelRect(ctx, x - 4, y - 5, 8, 8, "#69dbff");
-  pixelRect(ctx, x - 2, y - 7, 4, 12, "#8be9ff");
+  drawPixelSprite(ctx, getProjectileSprite("spirit"), x, y);
 }
 
 function drawHostileProjectiles(ctx, state, origin) {
   for (const projectile of state.hostileProjectiles) {
     const point = toScreen(origin, projectile.x, projectile.y, 18);
-    ctx.save();
-    ctx.translate(point.x, point.y);
-    pixelRect(ctx, -7, -2, 14, 4, projectile.type === "wisp" ? "#9acdf7" : "#7f3024");
-    pixelRect(ctx, -2, -5, 8, 8, projectile.type === "wisp" ? "#dff5ff" : "#cf6448");
-    ctx.restore();
+    drawPixelSprite(ctx, getProjectileSprite(projectile.type === "wisp" ? "wisp" : "spirit"), point.x, point.y);
   }
 }
 
@@ -451,31 +456,50 @@ function drawObstacle(ctx, obstacle, theme, origin) {
 function drawTree(ctx, tree, theme, origin) {
   const point = toScreen(origin, tree.anchorX, tree.anchorY);
   drawIsoShadow(ctx, point.x, point.y, 34, 14);
-  pixelRect(ctx, point.x - 6, point.y - 52, 12, 40, tree.type === "charredTree" ? "#4b2a24" : theme.trunk);
-  pixelRect(ctx, point.x - 4, point.y - 50, 4, 28, theme.trunkLight);
+  const trunkDark = tree.type === "charredTree" ? "#40231e" : theme.trunk;
+  const trunkLight = tree.type === "charredTree" ? "#6b4035" : theme.trunkLight;
+  const canopyDark = tree.type === "charredTree" ? "#2f1816" : theme.treeDark;
+  const canopyMid = tree.type === "charredTree" ? "#4a2621" : theme.treeMid;
+  const canopyLight = tree.type === "charredTree" ? "#7a4336" : theme.treeLight;
 
-  const canopyDark = tree.type === "charredTree" ? "#3a1d18" : theme.treeDark;
-  const canopyMid = tree.type === "charredTree" ? "#5d3028" : theme.treeMid;
-  const canopyLight = tree.type === "charredTree" ? "#8c4a39" : theme.treeLight;
-  pixelRect(ctx, point.x - 40, point.y - 88, 80, 20, canopyDark);
-  pixelRect(ctx, point.x - 52, point.y - 72, 104, 24, canopyMid);
-  pixelRect(ctx, point.x - 34, point.y - 104, 68, 22, canopyMid);
-  pixelRect(ctx, point.x - 22, point.y - 94, 44, 16, canopyLight);
+  fillPixelEllipse(ctx, point.x, point.y - 70, 40, 26, canopyDark);
+  fillPixelEllipse(ctx, point.x - 22, point.y - 60, 28, 20, canopyMid);
+  fillPixelEllipse(ctx, point.x + 22, point.y - 58, 28, 20, canopyMid);
+  fillPixelEllipse(ctx, point.x, point.y - 88, 28, 18, canopyMid);
+  fillPixelEllipse(ctx, point.x - 10, point.y - 78, 16, 10, canopyLight);
+  fillPixelEllipse(ctx, point.x + 16, point.y - 76, 14, 10, canopyLight);
+
+  pixelRect(ctx, point.x - 8, point.y - 50, 16, 38, trunkDark);
+  pixelRect(ctx, point.x - 2, point.y - 48, 4, 30, trunkLight);
+  pixelRect(ctx, point.x - 14, point.y - 16, 10, 4, trunkDark);
+  pixelRect(ctx, point.x + 4, point.y - 16, 10, 4, trunkDark);
 }
 
 function drawRock(ctx, rock, theme, origin) {
   const point = toScreen(origin, rock.anchorX, rock.anchorY);
   drawIsoShadow(ctx, point.x, point.y, 26, 10);
-  pixelRect(ctx, point.x - 26, point.y - 24, 52, 18, rock.type === "iceRock" ? "#9cb7ce" : theme.rockBase);
-  pixelRect(ctx, point.x - 18, point.y - 30, 36, 12, rock.type === "iceRock" ? "#d5ecff" : theme.rockLight);
-  pixelRect(ctx, point.x - 12, point.y - 12, 24, 8, rock.type === "iceRock" ? "#7a97b5" : theme.rockBase);
+  const base = rock.type === "iceRock" ? "#95b4cb" : theme.rockBase;
+  const light = rock.type === "iceRock" ? "#dff3ff" : theme.rockLight;
+  const dark = rock.type === "iceRock" ? "#6d8ba4" : "#46544e";
+  fillPixelEllipse(ctx, point.x, point.y - 18, 28, 16, base);
+  fillPixelEllipse(ctx, point.x - 6, point.y - 24, 16, 10, light);
+  pixelRect(ctx, point.x - 24, point.y - 14, 48, 6, dark);
+  pixelRect(ctx, point.x - 8, point.y - 8, 16, 4, dark);
 }
 
 function drawBush(ctx, bush, origin) {
   const point = toScreen(origin, bush.anchorX, bush.anchorY);
   drawIsoShadow(ctx, point.x, point.y, 20, 8);
-  pixelRect(ctx, point.x - 24, point.y - 18, 48, 14, bush.style === "ember" ? "#8b4d36" : bush.style === "frost" ? "#8baec8" : "#3d7c43");
-  pixelRect(ctx, point.x - 18, point.y - 26, 36, 12, bush.style === "ember" ? "#b96749" : bush.style === "frost" ? "#c7e7ff" : "#68a15d");
+  const dark =
+    bush.style === "ember" ? "#854832" : bush.style === "frost" ? "#7ea3c0" : bush.style === "blight" ? "#6f3c3a" : "#2d6a38";
+  const mid =
+    bush.style === "ember" ? "#ab6245" : bush.style === "frost" ? "#afcae2" : bush.style === "blight" ? "#945853" : "#4f944f";
+  const light =
+    bush.style === "ember" ? "#d58a61" : bush.style === "frost" ? "#dff3ff" : bush.style === "blight" ? "#bb7168" : "#7dc36d";
+  fillPixelEllipse(ctx, point.x, point.y - 15, 26, 12, dark);
+  fillPixelEllipse(ctx, point.x - 8, point.y - 21, 18, 10, mid);
+  fillPixelEllipse(ctx, point.x + 8, point.y - 20, 16, 9, mid);
+  fillPixelEllipse(ctx, point.x - 2, point.y - 24, 12, 7, light);
 }
 
 function drawWater(ctx, water, origin) {
@@ -495,62 +519,99 @@ function drawWater(ctx, water, origin) {
   }
   ctx.closePath();
   ctx.fill();
+  ctx.strokeStyle = water.style === "ice" ? "rgba(225, 247, 255, 0.82)" : "rgba(141, 214, 205, 0.55)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
   ctx.restore();
+
+  const minX = Math.min(...corners.map((corner) => corner.x));
+  const maxX = Math.max(...corners.map((corner) => corner.x));
+  const minY = Math.min(...corners.map((corner) => corner.y));
+  const maxY = Math.max(...corners.map((corner) => corner.y));
+  for (let y = minY + 8; y < maxY - 4; y += 10) {
+    pixelRect(
+      ctx,
+      minX + 12 + ((y / 10) % 2) * 8,
+      y,
+      Math.max(10, maxX - minX - 28),
+      2,
+      water.style === "ice" ? "rgba(242, 252, 255, 0.45)" : "rgba(184, 255, 239, 0.28)"
+    );
+  }
 }
 
 function drawRuin(ctx, ruin, origin) {
   const point = toScreen(origin, ruin.anchorX, ruin.anchorY);
   drawIsoShadow(ctx, point.x, point.y, 30, 12);
-  pixelRect(ctx, point.x - ruin.w * 0.18, point.y - ruin.h * 0.48, ruin.w * 0.36, ruin.h * 0.26, "#756b6a");
-  pixelRect(ctx, point.x - ruin.w * 0.24, point.y - ruin.h * 0.34, ruin.w * 0.48, ruin.h * 0.2, "#908684");
-  pixelRect(ctx, point.x - ruin.w * 0.1, point.y - ruin.h * 0.2, ruin.w * 0.2, ruin.h * 0.12, "#c3b6aa");
+  const topW = Math.round(ruin.w * 0.42);
+  const midW = Math.round(ruin.w * 0.56);
+  const topH = Math.round(ruin.h * 0.16);
+  const midH = Math.round(ruin.h * 0.22);
+  fillBrickPattern(ctx, point.x - topW / 2, point.y - ruin.h * 0.52, topW, topH, "#807678", "#605759", "#b8abab");
+  fillBrickPattern(ctx, point.x - midW / 2, point.y - ruin.h * 0.34, midW, midH, "#968c8a", "#6b6260", "#d1c5bc");
+  pixelRect(ctx, point.x - ruin.w * 0.1, point.y - ruin.h * 0.2, ruin.w * 0.2, ruin.h * 0.12, "#cdbfae");
 }
 
 function drawCottage(ctx, cottage, origin) {
   const point = toScreen(origin, cottage.anchorX, cottage.anchorY);
   drawIsoShadow(ctx, point.x, point.y, 54, 18);
-  pixelRect(ctx, point.x - 74, point.y - 118, 148, 36, "#8d4d42");
-  pixelRect(ctx, point.x - 90, point.y - 82, 180, 24, "#b05e52");
-  pixelRect(ctx, point.x - 68, point.y - 58, 136, 56, "#dcc89d");
-  pixelRect(ctx, point.x - 18, point.y - 42, 36, 44, "#6f4b30");
-  pixelRect(ctx, point.x - 52, point.y - 44, 28, 18, "#a8ddf2");
-  pixelRect(ctx, point.x + 26, point.y - 44, 28, 18, "#a8ddf2");
+  fillRoofPattern(ctx, point.x - 86, point.y - 116, 172, 30, "#c06f2f", "#8f451d", "#e79e54");
+  fillRoofPattern(ctx, point.x - 100, point.y - 86, 200, 26, "#b85f27", "#83401b", "#dd9450");
+  fillBrickPattern(ctx, point.x - 72, point.y - 60, 144, 58, "#8d8b88", "#686360", "#bbb7b2");
+  pixelRect(ctx, point.x - 20, point.y - 44, 40, 46, "#6f4b30");
+  pixelRect(ctx, point.x - 16, point.y - 40, 32, 42, "#845835");
+  pixelRect(ctx, point.x - 54, point.y - 46, 26, 18, "#abdff4");
+  pixelRect(ctx, point.x - 50, point.y - 42, 18, 10, "#dff8ff");
+  pixelRect(ctx, point.x + 28, point.y - 46, 26, 18, "#abdff4");
+  pixelRect(ctx, point.x + 32, point.y - 42, 18, 10, "#dff8ff");
+  pixelRect(ctx, point.x - 20, point.y - 4, 40, 4, "#c4b393");
 }
 
 function drawWell(ctx, well, origin) {
   const point = toScreen(origin, well.anchorX, well.anchorY);
   drawIsoShadow(ctx, point.x, point.y, 18, 8);
-  pixelRect(ctx, point.x - 18, point.y - 26, 36, 10, "#7c5739");
-  pixelRect(ctx, point.x - 12, point.y - 16, 24, 18, "#93a3a7");
-  pixelRect(ctx, point.x - 10, point.y - 12, 20, 8, "#517789");
+  pixelRect(ctx, point.x - 12, point.y - 34, 4, 20, "#6f4b32");
+  pixelRect(ctx, point.x + 8, point.y - 34, 4, 20, "#6f4b32");
+  pixelRect(ctx, point.x - 16, point.y - 30, 32, 6, "#936645");
+  fillBrickPattern(ctx, point.x - 14, point.y - 22, 28, 20, "#9fa9ad", "#718085", "#dfe7ea");
+  pixelRect(ctx, point.x - 10, point.y - 14, 20, 8, "#4f7284");
 }
 
 function drawFence(ctx, fence, origin) {
   const point = toScreen(origin, fence.anchorX, fence.anchorY);
   drawIsoShadow(ctx, point.x, point.y, 16, 6);
-  pixelRect(ctx, point.x - fence.w * 0.18, point.y - 18, fence.w * 0.36, 4, "#c49a64");
-  pixelRect(ctx, point.x - fence.w * 0.18, point.y - 10, fence.w * 0.36, 4, "#8f633d");
+  const width = Math.round(fence.w * 0.36);
+  const left = Math.round(point.x - width / 2);
+  pixelRect(ctx, left, point.y - 18, width, 4, "#cba16c");
+  pixelRect(ctx, left, point.y - 10, width, 4, "#8f633d");
+  for (let x = left + 4; x < left + width; x += 12) {
+    pixelRect(ctx, x, point.y - 22, 4, 18, "#6c482f");
+  }
 }
 
 function drawSignpost(ctx, sign, origin) {
   const point = toScreen(origin, sign.anchorX, sign.anchorY);
   drawIsoShadow(ctx, point.x, point.y, 10, 4);
-  pixelRect(ctx, point.x - 3, point.y - 20, 6, 18, "#6b4a2e");
-  pixelRect(ctx, point.x - 14, point.y - 30, 28, 10, "#d7be86");
+  pixelRect(ctx, point.x - 3, point.y - 22, 6, 20, "#6b4a2e");
+  pixelRect(ctx, point.x - 16, point.y - 32, 32, 12, "#d7be86");
+  pixelRect(ctx, point.x - 14, point.y - 30, 28, 2, "#f4ddb2");
+  pixelRect(ctx, point.x - 12, point.y - 26, 20, 2, "#9c7a4a");
 }
 
 function drawLantern(ctx, lantern, origin) {
   const point = toScreen(origin, lantern.anchorX, lantern.anchorY);
   drawIsoShadow(ctx, point.x, point.y, 8, 4);
   pixelRect(ctx, point.x - 2, point.y - 24, 4, 22, "#6e4a34");
+  pixelRect(ctx, point.x - 8, point.y - 36, 16, 12, "#4e3a28");
   pixelRect(
     ctx,
-    point.x - 6,
-    point.y - 34,
-    12,
+    point.x - 5,
+    point.y - 33,
     10,
-    lantern.style === "cool" ? "#b2e4ff" : lantern.style === "frost" ? "#d4f2ff" : "#efcf79"
+    8,
+    lantern.style === "cool" ? "#9bd8ff" : lantern.style === "frost" ? "#dff6ff" : lantern.style === "ember" ? "#ffb16c" : "#efcf79"
   );
+  pixelRect(ctx, point.x - 2, point.y - 30, 4, 2, "#fff6cf");
 }
 
 function drawBridge(ctx, bridge, origin) {
@@ -569,6 +630,14 @@ function drawBridge(ctx, bridge, origin) {
   ctx.closePath();
   ctx.fill();
   ctx.restore();
+
+  const minX = Math.min(...corners.map((corner) => corner.x));
+  const maxX = Math.max(...corners.map((corner) => corner.x));
+  const minY = Math.min(...corners.map((corner) => corner.y));
+  const maxY = Math.max(...corners.map((corner) => corner.y));
+  for (let x = minX + 8; x < maxX - 6; x += 12) {
+    pixelRect(ctx, x, minY + 2, 2, maxY - minY - 4, "#6c4d30");
+  }
 }
 
 function drawInteractable(ctx, item, origin) {
@@ -604,67 +673,61 @@ function drawInteractable(ctx, item, origin) {
 function drawNpc(ctx, npc, origin) {
   const point = toScreen(origin, npc.anchorX, npc.anchorY);
   const palette = NPC_DEFS[npc.id]?.palette || npc.palette;
-  drawActor(ctx, point.x, point.y, palette.hood, palette.cloak, palette.accent, false);
+  drawPixelSprite(ctx, getActorSprite(palette, "down", 0, "npc"), point.x, point.y);
 }
 
 function drawAfterImage(ctx, image, origin) {
   const point = toScreen(origin, image.x, image.y, 18);
-  ctx.save();
-  ctx.globalAlpha = Math.max(0, image.life / image.maxLife) * 0.32;
-  drawActor(ctx, point.x, point.y, "#f1fff9", "#9fdcc8", "#dffaf2", true);
-  ctx.restore();
+  drawPixelSprite(
+    ctx,
+    getActorSprite(
+      { hood: "#f2f8f0", cloak: "#90d8bf", accent: "#e3fff6" },
+      resolveFacing(image.angle || 0),
+      1,
+      "ayla",
+      "dash"
+    ),
+    point.x,
+    point.y,
+    { alpha: Math.max(0, image.life / image.maxLife) * 0.28, tint: "#dffcf5", tintAlpha: 0.6 }
+  );
 }
 
 function drawPlayer(ctx, player, origin) {
   const point = toScreen(origin, player.x, player.y, 18);
-  drawActor(
+  const speed = Math.hypot(player.vx, player.vy);
+  const frame = speed > 20 ? Math.floor(player.animTime) % 4 : Math.floor(player.animTime) % 2;
+  const facing = resolveFacing(player.aimAngle);
+  drawPixelSprite(
     ctx,
+    getActorSprite(
+      {
+        hood: "#f6f4ef",
+        cloak: player.dashTime > 0 ? "#8fd6ba" : "#7aa466",
+        accent: "#86d4a7",
+      },
+      facing,
+      frame,
+      "ayla",
+      player.pose
+    ),
     point.x,
     point.y,
-    player.hurtFlash > 0 ? "#ffd7ca" : "#f6f4ef",
-    player.dashTime > 0 ? "#9af0d2" : "#6dae67",
-    "#8cdcc2",
-    player.invulnerable > 0
+    {
+      alpha: player.invulnerable > 0 && Math.floor(performance.now() / 60) % 2 === 0 ? 0.72 : 1,
+      tint: player.hurtFlash > 0 ? "#ffd7ca" : null,
+      tintAlpha: 0.76,
+    }
   );
-}
-
-function drawActor(ctx, x, y, hoodColor, cloakColor, accentColor, flicker) {
-  ctx.save();
-  if (flicker && Math.floor(performance.now() / 55) % 2 === 0) {
-    ctx.globalAlpha *= 0.7;
-  }
-
-  drawIsoShadow(ctx, x, y + 2, 12, 5);
-  pixelRect(ctx, x - 10, y - 34, 20, 8, "#d4d2cc");
-  pixelRect(ctx, x - 12, y - 26, 24, 12, hoodColor);
-  pixelRect(ctx, x - 8, y - 14, 16, 18, cloakColor);
-  pixelRect(ctx, x - 4, y - 18, 8, 6, "#2c312f");
-  pixelRect(ctx, x - 2, y + 4, 4, 6, "#5f442d");
-  pixelRect(ctx, x + 8, y - 22, 18, 4, "#7a5534");
-  pixelRect(ctx, x + 22, y - 24, 6, 8, accentColor);
-  ctx.restore();
 }
 
 function drawEnemy(ctx, enemy, state, origin) {
   const point = toScreen(origin, enemy.x, enemy.y, 16);
-
-  if (enemy.type === "mire_brute") {
-    drawIsoShadow(ctx, point.x, point.y + 2, 18, 6);
-    pixelRect(ctx, point.x - 16, point.y - 30, 32, 12, enemy.hitFlash > 0 ? "#ffd9bf" : "#6c2f26");
-    pixelRect(ctx, point.x - 20, point.y - 18, 40, 18, enemy.hitFlash > 0 ? "#ffc7a5" : "#874132");
-    pixelRect(ctx, point.x - 12, point.y, 24, 12, "#b06a48");
-  } else if (enemy.type === "wisp_archer") {
-    drawIsoShadow(ctx, point.x, point.y + 2, 14, 5);
-    pixelRect(ctx, point.x - 12, point.y - 28, 24, 10, enemy.hitFlash > 0 ? "#e8f4ff" : "#6a7ea0");
-    pixelRect(ctx, point.x - 14, point.y - 18, 28, 14, enemy.hitFlash > 0 ? "#cde5ff" : "#89a7cf");
-    pixelRect(ctx, point.x - 4, point.y - 4, 8, 10, "#dff5ff");
-    pixelRect(ctx, point.x + 10, point.y - 22, 14, 3, "#e1f1ff");
-  } else {
-    drawIsoShadow(ctx, point.x, point.y + 2, 12, 5);
-    pixelRect(ctx, point.x - 10, point.y - 24, 20, 10, enemy.hitFlash > 0 ? "#ffd8cf" : "#5d1b24");
-    pixelRect(ctx, point.x - 14, point.y - 14, 28, 12, enemy.hitFlash > 0 ? "#ffb7aa" : "#7b2631");
-    pixelRect(ctx, point.x - 8, point.y - 2, 16, 10, "#ba4e5c");
-  }
+  const frame = Math.floor(enemy.animTime) % 4;
+  drawPixelSprite(ctx, getEnemySprite(enemy.type, resolveFacing(enemy.facing), frame, enemy.pose), point.x, point.y, {
+    tint: enemy.hitFlash > 0 ? "#ffe0c9" : null,
+    tintAlpha: 0.82,
+  });
 
   drawEnemyStatus(ctx, enemy, state, origin);
   drawEnemyHealth(ctx, enemy, point.x, point.y);
@@ -673,10 +736,10 @@ function drawEnemy(ctx, enemy, state, origin) {
 function drawBoss(ctx, boss, state, origin) {
   const point = toScreen(origin, boss.x, boss.y, 26);
   drawIsoShadow(ctx, point.x, point.y + 4, 28, 10);
-  pixelRect(ctx, point.x - 34, point.y - 54, 68, 22, boss.hitFlash > 0 ? "#ffd5bf" : "#552219");
-  pixelRect(ctx, point.x - 40, point.y - 32, 80, 28, boss.hitFlash > 0 ? "#ffbd95" : "#6c3024");
-  pixelRect(ctx, point.x - 22, point.y - 2, 44, 18, "#874232");
-  pixelRect(ctx, point.x + 12, point.y - 24, 12, 10, "#f0cc75");
+  drawPixelSprite(ctx, getBossSprite(Math.floor(boss.animTime) % 4, boss.pose), point.x, point.y, {
+    tint: boss.hitFlash > 0 ? "#ffd5bf" : null,
+    tintAlpha: 0.82,
+  });
   drawBossStatus(ctx, boss, state, origin);
 }
 
@@ -851,6 +914,39 @@ function drawIsoShadow(ctx, x, y, halfW, halfH) {
   ctx.beginPath();
   ctx.ellipse(x, y, halfW, halfH, 0, 0, Math.PI * 2);
   ctx.fill();
+}
+
+function fillPixelEllipse(ctx, cx, cy, rx, ry, color) {
+  ctx.fillStyle = color;
+  for (let y = -ry; y <= ry; y += 2) {
+    const width = Math.sqrt(Math.max(0, 1 - (y * y) / (ry * ry))) * rx;
+    ctx.fillRect(Math.round(cx - width), Math.round(cy + y), Math.round(width * 2), 2);
+  }
+}
+
+function fillBrickPattern(ctx, x, y, w, h, base, mortar, highlight) {
+  pixelRect(ctx, x, y, w, h, base);
+  for (let row = 0; row < h; row += 8) {
+    pixelRect(ctx, x, y + row, w, 1, mortar);
+    const offset = row % 16 === 0 ? 0 : 8;
+    for (let col = offset; col < w; col += 16) {
+      pixelRect(ctx, x + col, y + row, 1, 8, mortar);
+    }
+  }
+  for (let row = 2; row < h; row += 8) {
+    pixelRect(ctx, x + 2, y + row, Math.max(0, w - 4), 1, highlight);
+  }
+}
+
+function fillRoofPattern(ctx, x, y, w, h, base, dark, light) {
+  pixelRect(ctx, x, y, w, h, dark);
+  for (let row = 0; row < h; row += 6) {
+    for (let col = row % 12 === 0 ? 0 : 6; col < w; col += 12) {
+      pixelRect(ctx, x + col, y + row, 10, 4, base);
+      pixelRect(ctx, x + col + 1, y + row, 8, 1, light);
+      pixelRect(ctx, x + col, y + row + 4, 10, 1, dark);
+    }
+  }
 }
 
 function pixelRect(ctx, x, y, w, h, color) {

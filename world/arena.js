@@ -85,8 +85,17 @@ function clearOverlayRect(tiles, x, y, w, h) {
 }
 
 function createObstacle(type, x, y, w, h, solid, extra = {}) {
-  const anchorX = extra.anchorX ?? solid.x + solid.w / 2;
-  const anchorY = extra.anchorY ?? solid.y + solid.h;
+  const fallbackSolid =
+    solid && solid !== false
+      ? solid
+      : {
+          x,
+          y,
+          w,
+          h,
+        };
+  const anchorX = extra.anchorX ?? fallbackSolid.x + fallbackSolid.w / 2;
+  const anchorY = extra.anchorY ?? fallbackSolid.y + fallbackSolid.h;
 
   return {
     type,
@@ -296,12 +305,7 @@ function bridge(x, y, w, h) {
     y,
     w,
     h,
-    {
-      x,
-      y,
-      w,
-      h,
-    },
+    false,
     { anchorX: x + w / 2, anchorY: y + h }
   );
 }

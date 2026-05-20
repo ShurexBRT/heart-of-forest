@@ -85,6 +85,8 @@ export class Enemy {
     this.stun = 0;
     this.rooted = 0;
     this.bloom = 0;
+    this.animTime = randomRange(0, 4);
+    this.pose = "idle";
     this.dead = false;
   }
 
@@ -103,6 +105,8 @@ export class Enemy {
     this.facing = angleTo(this.x, this.y, player.x, player.y);
 
     if (this.stun > 0) {
+      this.pose = "stun";
+      this.animTime += dt * 7;
       this.applyFriction(dt, 7);
       this.move(dt, state);
       return;
@@ -131,6 +135,7 @@ export class Enemy {
 
     this.applyFriction(dt, this.rooted > 0 ? 12 : this.type === "mire_brute" ? 4.6 : 4.1);
     this.move(dt, state);
+    this.updateAnimation(dt);
   }
 
   updateIdle(dt, playerDistance) {
@@ -306,6 +311,29 @@ export class Enemy {
 
   move(dt, state) {
     moveCircleWithCollisions(this, this.vx * dt, this.vy * dt, state.arena);
+  }
+
+  updateAnimation(dt) {
+    const speed = Math.hypot(this.vx, this.vy);
+    const baseRate = this.type === "mire_brute" ? 3.4 : this.type === "wisp_archer" ? 4.1 : 5.1;
+    this.animTime += dt * (speed > 8 ? baseRate + speed / 95 : 1.1);
+
+    if (this.rooted > 0) {
+      this.pose = "rooted";
+      return;
+    }
+
+    if (this.state === "windup") {
+      this.pose = "windup";
+      return;
+    }
+
+    if (this.state === "recover") {
+      this.pose = this.config.role === "ranged" ? "release" : "recover";
+      return;
+    }
+
+    this.pose = speed > 12 ? "walk" : "idle";
   }
 }
 
