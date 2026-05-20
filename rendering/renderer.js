@@ -791,10 +791,10 @@ function drawPlayer(ctx, player, origin) {
   const facing = resolveFacing(player.aimAngle);
   if (
     drawAylaAtlasSprite(ctx, point.x, point.y, facing, frame, player.pose, {
-      alpha: player.invulnerable > 0 && Math.floor(performance.now() / 60) % 2 === 0 ? 0.72 : 1,
+      alpha: player.invulnerable > 0 && Math.floor(performance.now() / 60) % 2 === 0 ? 0.86 : 1,
       tint: player.hurtFlash > 0 ? "#ffd7ca" : null,
       tintAlpha: 0.56,
-      scale: 0.74,
+      scale: 0.56,
     })
   ) {
     return;

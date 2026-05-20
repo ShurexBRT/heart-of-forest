@@ -102,8 +102,8 @@ export function drawAylaAtlasSprite(ctx, x, y, facing, frame, pose, options = {}
 
   drawSpriteCanvas(ctx, frameCanvas, x, y, {
     anchorX: 0.5,
-    anchorY: 0.92,
-    scale: options.scale || 0.72,
+    anchorY: 0.97,
+    scale: options.scale || 0.58,
     alpha: options.alpha ?? 1,
     tint: options.tint || null,
     tintAlpha: options.tintAlpha ?? 0.7,
@@ -122,17 +122,9 @@ export function drawBiomeProp(ctx, sceneStyle, type, x, y, options = {}) {
         ? art.sprites.rocks
         : type === "ruin"
           ? art.sprites.ruins
-          : type === "lantern"
-            ? art.sprites.lanterns
-            : type === "bridge"
-              ? art.sprites.bridges
-              : type === "fenceH" || type === "fenceV"
-                ? art.sprites.fences
-                : type === "signpost"
-                  ? art.sprites.signposts
-                  : type === "bush"
-                    ? art.sprites.details
-                    : null;
+          : type === "bridge"
+            ? art.sprites.bridges
+            : null;
 
   if (!bucket || bucket.length === 0) return false;
   const sprite = bucket[options.variant ?? 0] || bucket[0];
@@ -175,6 +167,8 @@ function loadAtlases() {
       atlasState.aylaFrames = buildAylaFrames(atlasState.images.ayla);
       atlasState.aylaPortrait = extractSprite(atlasState.images.ayla, AYLA_FRAME_RECTS.portrait, {
         trim: true,
+        component: "cluster",
+        padding: 6,
       });
 
       for (const key of Object.keys(SCENE_ATLAS_KEYS)) {
@@ -204,13 +198,27 @@ function loadImage(key, path) {
 
 function buildAylaFrames(image) {
   return {
-    walkDown: AYLA_FRAME_RECTS.walkDown.map((rect) => extractSprite(image, rect)),
-    walkLeft: AYLA_FRAME_RECTS.walkLeft.map((rect) => extractSprite(image, rect)),
-    walkRight: AYLA_FRAME_RECTS.walkRight.map((rect) => extractSprite(image, rect)),
-    cast: AYLA_FRAME_RECTS.cast.map((rect) => extractSprite(image, rect)),
-    dash: AYLA_FRAME_RECTS.dash.map((rect) => extractSprite(image, rect)),
-    hurt: AYLA_FRAME_RECTS.hurt.map((rect) => extractSprite(image, rect)),
-    death: AYLA_FRAME_RECTS.death.map((rect) => extractSprite(image, rect)),
+    walkDown: AYLA_FRAME_RECTS.walkDown.map((rect) =>
+      extractSprite(image, rect, { trim: true, component: "largest", padding: 4 })
+    ),
+    walkLeft: AYLA_FRAME_RECTS.walkLeft.map((rect) =>
+      extractSprite(image, rect, { trim: true, component: "largest", padding: 4 })
+    ),
+    walkRight: AYLA_FRAME_RECTS.walkRight.map((rect) =>
+      extractSprite(image, rect, { trim: true, component: "largest", padding: 4 })
+    ),
+    cast: AYLA_FRAME_RECTS.cast.map((rect) =>
+      extractSprite(image, rect, { trim: true, component: "largest", padding: 4 })
+    ),
+    dash: AYLA_FRAME_RECTS.dash.map((rect) =>
+      extractSprite(image, rect, { trim: true, component: "largest", padding: 4 })
+    ),
+    hurt: AYLA_FRAME_RECTS.hurt.map((rect) =>
+      extractSprite(image, rect, { trim: true, component: "largest", padding: 4 })
+    ),
+    death: AYLA_FRAME_RECTS.death.map((rect) =>
+      extractSprite(image, rect, { trim: true, component: "largest", padding: 4 })
+    ),
   };
 }
 
@@ -228,37 +236,39 @@ function buildBiomeArt(image) {
     },
     sprites: {
       trees: [
-        extractSprite(image, { x: 32, y: 716, w: 90, h: 126 }, { trim: true }),
-        extractSprite(image, { x: 138, y: 716, w: 90, h: 126 }, { trim: true }),
-        extractSprite(image, { x: 246, y: 712, w: 104, h: 132 }, { trim: true }),
+        extractSprite(image, { x: 28, y: 700, w: 96, h: 140 }, { trim: true, component: "cluster", padding: 3 }),
+        extractSprite(image, { x: 132, y: 700, w: 98, h: 140 }, { trim: true, component: "cluster", padding: 3 }),
+        extractSprite(image, { x: 238, y: 698, w: 106, h: 142 }, { trim: true, component: "cluster", padding: 3 }),
+        extractSprite(image, { x: 346, y: 698, w: 106, h: 142 }, { trim: true, component: "cluster", padding: 3 }),
       ],
       rocks: [
-        extractSprite(image, { x: 24, y: 842, w: 118, h: 96 }, { trim: true }),
-        extractSprite(image, { x: 142, y: 842, w: 124, h: 96 }, { trim: true }),
+        extractSprite(image, { x: 22, y: 868, w: 78, h: 92 }, { trim: true, component: "largest", padding: 3 }),
+        extractSprite(image, { x: 102, y: 860, w: 112, h: 100 }, { trim: true, component: "largest", padding: 3 }),
+        extractSprite(image, { x: 214, y: 856, w: 120, h: 104 }, { trim: true, component: "largest", padding: 3 }),
       ],
       ruins: [
-        extractSprite(image, { x: 414, y: 838, w: 116, h: 128 }, { trim: true }),
-        extractSprite(image, { x: 530, y: 838, w: 104, h: 128 }, { trim: true }),
-        extractSprite(image, { x: 646, y: 838, w: 116, h: 128 }, { trim: true }),
+        extractSprite(image, { x: 412, y: 838, w: 114, h: 128 }, { trim: true, component: "largest", padding: 3 }),
+        extractSprite(image, { x: 528, y: 838, w: 104, h: 128 }, { trim: true, component: "largest", padding: 3 }),
+        extractSprite(image, { x: 642, y: 838, w: 118, h: 128 }, { trim: true, component: "largest", padding: 3 }),
       ],
       bridges: [
-        extractSprite(image, { x: 1024, y: 86, w: 136, h: 94 }, { trim: true }),
-        extractSprite(image, { x: 1132, y: 86, w: 136, h: 94 }, { trim: true }),
+        extractSprite(image, { x: 1028, y: 84, w: 108, h: 102 }, { trim: true, component: "largest", padding: 3 }),
+        extractSprite(image, { x: 1134, y: 84, w: 112, h: 102 }, { trim: true, component: "largest", padding: 3 }),
       ],
       lanterns: [
-        extractSprite(image, { x: 1268, y: 84, w: 68, h: 104 }, { trim: true }),
+        extractSprite(image, { x: 1360, y: 82, w: 58, h: 108 }, { trim: true, component: "largest", padding: 3 }),
       ],
       fences: [
-        extractSprite(image, { x: 1004, y: 180, w: 134, h: 86 }, { trim: true }),
-        extractSprite(image, { x: 1136, y: 180, w: 132, h: 86 }, { trim: true }),
+        extractSprite(image, { x: 1008, y: 180, w: 126, h: 90 }, { trim: true, component: "largest", padding: 3 }),
+        extractSprite(image, { x: 1134, y: 180, w: 132, h: 90 }, { trim: true, component: "largest", padding: 3 }),
       ],
       signposts: [
-        extractSprite(image, { x: 1320, y: 84, w: 76, h: 104 }, { trim: true }),
+        extractSprite(image, { x: 1298, y: 82, w: 62, h: 108 }, { trim: true, component: "largest", padding: 3 }),
       ],
       details: [
-        extractSprite(image, { x: 36, y: 548, w: 78, h: 84 }, { trim: true }),
-        extractSprite(image, { x: 128, y: 548, w: 78, h: 84 }, { trim: true }),
-        extractSprite(image, { x: 218, y: 548, w: 92, h: 84 }, { trim: true }),
+        extractSprite(image, { x: 28, y: 548, w: 56, h: 82 }, { trim: true, component: "largest", padding: 2 }),
+        extractSprite(image, { x: 116, y: 548, w: 74, h: 82 }, { trim: true, component: "largest", padding: 2 }),
+        extractSprite(image, { x: 466, y: 548, w: 100, h: 82 }, { trim: true, component: "largest", padding: 2 }),
       ],
     },
   };
@@ -295,11 +305,27 @@ function extractSprite(image, rect, options = {}) {
   removeKeyedBackground(data, keyColor);
   sourceCtx.putImageData(data, 0, 0);
 
+  const padding = options.padding ?? 3;
+
+  if (options.component === "largest") {
+    const isolated = isolateLargestComponent(source, padding);
+    if (isolated) {
+      return options.trim === false ? isolated : trimCanvas(isolated, padding);
+    }
+  }
+
+  if (options.component === "cluster") {
+    const clustered = isolatePrimaryCluster(source, padding);
+    if (clustered) {
+      return options.trim === false ? clustered : trimCanvas(clustered, padding);
+    }
+  }
+
   if (!options.trim) {
     return source;
   }
 
-  return trimCanvas(source, 3);
+  return trimCanvas(source, padding);
 }
 
 function sampleKeyColor(imageData, width, height) {
@@ -327,21 +353,172 @@ function sampleKeyColor(imageData, width, height) {
 }
 
 function removeKeyedBackground(imageData, keyColor) {
-  const isDarkKey = (keyColor.r + keyColor.g + keyColor.b) / 3 < 70;
+  const { data, width, height } = imageData;
+  const visited = new Uint8Array(width * height);
+  const queue = [];
+  const brightness = (keyColor.r + keyColor.g + keyColor.b) / 3;
+  const threshold = brightness < 70 ? 28 : brightness > 160 ? 68 : 40;
 
-  for (let index = 0; index < imageData.data.length; index += 4) {
-    const r = imageData.data[index];
-    const g = imageData.data[index + 1];
-    const b = imageData.data[index + 2];
-    const alpha = imageData.data[index + 3];
-    const distance = Math.abs(r - keyColor.r) + Math.abs(g - keyColor.g) + Math.abs(b - keyColor.b);
-    const brightness = (r + g + b) / 3;
+  const enqueue = (x, y) => {
+    if (x < 0 || y < 0 || x >= width || y >= height) return;
+    const idx = y * width + x;
+    if (visited[idx]) return;
+    visited[idx] = 1;
+    if (!matchesKeyColor(data, idx * 4, keyColor, threshold)) return;
+    queue.push(idx);
+  };
 
-    if (alpha === 0) continue;
-    if (distance < 52 || (isDarkKey && brightness < 24)) {
-      imageData.data[index + 3] = 0;
+  for (let x = 0; x < width; x += 1) {
+    enqueue(x, 0);
+    enqueue(x, height - 1);
+  }
+
+  for (let y = 1; y < height - 1; y += 1) {
+    enqueue(0, y);
+    enqueue(width - 1, y);
+  }
+
+  while (queue.length > 0) {
+    const idx = queue.pop();
+    const px = idx % width;
+    const py = Math.floor(idx / width);
+    data[idx * 4 + 3] = 0;
+
+    enqueue(px + 1, py);
+    enqueue(px - 1, py);
+    enqueue(px, py + 1);
+    enqueue(px, py - 1);
+  }
+}
+
+function matchesKeyColor(data, offset, keyColor, threshold) {
+  if (data[offset + 3] === 0) return false;
+  const dr = Math.abs(data[offset] - keyColor.r);
+  const dg = Math.abs(data[offset + 1] - keyColor.g);
+  const db = Math.abs(data[offset + 2] - keyColor.b);
+  const distance = dr + dg + db;
+  const maxDiff = Math.max(dr, dg, db);
+  return maxDiff <= threshold && distance <= threshold * 2.35;
+}
+
+function isolateLargestComponent(canvas, padding = 0) {
+  const components = collectOpaqueComponents(canvas);
+  if (components.length === 0) return null;
+  const best = components.reduce((largest, component) => (component.count > largest.count ? component : largest));
+  return cropBounds(canvas, best, padding);
+}
+
+function isolatePrimaryCluster(canvas, padding = 0) {
+  const components = collectOpaqueComponents(canvas);
+  if (components.length === 0) return null;
+
+  const ordered = [...components].sort((a, b) => b.count - a.count);
+  const included = new Set([ordered[0].id]);
+  let cluster = { ...ordered[0] };
+  let changed = true;
+
+  while (changed) {
+    changed = false;
+    for (const component of ordered) {
+      if (included.has(component.id) || component.count < 6) continue;
+      const gapX = getAxisGap(component.minX, component.maxX, cluster.minX, cluster.maxX);
+      const gapY = getAxisGap(component.minY, component.maxY, cluster.minY, cluster.maxY);
+      if (gapX <= 16 && gapY <= 18) {
+        included.add(component.id);
+        cluster = {
+          id: cluster.id,
+          count: cluster.count + component.count,
+          minX: Math.min(cluster.minX, component.minX),
+          minY: Math.min(cluster.minY, component.minY),
+          maxX: Math.max(cluster.maxX, component.maxX),
+          maxY: Math.max(cluster.maxY, component.maxY),
+        };
+        changed = true;
+      }
     }
   }
+
+  return cropBounds(canvas, cluster, padding);
+}
+
+function collectOpaqueComponents(canvas) {
+  const ctx = canvas.getContext("2d");
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const { data, width, height } = imageData;
+  const visited = new Uint8Array(width * height);
+  const components = [];
+
+  const getAlpha = (x, y) => data[(y * width + x) * 4 + 3];
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const startIndex = y * width + x;
+      if (visited[startIndex] || getAlpha(x, y) === 0) continue;
+
+      const queue = [startIndex];
+      visited[startIndex] = 1;
+      let count = 0;
+      let minX = x;
+      let minY = y;
+      let maxX = x;
+      let maxY = y;
+
+      while (queue.length > 0) {
+        const index = queue.pop();
+        const px = index % width;
+        const py = Math.floor(index / width);
+        count += 1;
+        minX = Math.min(minX, px);
+        minY = Math.min(minY, py);
+        maxX = Math.max(maxX, px);
+        maxY = Math.max(maxY, py);
+
+        const neighbors = [
+          [px + 1, py],
+          [px - 1, py],
+          [px, py + 1],
+          [px, py - 1],
+          [px + 1, py + 1],
+          [px + 1, py - 1],
+          [px - 1, py + 1],
+          [px - 1, py - 1],
+        ];
+
+        for (const [nx, ny] of neighbors) {
+          if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+          const neighborIndex = ny * width + nx;
+          if (visited[neighborIndex] || getAlpha(nx, ny) === 0) continue;
+          visited[neighborIndex] = 1;
+          queue.push(neighborIndex);
+        }
+      }
+
+      components.push({ id: components.length, count, minX, minY, maxX, maxY });
+    }
+  }
+
+  return components;
+}
+
+function cropBounds(canvas, bounds, padding = 0) {
+  const sx = Math.max(0, bounds.minX - padding);
+  const sy = Math.max(0, bounds.minY - padding);
+  const sw = Math.min(canvas.width - sx, bounds.maxX - bounds.minX + 1 + padding * 2);
+  const sh = Math.min(canvas.height - sy, bounds.maxY - bounds.minY + 1 + padding * 2);
+
+  const isolated = document.createElement("canvas");
+  isolated.width = sw;
+  isolated.height = sh;
+  const isolatedCtx = isolated.getContext("2d");
+  isolatedCtx.imageSmoothingEnabled = false;
+  isolatedCtx.drawImage(canvas, sx, sy, sw, sh, 0, 0, sw, sh);
+  return isolated;
+}
+
+function getAxisGap(minA, maxA, minB, maxB) {
+  if (maxA < minB) return minB - maxA;
+  if (maxB < minA) return minA - maxB;
+  return 0;
 }
 
 function trimCanvas(canvas, padding = 0) {
