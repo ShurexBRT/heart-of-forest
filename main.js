@@ -21,13 +21,16 @@ import { createEncounterState, updateEncounter } from "./systems/encounter.js";
 import { updateEnvironment } from "./systems/environment.js";
 import { updateParticles } from "./systems/particles.js";
 import {
+  assignItemToActionSlot,
   createProgression,
   equipItem,
   getEquippedItems,
   getInventoryEntries,
   getPlayerBonuses,
+  isActionSlotAssignable,
   unlockTalent,
   unequipItem,
+  useActionSlot,
   useConsumable,
 } from "./systems/progression.js";
 import { loadSnapshot, saveSnapshot } from "./systems/save.js";
@@ -453,10 +456,44 @@ function refreshPlayerFromProgression(preserveVitals = true) {
 function tryUseQuickItem(itemId) {
   const result = useConsumable(state.progression, itemId, state.player);
   if (!result.used) return false;
+  showUseItemToast(result);
+  return true;
+}
+
+function tryUseBoundActionSlot(slotIndex) {
+  const result = useActionSlot(state.progression, slotIndex, state.player);
+  if (!result.used) return false;
+  showUseItemToast(result);
+  return true;
+}
+
+function showUseItemToast(result) {
+  if (!result?.used) return;
+  if (result.healed > 0) {
+    setToast(`${result.item.name} restored ${result.healed} HP`, 1.8);
+    return;
+  }
+
+  if (result.restored > 0) {
+    setToast(`${result.item.name} restored ${result.restored} Spirit`, 1.8);
+  }
+}
+
+function tryAssignSelectedInventoryToActionSlot(slotIndex, entries) {
+  const entry = entries[state.ui.selectedInventoryIndex];
+  if (!entry) return false;
+  if (!isActionSlotAssignable(entry.id)) {
+    setToast("Only usable items can be assigned to action slots", 1.8);
+    return true;
+  }
+
+  const result = assignItemToActionSlot(state.progression, slotIndex, entry.id);
+  if (!result.changed) return true;
+
   setToast(
-    result.healed > 0
-      ? `Recovered ${result.healed} HP`
-      : `Recovered ${result.restored} Spirit`,
+    result.cleared
+      ? `Cleared action slot ${slotIndex + 2}`
+      : `${entry.name} assigned to slot ${slotIndex + 2}`,
     1.8
   );
   return true;
@@ -482,6 +519,18 @@ function handleMenuNavigation() {
       moveSelection(1, "selectedInventoryIndex");
       clampSelection("selectedInventoryIndex", entries.length);
       return true;
+    }
+
+    if (wasPressed(input, "2", "Digit2")) {
+      return tryAssignSelectedInventoryToActionSlot(0, entries);
+    }
+
+    if (wasPressed(input, "3", "Digit3")) {
+      return tryAssignSelectedInventoryToActionSlot(1, entries);
+    }
+
+    if (wasPressed(input, "4", "Digit4")) {
+      return tryAssignSelectedInventoryToActionSlot(2, entries);
     }
 
     if ((wasPressed(input, "enter", "Enter") || wasPressed(input, " ", "Space")) && entries.length > 0) {
@@ -605,6 +654,20 @@ function handleUiInput() {
 
   if (wasPressed(input, "6", "Digit6")) {
     return tryUseQuickItem("spirit_tonic");
+  }
+
+  if (!isUiOpen()) {
+    if (wasPressed(input, "2", "Digit2")) {
+      return tryUseBoundActionSlot(0);
+    }
+
+    if (wasPressed(input, "3", "Digit3")) {
+      return tryUseBoundActionSlot(1);
+    }
+
+    if (wasPressed(input, "4", "Digit4")) {
+      return tryUseBoundActionSlot(2);
+    }
   }
 
   if (state.ui.menuOpen) {

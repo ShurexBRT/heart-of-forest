@@ -1,6 +1,8 @@
 import { BIOMES, EQUIPMENT_SLOTS, ITEM_DEFS, TALENT_DEFS } from "../data/gameData.js";
 import { QUEST_DEFS } from "../data/storyData.js";
 
+const ACTION_SLOT_COUNT = 3;
+
 function createQuestCounterDefaults() {
   const keys = new Set();
 
@@ -19,6 +21,64 @@ function getLevelTarget(level) {
 
 function deepClone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function normalizeInventory(rawInventory = {}) {
+  const normalized = {};
+
+  for (const [itemId, amount] of Object.entries(rawInventory)) {
+    if (!ITEM_DEFS[itemId]) continue;
+    const safeAmount = Math.max(0, Math.floor(amount || 0));
+    if (safeAmount <= 0) continue;
+    normalized[itemId] = safeAmount;
+  }
+
+  return normalized;
+}
+
+function normalizeActionSlots(rawActionSlots = []) {
+  const slots = Array.from({ length: ACTION_SLOT_COUNT }, (_, index) => rawActionSlots[index] || null);
+  return slots.map((itemId) => (itemId && ITEM_DEFS[itemId] ? itemId : null));
+}
+
+function canQuickUseItem(item) {
+  return Boolean(item && (item.usable || item.category === "consumable" || item.effect));
+}
+
+function createInventoryEntry(itemId, item, amount) {
+  const maxStack = item.maxStack || null;
+  const stackCount = maxStack ? Math.ceil(amount / maxStack) : 1;
+  const entries = [];
+
+  if (!maxStack || amount <= maxStack) {
+    entries.push({
+      ...item,
+      amount,
+      totalAmount: amount,
+      stackIndex: 0,
+      stackCount,
+      maxStack,
+    });
+    return entries;
+  }
+
+  let remaining = amount;
+  let stackIndex = 0;
+  while (remaining > 0) {
+    const stackAmount = Math.min(remaining, maxStack);
+    entries.push({
+      ...item,
+      amount: stackAmount,
+      totalAmount: amount,
+      stackIndex,
+      stackCount,
+      maxStack,
+    });
+    remaining -= stackAmount;
+    stackIndex += 1;
+  }
+
+  return entries;
 }
 
 export function createProgression(snapshot = null) {
@@ -41,6 +101,7 @@ export function createProgression(snapshot = null) {
       talisman: null,
       relic: null,
     },
+    actionSlots: ["health_potion", "spirit_tonic", null],
     talentPoints: 1,
     talents: {},
     journal: [],
@@ -57,8 +118,9 @@ export function createProgression(snapshot = null) {
   }
 
   const merged = deepClone(defaults);
-  merged.inventory = { ...merged.inventory, ...(snapshot.inventory || {}) };
+  merged.inventory = normalizeInventory({ ...merged.inventory, ...(snapshot.inventory || {}) });
   merged.equipment = { ...merged.equipment, ...(snapshot.equipment || {}) };
+  merged.actionSlots = normalizeActionSlots(snapshot.actionSlots || merged.actionSlots);
   merged.talentPoints = snapshot.talentPoints ?? merged.talentPoints;
   merged.talents = { ...merged.talents, ...(snapshot.talents || {}) };
   merged.journal = Array.isArray(snapshot.journal) ? [...snapshot.journal] : merged.journal;
@@ -130,12 +192,66 @@ export function awardRewards(progression, rewards) {
 export function getInventoryEntries(progression, filter = null) {
   return Object.entries(progression.inventory)
     .filter(([, amount]) => amount > 0)
-    .map(([id, amount]) => ({
-      ...ITEM_DEFS[id],
-      amount,
-    }))
+    .flatMap(([id, amount]) => createInventoryEntry(id, ITEM_DEFS[id], amount))
     .filter((entry) => !filter || entry.category === filter || entry.slot === filter)
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => (a.name === b.name ? a.stackIndex - b.stackIndex : a.name.localeCompare(b.name)));
+}
+
+export function isActionSlotAssignable(itemId) {
+  const item = ITEM_DEFS[itemId];
+  return canQuickUseItem(item);
+}
+
+export function getActionSlotEntries(progression) {
+  const slots = normalizeActionSlots(progression.actionSlots);
+  progression.actionSlots = slots;
+
+  return slots.map((itemId, index) => {
+    const item = itemId ? ITEM_DEFS[itemId] : null;
+    return {
+      index,
+      key: String(index + 2),
+      itemId,
+      item,
+      count: itemId ? getItemCount(progression, itemId) : 0,
+      usable: item ? canQuickUseItem(item) : false,
+    };
+  });
+}
+
+export function assignItemToActionSlot(progression, slotIndex, itemId) {
+  if (slotIndex < 0 || slotIndex >= ACTION_SLOT_COUNT) {
+    return { changed: false, cleared: false };
+  }
+
+  const item = ITEM_DEFS[itemId];
+  if (!item || !canQuickUseItem(item) || getItemCount(progression, itemId) <= 0) {
+    return { changed: false, cleared: false };
+  }
+
+  progression.actionSlots = normalizeActionSlots(progression.actionSlots);
+
+  if (progression.actionSlots[slotIndex] === itemId) {
+    progression.actionSlots[slotIndex] = null;
+    return { changed: true, cleared: true, item };
+  }
+
+  progression.actionSlots[slotIndex] = itemId;
+  return { changed: true, cleared: false, item };
+}
+
+export function useActionSlot(progression, slotIndex, player) {
+  const actionSlots = normalizeActionSlots(progression.actionSlots);
+  progression.actionSlots = actionSlots;
+  const itemId = actionSlots[slotIndex];
+  if (!itemId) return { used: false };
+
+  const item = ITEM_DEFS[itemId];
+  if (!item || !canQuickUseItem(item)) {
+    return { used: false };
+  }
+
+  return useConsumable(progression, itemId, player);
 }
 
 export function getEquippedItems(progression) {

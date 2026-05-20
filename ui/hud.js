@@ -1,5 +1,6 @@
 import { EQUIPMENT_SLOTS, TALENT_DEFS } from "../data/gameData.js";
 import {
+  getActionSlotEntries,
   getEquippedItems,
   getInventoryEntries,
   getPlayerBonuses,
@@ -27,13 +28,17 @@ export function drawHud(ctx, state, abilityInfo) {
 
 function drawBottomHud(ctx, state, abilityInfo) {
   const { width, height } = state.viewport;
-  const panelW = 640;
-  const panelH = 124;
+  const panelW = 760;
+  const panelH = 132;
   const x = width / 2 - panelW / 2;
   const y = height - panelH - 16;
   const xp = getXpProgress(state.progression);
   const healthPotions = state.progression.inventory.health_potion || 0;
   const spiritTonics = state.progression.inventory.spirit_tonic || 0;
+
+  ctx.fillStyle = "rgba(228, 238, 214, 0.78)";
+  ctx.font = "11px Segoe UI, Arial";
+  ctx.fillText(`Lv ${xp.level}  |  Q Quest Log  |  C Character  |  I Inventory  |  T Talents  |  2-4 Action`, x + 18, y - 8);
 
   ctx.fillStyle = "rgba(5, 8, 12, 0.84)";
   ctx.fillRect(x, y, panelW, panelH);
@@ -50,18 +55,12 @@ function drawBottomHud(ctx, state, abilityInfo) {
   ctx.fillText(`${Math.round(state.player.spirit)}/${state.player.maxSpirit}`, x + panelW - 78, y + 64);
   ctx.textAlign = "left";
 
-  drawAbilitySlots(ctx, x + 156, y + 18, state.player, abilityInfo);
-  drawPotionSlots(ctx, x + 176, y + 84, healthPotions, spiritTonics);
+  const abilityRowWidth = 76 * 4 + 10 * 3;
+  drawAbilitySlots(ctx, x + panelW / 2 - abilityRowWidth / 2, y + 18, state.player, abilityInfo);
+  drawActionSlots(ctx, x + panelW / 2 - 147, y + 82, state.progression);
+  drawQuickCounters(ctx, x + 18, y + 98, healthPotions, spiritTonics, panelW);
 
-  ctx.fillStyle = "#f3ddb7";
-  ctx.font = "700 14px Segoe UI, Arial";
-  ctx.fillText(`Level ${xp.level}`, x + panelW / 2 - 30, y + 102);
-
-  drawXpBar(ctx, x + 146, y + panelH - 18, panelW - 292, xp.ratio, `${xp.xp}/${xp.nextLevelXp}`);
-
-  ctx.fillStyle = "rgba(228, 238, 214, 0.78)";
-  ctx.font = "11px Segoe UI, Arial";
-  ctx.fillText("Q Quest Log  |  C Character  |  I Inventory  |  T Talents", x + 16, y + panelH - 28);
+  drawXpBar(ctx, x + 136, y + panelH - 12, panelW - 272, xp.ratio, "");
 }
 
 function drawOrb(ctx, cx, cy, radius, ratio, dark, light) {
@@ -139,27 +138,73 @@ function drawAbilitySlots(ctx, startX, y, player, abilityInfo) {
   }
 }
 
-function drawPotionSlots(ctx, x, y, healthPotions, spiritTonics) {
-  const slots = [
-    { key: "5", label: "Health", count: healthPotions, color: "#df6a67" },
-    { key: "6", label: "Spirit", count: spiritTonics, color: "#6ecff7" },
-  ];
+function drawActionSlots(ctx, x, y, progression) {
+  const slots = getActionSlotEntries(progression);
+  const slotW = 90;
+  const slotH = 34;
+  const gap = 12;
 
   for (let index = 0; index < slots.length; index += 1) {
     const slot = slots[index];
-    const slotX = x + index * 110;
-    ctx.fillStyle = "rgba(0,0,0,0.56)";
-    ctx.fillRect(slotX, y, 92, 28);
+    const slotX = x + index * (slotW + gap);
+    const border = slot.item?.color || "#475261";
+
+    ctx.fillStyle = "rgba(0,0,0,0.58)";
+    ctx.fillRect(slotX, y, slotW, slotH);
     ctx.fillStyle = "#10161d";
-    ctx.fillRect(slotX + 2, y + 2, 88, 24);
-    ctx.fillStyle = slot.color;
-    ctx.fillRect(slotX + 4, y + 4, 12, 20);
+    ctx.fillRect(slotX + 2, y + 2, slotW - 4, slotH - 4);
+    ctx.strokeStyle = border;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(slotX + 2, y + 2, slotW - 4, slotH - 4);
+
+    if (slot.item) {
+      ctx.fillStyle = slot.item.color || "#d8e2ec";
+      ctx.fillRect(slotX + 8, y + 8, 12, 18);
+      ctx.fillStyle = "#f6ead0";
+      ctx.font = "700 12px Segoe UI, Arial";
+      ctx.fillText(slot.key, slotX + 28, y + 13);
+      ctx.fillStyle = slot.count > 0 ? "#eef6dd" : "#9098a5";
+      ctx.font = "11px Segoe UI, Arial";
+      ctx.fillText(shorten(slot.item.name, 11), slotX + 28, y + 25);
+      ctx.textAlign = "right";
+      ctx.fillStyle = slot.count > 0 ? "#fff4d8" : "#9aa4b1";
+      ctx.fillText(`x${slot.count}`, slotX + slotW - 8, y + 25);
+      ctx.textAlign = "left";
+      if (slot.count <= 0) {
+        ctx.fillStyle = "rgba(0,0,0,0.42)";
+        ctx.fillRect(slotX + 2, y + 2, slotW - 4, slotH - 4);
+      }
+      continue;
+    }
+
     ctx.fillStyle = "#f6ead0";
     ctx.font = "700 12px Segoe UI, Arial";
-    ctx.fillText(slot.key, slotX + 22, y + 14);
+    ctx.fillText(slot.key, slotX + 10, y + 13);
+    ctx.fillStyle = "#aab6c3";
     ctx.font = "11px Segoe UI, Arial";
+    ctx.fillText("Empty", slotX + 10, y + 25);
+  }
+}
+
+function drawQuickCounters(ctx, x, y, healthPotions, spiritTonics, panelW) {
+  const chips = [
+    { key: "5", label: "Health", count: healthPotions, color: "#df6a67", x },
+    { key: "6", label: "Spirit", count: spiritTonics, color: "#6ecff7", x: x + panelW - 110 },
+  ];
+
+  for (const chip of chips) {
+    ctx.fillStyle = "rgba(0,0,0,0.56)";
+    ctx.fillRect(chip.x, y, 92, 22);
+    ctx.fillStyle = "#10161d";
+    ctx.fillRect(chip.x + 2, y + 2, 88, 18);
+    ctx.fillStyle = chip.color;
+    ctx.fillRect(chip.x + 4, y + 4, 10, 14);
+    ctx.fillStyle = "#f6ead0";
+    ctx.font = "700 11px Segoe UI, Arial";
+    ctx.fillText(chip.key, chip.x + 20, y + 11);
     ctx.fillStyle = "#dce6d6";
-    ctx.fillText(`${slot.label} x${slot.count}`, slotX + 22, y + 24);
+    ctx.font = "10px Segoe UI, Arial";
+    ctx.fillText(`${chip.label} x${chip.count}`, chip.x + 20, y + 19);
   }
 }
 
@@ -168,11 +213,13 @@ function drawXpBar(ctx, x, y, width, ratio, label) {
   ctx.fillRect(x, y, width, 8);
   ctx.fillStyle = "#53346b";
   ctx.fillRect(x + 1, y + 1, (width - 2) * Math.max(0, Math.min(1, ratio)), 6);
-  ctx.fillStyle = "#dcd0f1";
-  ctx.font = "10px Segoe UI, Arial";
-  ctx.textAlign = "center";
-  ctx.fillText(label, x + width / 2, y - 4);
-  ctx.textAlign = "left";
+  if (label) {
+    ctx.fillStyle = "#dcd0f1";
+    ctx.font = "10px Segoe UI, Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(label, x + width / 2, y - 4);
+    ctx.textAlign = "left";
+  }
 }
 
 function drawSceneInfo(ctx, state) {
@@ -459,7 +506,7 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
   ctx.fillText("Inventory", listX, rowY - 18);
   ctx.font = "11px Segoe UI, Arial";
   ctx.fillStyle = "#cfd9d3";
-  ctx.fillText("Enter uses consumables or equips gear", listX + 110, rowY - 18);
+  ctx.fillText("Enter uses/equips  |  2/3/4 binds selected usable", listX + 110, rowY - 18);
 
   if (entries.length === 0) {
     ctx.fillStyle = "#d7e4cf";
@@ -492,11 +539,12 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
 
   const selectedEntry = entries[state.ui.selectedInventoryIndex];
   if (!selectedEntry) return;
+  const actionSlots = getActionSlotEntries(state.progression);
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
-  ctx.fillRect(detailsX, detailsY - 18, 240, 180);
+  ctx.fillRect(detailsX, detailsY - 18, 240, 214);
   ctx.strokeStyle = "#2d3848";
-  ctx.strokeRect(detailsX, detailsY - 18, 240, 180);
+  ctx.strokeRect(detailsX, detailsY - 18, 240, 214);
   ctx.fillStyle = "#fff2d5";
   ctx.font = "700 14px Segoe UI, Arial";
   ctx.fillText(selectedEntry.name, detailsX + 12, detailsY + 2);
@@ -504,13 +552,48 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
   ctx.font = "12px Segoe UI, Arial";
   wrapText(ctx, selectedEntry.description, detailsX + 12, detailsY + 26, 216, 18);
 
+  let detailY = detailsY + 86;
+  if (selectedEntry.maxStack) {
+    ctx.fillStyle = "#d7e4cf";
+    ctx.font = "11px Segoe UI, Arial";
+    ctx.fillText(
+      `Stack ${selectedEntry.stackIndex + 1}/${selectedEntry.stackCount}  |  ${selectedEntry.amount}/${selectedEntry.maxStack}`,
+      detailsX + 12,
+      detailY
+    );
+    ctx.fillText(`Total Owned: ${selectedEntry.totalAmount}`, detailsX + 12, detailY + 16);
+    detailY += 34;
+  }
+
   if (selectedEntry.bonuses) {
-    let bonusY = detailsY + 86;
+    let bonusY = detailY;
     for (const [key, value] of Object.entries(selectedEntry.bonuses)) {
       ctx.fillStyle = "#9ce1a3";
       ctx.fillText(`${formatBonusKey(key)}: ${value > 0 ? "+" : ""}${value}`, detailsX + 12, bonusY);
       bonusY += 16;
     }
+    detailY = bonusY + 4;
+  }
+
+  if (selectedEntry.usable || selectedEntry.category === "consumable" || selectedEntry.effect) {
+    ctx.fillStyle = "#fff2d5";
+    ctx.font = "700 12px Segoe UI, Arial";
+    ctx.fillText("Action Slots", detailsX + 12, detailY + 4);
+
+    actionSlots.forEach((slot, index) => {
+      const slotX = detailsX + 12 + index * 72;
+      const assigned = slot.itemId === selectedEntry.id;
+      ctx.fillStyle = assigned ? "rgba(121, 184, 255, 0.2)" : "rgba(0, 0, 0, 0.32)";
+      ctx.fillRect(slotX, detailY + 14, 62, 36);
+      ctx.strokeStyle = assigned ? "#79b8ff" : "#2d3848";
+      ctx.strokeRect(slotX, detailY + 14, 62, 36);
+      ctx.fillStyle = assigned ? "#fff5d8" : "#cfd9d3";
+      ctx.font = "700 12px Segoe UI, Arial";
+      ctx.fillText(slot.key, slotX + 8, detailY + 30);
+      ctx.font = "10px Segoe UI, Arial";
+      ctx.fillStyle = "#9dd9a2";
+      ctx.fillText(assigned ? "Bound" : "Assign", slotX + 8, detailY + 43);
+    });
   }
 }
 
@@ -565,6 +648,11 @@ function formatBonusKey(key) {
     .replace(/([A-Z])/g, " $1")
     .replace(/^./, (value) => value.toUpperCase())
     .trim();
+}
+
+function shorten(value, max) {
+  if (value.length <= max) return value;
+  return `${value.slice(0, Math.max(1, max - 3))}...`;
 }
 
 function drawBanner(ctx, state) {

@@ -9,6 +9,9 @@ const ATLAS_PATHS = {
   "verdant-grove": "./assets/atlases/verdant-grove.png",
 };
 
+const ATLAS_WORLD_ART_ENABLED = false;
+const ATLAS_PLAYER_ENABLED = false;
+
 const SCENE_ATLAS_KEYS = {
   whisperingWoods: "mossy-ruins",
   mossrootMarsh: "moonlit-marsh",
@@ -95,6 +98,7 @@ export function getAylaPortrait() {
 }
 
 export function drawAylaAtlasSprite(ctx, x, y, facing, frame, pose, options = {}) {
+  if (!ATLAS_PLAYER_ENABLED) return false;
   if (!atlasState.aylaFrames) return false;
 
   const frameCanvas = pickAylaFrame(facing, frame, pose);
@@ -112,6 +116,7 @@ export function drawAylaAtlasSprite(ctx, x, y, facing, frame, pose, options = {}
 }
 
 export function drawBiomeProp(ctx, sceneStyle, type, x, y, options = {}) {
+  if (!ATLAS_WORLD_ART_ENABLED) return false;
   const art = getBiomeArt(sceneStyle);
   if (!art) return false;
 
@@ -140,6 +145,7 @@ export function drawBiomeProp(ctx, sceneStyle, type, x, y, options = {}) {
 }
 
 export function getBiomePattern(sceneStyle, ground, variant = 0) {
+  if (!ATLAS_WORLD_ART_ENABLED) return null;
   const art = getBiomeArt(sceneStyle);
   if (!art) return null;
 
