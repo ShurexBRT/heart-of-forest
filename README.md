@@ -1,29 +1,38 @@
 # Heart of Forest
 
-`Heart of Forest` je browser-based 2D pixel-art action RPG prototip građen u plain HTML5 Canvas + vanilla JavaScript. Fokus je sada na malom connected-region vertical slice-u: Ayla ima pravi sprite sheet, više povezanih mapa, quest/NPC loop, inventory, opremu, talente, levelovanje i lokalni save.
+`Heart of Forest` je browser-based 2D pixel-art action RPG slice pravljen u plain HTML5 Canvas + vanilla JavaScript.
+
+Trenutni fokus je na malom, povezanom ARPG vertical slice-u:
+- vise mapa
+- quest i NPC loop
+- inventory, equipment, talents i levelovanje
+- hub services i economy osnova
+- multi-step quest chain sa mini-dungeon boss zavrsnicom
 
 ## Controls
 
-- `WASD`: kretanje
+- `WASD`: movement
 - `Mouse`: aim
 - `Left Click`: Staff Strike
 - `Right Click`: Spirit Bolt
 - `Space`: Quick Dash
 - `1`: Root Snare
+- `2`, `3`, `4`: bound action slots
 - `5`: Health Potion
 - `6`: Spirit Tonic
-- `E`: interakcija / dialogue advance
+- `E`: interact / advance dialogue
 - `Q`: quest log
-- `C`: character tab
-- `I`: inventory tab
-- `T`: talent tab
-- `Esc`: zatvaranje otvorenog UI panela
-- stani kratko na exit zonu da pređeš na drugu mapu
-- `R` ili `Enter`: restart scene posle poraza
+- `C`: character panel
+- `I`: inventory panel
+- `T`: talents panel
+- `Tab`: cycle panel tabs
+- `Esc`: close open panel
+- stand briefly on an exit zone to travel
+- `R` or `Enter`: reload scene after defeat
 
-## Implementirano
+## What Currently Works
 
-- connected scene network:
+- connected zone flow across:
   - `Whispering Woods`
   - `Moonlit Marsh`
   - `Mossy Ruins`
@@ -31,78 +40,91 @@
   - `Frostpine Tundra`
   - `Blighted Woods`
   - `Hollowheart Ruins`
-  - `Ancient Heart`
-- Ayla sprite sheet integracija iz pravog atlasa
-- biome environment atlas pipeline sa fallback renderom
-- Diablo-style bottom HUD sa HP/Spirit orbovima, ability barom, XP barom i potion slotovima
-- quest log na `Q`
-- unified `Character / Inventory / Talents` panel
-- equipment slotovi:
-  - trinket
-  - amulet
-  - talisman
-  - relic
-- consumables:
-  - `Health Potion`
-  - `Greater Health Potion`
-  - `Spirit Tonic`
-- XP + level sistem
-- talent points i unlockable talenti
-- local save preko `localStorage`
-- health regen kada Ayla nije u combatu
-- više NPC-jeva i quest hookova po regionima
-- quest rewards koji daju korisne iteme i equipment
-- postojeći combat loop ostaje aktivan:
+  - `Sunken Reliquary`
+- hub-style village presentation with NPC interactions
+- combat kit:
   - Staff Strike
   - Spirit Bolt
   - Quick Dash
   - Root Snare
+- out-of-combat health regeneration
+- enemy waves, boss encounters, and elite affixes
+- inventory with stackable consumables
+- equipment slots:
+  - trinket
+  - amulet
+  - talisman
+  - relic
+- action slots on `2-4`
+- XP, level-ups, talent points, and talent unlocks
+- local save via `localStorage`
+- quest log, character sheet, inventory, and talents UI
+- service UI for:
+  - apothecary shop
+  - waystone altar
+  - village stash
+- item rewards, silver currency, usable potions, and buff consumables
+- multi-step relic quest chain that opens the `Sunken Reliquary`
 
-## Pokretanje
+## Running Locally
 
-Koristi lokalni web server zbog ES modula:
+Use a local web server because the project uses ES modules:
 
 ```bash
 python -m http.server 4177
 ```
 
-Otvori:
+Then open:
 
 ```text
 http://localhost:4177/
 ```
 
-## Struktura
+## Project Structure
 
 - `main.js`
-  - game state, scene transitions, UI state, save/load, regen loop
-- `data/sceneNetwork.js`
-  - definicije mapa i veza između izlaza
-- `data/storyData.js`
-  - questovi, NPC definicije, dialogue tekst
+  - game state, scene transitions, UI flow, autosave, regen loop
 - `data/gameData.js`
-  - biomi, itemi, equipment, talenti
+  - biome, item, service, and talent definitions
+- `data/sceneNetwork.js`
+  - scene graph and travel links
+- `data/storyData.js`
+  - quest defs, NPC defs, dialogue, rewards
+- `entities/player.js`
+  - Ayla movement, buffs, vitals, cooldown model
+- `entities/enemy.js`
+  - enemy roles and elite affix setup
+- `entities/boss.js`
+  - boss behavior and summon logic
 - `world/arena.js`
-  - handcrafted scene layout-ovi, spawnovi, quest objekti, NPC placement
+  - handcrafted zone layouts, exits, NPCs, quest objects
 - `rendering/renderer.js`
-  - isometric-ish tile render, depth sorting, atlas props, combat FX
-- `rendering/atlasAssets.js`
-  - loading/cropping Ayla sprite sheet-a i biome environment sheet-ova
+  - world rendering, depth sorting, hazards, combat FX, atmosphere
 - `ui/hud.js`
-  - Diablo-style HUD, quest log, character/inventory/talent overlay
+  - HUD, quest log, character/inventory/talents/services panels
 - `systems/combat.js`
-  - ability handling, projectile logic, XP/loot on kill, combat tagging
+  - combat resolution, loot drops, kill rewards
+- `systems/encounter.js`
+  - wave pacing, spawn direction, elite rolls
 - `systems/progression.js`
-  - inventory, equipment, consumables, xp/level, player bonuses
+  - inventory, equipment, action slots, XP, levels, talents, currency
+- `systems/services.js`
+  - shop, altar, and stash behavior
 - `systems/story.js`
-  - interaction flow, quest availability/progress/rewards
+  - quest progression, interactions, dialogue, rewards
 - `systems/save.js`
-  - local storage snapshot helperi
+  - local snapshot persistence
 
-## Sledeći logičan korak
+## Notes
 
-- click-driven inventory/talent UI umesto samo keyboard-first flow
-- pravi atlas/sprite sheet za neprijatelje i NPC-jeve
-- bolji loot economy i vendor/crafting loop
-- dodatni biome-specific hazards i quest scripting
-- stabilniji scene-specific encounter pacing i boss phase polish
+- The project stays intentionally lightweight and framework-free.
+- The render stack is still custom Canvas-first, so some systems are deliberately simple and data-driven.
+- Debug helpers are exposed on `window.__heartOfForestDebug` for local iteration.
+
+## Next Logical Step
+
+- clickable inventory and service interactions
+- stronger enemy/NPC sprite presentation
+- vendor compare tooltips and broader itemization
+- tighter quest scripting with more world-state feedback
+- more handcrafted dungeon and boss phase polish

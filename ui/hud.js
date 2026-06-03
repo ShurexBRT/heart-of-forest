@@ -1,14 +1,18 @@
 import { EQUIPMENT_SLOTS, TALENT_DEFS } from "../data/gameData.js";
 import {
+  getCurrency,
   getActionSlotEntries,
   getEquippedItems,
   getInventoryEntries,
+  getItemValue,
   getPlayerBonuses,
   getQuestCounter,
+  getStashEntries,
   getUnlockedTalentList,
   getXpProgress,
 } from "../systems/progression.js";
 import { getAylaPortrait } from "../rendering/atlasAssets.js";
+import { getActiveService, getServiceEntries, getStashUiEntries } from "../systems/services.js";
 
 export function drawHud(ctx, state, abilityInfo) {
   drawSceneInfo(ctx, state);
@@ -59,8 +63,11 @@ function drawBottomHud(ctx, state, abilityInfo) {
   drawAbilitySlots(ctx, x + panelW / 2 - abilityRowWidth / 2, y + 18, state.player, abilityInfo);
   drawActionSlots(ctx, x + panelW / 2 - 147, y + 82, state.progression);
   drawQuickCounters(ctx, x + 18, y + 98, healthPotions, spiritTonics, panelW);
+  drawBuffChips(ctx, x + 198, y + 98, state.player);
+  drawCurrencyChip(ctx, x + panelW - 182, y + 98, state.progression);
 
   drawXpBar(ctx, x + 136, y + panelH - 12, panelW - 272, xp.ratio, "");
+  drawPanelChrome(ctx, x, y, panelW, panelH, "#7f9a74");
 }
 
 function drawOrb(ctx, cx, cy, radius, ratio, dark, light) {
@@ -208,6 +215,49 @@ function drawQuickCounters(ctx, x, y, healthPotions, spiritTonics, panelW) {
   }
 }
 
+function drawBuffChips(ctx, x, y, player) {
+  const chips = [];
+  if (player.activeBuffs?.ward > 0) {
+    chips.push({ label: `Ward ${player.activeBuffs.ward.toFixed(0)}s`, color: "#d8d57b" });
+  }
+  if (player.activeBuffs?.speed > 0) {
+    chips.push({ label: `Windstep ${player.activeBuffs.speed.toFixed(0)}s`, color: "#8be4c3" });
+  }
+  if (chips.length === 0) return;
+
+  let cursorX = x;
+  for (const chip of chips) {
+    const width = Math.max(82, Math.ceil(ctx.measureText(chip.label).width) + 20);
+    ctx.fillStyle = "rgba(0,0,0,0.54)";
+    ctx.fillRect(cursorX, y, width, 22);
+    ctx.fillStyle = "#10161d";
+    ctx.fillRect(cursorX + 2, y + 2, width - 4, 18);
+    ctx.fillStyle = chip.color;
+    ctx.fillRect(cursorX + 5, y + 5, 8, 12);
+    ctx.fillStyle = "#eef7df";
+    ctx.font = "10px Segoe UI, Arial";
+    ctx.fillText(chip.label, cursorX + 18, y + 15);
+    cursorX += width + 8;
+  }
+}
+
+function drawCurrencyChip(ctx, x, y, progression) {
+  const silver = getCurrency(progression);
+  ctx.fillStyle = "rgba(0,0,0,0.56)";
+  ctx.fillRect(x, y, 154, 22);
+  ctx.fillStyle = "#10161d";
+  ctx.fillRect(x + 2, y + 2, 150, 18);
+  ctx.fillStyle = "#e4c776";
+  ctx.fillRect(x + 6, y + 5, 10, 10);
+  ctx.fillStyle = "#f6ead0";
+  ctx.font = "700 11px Segoe UI, Arial";
+  ctx.fillText("Silver", x + 24, y + 11);
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#fff6dc";
+  ctx.fillText(String(silver), x + 144, y + 11);
+  ctx.textAlign = "left";
+}
+
 function drawXpBar(ctx, x, y, width, ratio, label) {
   ctx.fillStyle = "#090d12";
   ctx.fillRect(x, y, width, 8);
@@ -239,6 +289,8 @@ function drawSceneInfo(ctx, state) {
     (state.boss && !state.boss.dead)
   ) {
     phaseLabel = state.scene.bossName || "Boss Fight";
+  } else if (!cleared && aliveThreats <= 0) {
+    phaseLabel = "Village Calm";
   } else if (!cleared && encounter.totalWaves > 0) {
     const displayedWave =
       encounter.phase === "waveIntro"
@@ -250,9 +302,9 @@ function drawSceneInfo(ctx, state) {
   }
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.62)";
-  ctx.fillRect(x, y, 270, 78);
+  ctx.fillRect(x, y, 282, 86);
   ctx.fillStyle = "#10161d";
-  ctx.fillRect(x + 4, y + 4, 262, 70);
+  ctx.fillRect(x + 4, y + 4, 274, 78);
   ctx.fillStyle = "#f6fff1";
   ctx.font = "700 16px Segoe UI, Arial";
   ctx.fillText(state.scene.title, x + 12, y + 22);
@@ -261,11 +313,14 @@ function drawSceneInfo(ctx, state) {
   ctx.fillText(state.scene.regionName, x + 12, y + 40);
   ctx.fillStyle = "#fff5cf";
   ctx.fillText(phaseLabel, x + 12, y + 58);
+  ctx.fillStyle = "#e8d487";
+  ctx.fillText(`Silver ${getCurrency(state.progression)}`, x + 12, y + 74);
 
   if (state.combatTimer <= 0 && state.player.hp < state.player.maxHp) {
     ctx.fillStyle = "#96dda5";
     ctx.fillText("Regenerating", x + 166, y + 58);
   }
+  drawPanelChrome(ctx, x, y, 282, 86, "#84a775");
 }
 
 function drawBossBar(ctx, state) {
@@ -360,6 +415,8 @@ function drawQuestLogOverlay(ctx, state) {
     return;
   }
 
+  drawPanelChrome(ctx, x, y, width, height, "#7ca57b");
+
   let cursorY = y + 66;
   quests.forEach((quest, index) => {
     const selected = index === state.ui.selectedQuestIndex;
@@ -403,7 +460,7 @@ function drawCharacterOverlay(ctx, state) {
   ctx.fillText("Ayla", x + 18, y + 30);
   ctx.font = "12px Segoe UI, Arial";
   ctx.fillStyle = "#d7e4cf";
-  ctx.fillText("C / I / T switch tabs  |  Esc closes", x + width - 212, y + 28);
+  ctx.fillText("C / I / T / Tab switch views  |  Esc closes", x + width - 272, y + 28);
 
   drawTabs(ctx, state, x + 18, y + 48);
 
@@ -415,9 +472,13 @@ function drawCharacterOverlay(ctx, state) {
     drawCharacterTab(ctx, state, x, y, width, height, bonuses);
   } else if (state.ui.activeTab === "inventory") {
     drawInventoryTab(ctx, state, x, y, width, height);
+  } else if (state.ui.activeTab === "services") {
+    drawServiceTab(ctx, state, x, y, width, height);
   } else {
     drawTalentTab(ctx, state, x, y, width, height);
   }
+
+  drawPanelChrome(ctx, x, y, width, height, "#8a6e49");
 }
 
 function drawTabs(ctx, state, x, y) {
@@ -426,6 +487,9 @@ function drawTabs(ctx, state, x, y) {
     ["inventory", "Inventory"],
     ["talents", "Talents"],
   ];
+  if (state.ui.activeServiceId) {
+    tabs.push(["services", "Services"]);
+  }
 
   tabs.forEach(([id, label], index) => {
     const tx = x + index * 126;
@@ -486,7 +550,7 @@ function drawCharacterTab(ctx, state, x, y, width, height, bonuses) {
     ctx.fillStyle = "#d3dde7";
     ctx.font = "11px Segoe UI, Arial";
     ctx.fillText(entry.slot.toUpperCase(), slotX + 12, slotY + 4);
-    ctx.fillStyle = "#fff6d8";
+    ctx.fillStyle = getRarityAccent(entry.item?.rarity, "#fff6d8");
     ctx.font = "700 12px Segoe UI, Arial";
     ctx.fillText(entry.item?.name || "Empty", slotX + 88, slotY + 4);
     slotY += 42;
@@ -506,7 +570,12 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
   ctx.fillText("Inventory", listX, rowY - 18);
   ctx.font = "11px Segoe UI, Arial";
   ctx.fillStyle = "#cfd9d3";
-  ctx.fillText("Enter uses/equips  |  2/3/4 binds selected usable", listX + 110, rowY - 18);
+  const service = getActiveService(state);
+  const inventoryHelp =
+    service?.kind === "shop"
+      ? "Enter uses/equips  |  2/3/4 bind  |  X sell selected"
+      : "Enter uses/equips  |  2/3/4 binds selected usable";
+  ctx.fillText(inventoryHelp, listX + 18, rowY - 2);
 
   if (entries.length === 0) {
     ctx.fillStyle = "#d7e4cf";
@@ -522,7 +591,7 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
     ctx.strokeRect(listX, rowY - 16, listWidth, 34);
     ctx.fillStyle = entry.color || "#d8e2ec";
     ctx.fillRect(listX + 10, rowY - 8, 12, 12);
-    ctx.fillStyle = "#fff6d8";
+    ctx.fillStyle = getRarityAccent(entry.rarity, "#fff6d8");
     ctx.font = "700 12px Segoe UI, Arial";
     ctx.fillText(entry.name, listX + 30, rowY + 2);
     ctx.fillStyle = "#b7c3cf";
@@ -551,8 +620,11 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
   ctx.fillStyle = "#cfd9d3";
   ctx.font = "12px Segoe UI, Arial";
   wrapText(ctx, selectedEntry.description, detailsX + 12, detailsY + 26, 216, 18);
+  ctx.fillStyle = "#e9d281";
+  ctx.font = "11px Segoe UI, Arial";
+  ctx.fillText(`Value ${getItemValue(selectedEntry.id)} silver`, detailsX + 12, detailsY + 76);
 
-  let detailY = detailsY + 86;
+  let detailY = detailsY + 96;
   if (selectedEntry.maxStack) {
     ctx.fillStyle = "#d7e4cf";
     ctx.font = "11px Segoe UI, Arial";
@@ -573,6 +645,32 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
       bonusY += 16;
     }
     detailY = bonusY + 4;
+  }
+
+  if (selectedEntry.category === "equipment" && selectedEntry.slot) {
+    const equippedItem = getEquippedItems(state.progression).find((entry) => entry.slot === selectedEntry.slot)?.item;
+    ctx.fillStyle = "#fff2d5";
+    ctx.font = "700 12px Segoe UI, Arial";
+    ctx.fillText("Comparison", detailsX + 12, detailY + 4);
+    detailY += 20;
+    if (!equippedItem) {
+      ctx.fillStyle = "#d7e4cf";
+      ctx.font = "11px Segoe UI, Arial";
+      ctx.fillText("Nothing equipped in this slot.", detailsX + 12, detailY);
+      detailY += 18;
+    } else {
+      ctx.fillStyle = getRarityAccent(equippedItem.rarity, "#f1e5b7");
+      ctx.font = "700 11px Segoe UI, Arial";
+      ctx.fillText(`Equipped: ${equippedItem.name}`, detailsX + 12, detailY);
+      detailY += 16;
+      for (const line of buildComparisonLines(selectedEntry, equippedItem)) {
+        ctx.fillStyle = line.delta > 0 ? "#9ce1a3" : line.delta < 0 ? "#f0a08d" : "#d7e4cf";
+        ctx.font = "11px Segoe UI, Arial";
+        ctx.fillText(`${line.label}: ${line.current} (${line.delta > 0 ? "+" : ""}${line.delta})`, detailsX + 12, detailY);
+        detailY += 14;
+      }
+      detailY += 4;
+    }
   }
 
   if (selectedEntry.usable || selectedEntry.category === "consumable" || selectedEntry.effect) {
@@ -642,6 +740,128 @@ function drawTalentTab(ctx, state, x, y, width, height) {
   );
 }
 
+function drawServiceTab(ctx, state, x, y, width, height) {
+  const service = getActiveService(state);
+  const bodyX = x + 220;
+  const bodyY = y + 122;
+
+  ctx.fillStyle = "#fff2d5";
+  ctx.font = "700 16px Segoe UI, Arial";
+  ctx.fillText(service ? service.title : "Services", bodyX, bodyY - 18);
+  ctx.font = "11px Segoe UI, Arial";
+  ctx.fillStyle = "#d7e4cf";
+  ctx.fillText(service ? service.subtitle : "Visit a service NPC or village object.", bodyX + 132, bodyY - 18);
+
+  if (!service) {
+    ctx.fillStyle = "#d7e4cf";
+    ctx.font = "13px Segoe UI, Arial";
+    ctx.fillText("No service is currently open.", bodyX, bodyY + 10);
+    return;
+  }
+
+  ctx.fillStyle = "#e7d081";
+  ctx.font = "700 12px Segoe UI, Arial";
+  ctx.fillText(`Silver: ${getCurrency(state.progression)}`, bodyX, bodyY + 8);
+
+  if (service.kind === "shop") {
+    const entries = getServiceEntries(state);
+    let rowY = bodyY + 34;
+    entries.forEach((entry, index) => {
+      const selected = index === state.ui.selectedServiceIndex;
+      ctx.fillStyle = selected ? "rgba(121, 184, 255, 0.16)" : "rgba(0, 0, 0, 0.26)";
+      ctx.fillRect(bodyX, rowY - 16, width - 280, 38);
+      ctx.strokeStyle = selected ? "#79b8ff" : "#263142";
+      ctx.strokeRect(bodyX, rowY - 16, width - 280, 38);
+      ctx.fillStyle = entry.item.color || "#d8e2ec";
+      ctx.fillRect(bodyX + 10, rowY - 8, 12, 12);
+      ctx.fillStyle = getRarityAccent(entry.item.rarity, "#fff6d8");
+      ctx.font = "700 12px Segoe UI, Arial";
+      ctx.fillText(entry.item.name, bodyX + 30, rowY + 1);
+      ctx.fillStyle = "#d7e4cf";
+      ctx.font = "11px Segoe UI, Arial";
+      ctx.fillText(shorten(entry.item.description, 42), bodyX + 30, rowY + 17);
+      ctx.textAlign = "right";
+      ctx.fillStyle = entry.affordable ? "#f1d786" : "#c67d72";
+      ctx.font = "700 12px Segoe UI, Arial";
+      ctx.fillText(`${entry.price} s`, bodyX + width - 304, rowY + 1);
+      ctx.textAlign = "left";
+      rowY += 46;
+    });
+    return;
+  }
+
+  if (service.kind === "altar") {
+    const entries = getServiceEntries(state);
+    let rowY = bodyY + 34;
+    entries.forEach((entry, index) => {
+      const selected = index === state.ui.selectedServiceIndex;
+      ctx.fillStyle = selected ? "rgba(121, 184, 255, 0.16)" : "rgba(0, 0, 0, 0.26)";
+      ctx.fillRect(bodyX, rowY - 16, width - 280, 46);
+      ctx.strokeStyle = selected ? "#79b8ff" : "#263142";
+      ctx.strokeRect(bodyX, rowY - 16, width - 280, 46);
+      ctx.fillStyle = "#fff6d8";
+      ctx.font = "700 12px Segoe UI, Arial";
+      ctx.fillText(entry.title, bodyX + 12, rowY + 1);
+      ctx.fillStyle = "#d7e4cf";
+      ctx.font = "11px Segoe UI, Arial";
+      ctx.fillText(entry.description, bodyX + 12, rowY + 17);
+      ctx.fillStyle = entry.affordable ? "#f1d786" : "#c67d72";
+      ctx.fillText(formatActionCost(entry), bodyX + 12, rowY + 33);
+      rowY += 54;
+    });
+    return;
+  }
+
+  const lists = getStashUiEntries(state);
+  const panelW = Math.floor((width - 320) / 2);
+  drawStashColumn(ctx, bodyX, bodyY + 28, panelW, "Pack", lists.pack, state.ui.selectedServiceIndex, state.ui.serviceSubpanel === "pack");
+  drawStashColumn(
+    ctx,
+    bodyX + panelW + 24,
+    bodyY + 28,
+    panelW,
+    "Stash",
+    lists.stash,
+    state.ui.selectedStashIndex,
+    state.ui.serviceSubpanel === "stash"
+  );
+  ctx.fillStyle = "#d7e4cf";
+  ctx.font = "11px Segoe UI, Arial";
+  ctx.fillText("Left/Right switch lists  |  Enter transfers one item", bodyX, y + height - 36);
+}
+
+function drawStashColumn(ctx, x, y, width, label, entries, selectedIndex, active) {
+  ctx.fillStyle = active ? "#fff2d5" : "#cfd9d3";
+  ctx.font = "700 13px Segoe UI, Arial";
+  ctx.fillText(label, x, y - 8);
+  ctx.fillStyle = "rgba(0,0,0,0.24)";
+  ctx.fillRect(x, y, width, 252);
+  ctx.strokeStyle = active ? "#79b8ff" : "#263142";
+  ctx.strokeRect(x, y, width, 252);
+  let rowY = y + 18;
+  if (entries.length === 0) {
+    ctx.fillStyle = "#aebdc6";
+    ctx.font = "11px Segoe UI, Arial";
+    ctx.fillText("Empty", x + 12, rowY + 10);
+    return;
+  }
+  entries.slice(0, 6).forEach((entry, index) => {
+    const selected = index === selectedIndex;
+    ctx.fillStyle = selected ? "rgba(121, 184, 255, 0.16)" : "rgba(0,0,0,0.2)";
+    ctx.fillRect(x + 8, rowY - 12, width - 16, 30);
+    ctx.fillStyle = entry.color || "#d8e2ec";
+    ctx.fillRect(x + 14, rowY - 4, 10, 10);
+    ctx.fillStyle = getRarityAccent(entry.rarity, "#fff6d8");
+    ctx.font = "700 11px Segoe UI, Arial";
+    ctx.fillText(shorten(entry.name, 16), x + 30, rowY + 2);
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#d7e4cf";
+    ctx.fillText(`x${entry.amount}`, x + width - 14, rowY + 2);
+    ctx.textAlign = "left";
+    rowY += 36;
+  });
+}
+
 function formatBonusKey(key) {
   return key
     .replace(/Bonus/g, "")
@@ -690,7 +910,8 @@ function drawExitPrompt(ctx, state) {
   if (!state.nearExit || state.gameOver || state.story.dialogue || state.ui.menuOpen || state.ui.questLogOpen) return;
 
   const panelW = 332;
-  const panelH = 60;
+  const locked = Boolean(state.nearExit.requiresFlag && !state.progression.worldFlags?.[state.nearExit.requiresFlag]);
+  const panelH = locked ? 76 : 60;
   const x = state.viewport.width / 2 - panelW / 2;
   const y = Math.max(100, state.viewport.height - 166);
   const progress = Math.max(0, Math.min(1, state.exitCharge));
@@ -700,15 +921,21 @@ function drawExitPrompt(ctx, state) {
   ctx.fillStyle = "#10161d";
   ctx.fillRect(x + 4, y + 4, panelW - 8, panelH - 8);
   ctx.font = "700 15px Segoe UI, Arial";
-  ctx.fillStyle = "#fff6d0";
-  ctx.fillText(`Travel to ${state.nearExit.label}`, x + 16, y + 22);
+  ctx.fillStyle = locked ? "#ffc1b8" : "#fff6d0";
+  ctx.fillText(locked ? state.nearExit.label : `Travel to ${state.nearExit.label}`, x + 16, y + 22);
   ctx.font = "12px Segoe UI, Arial";
-  ctx.fillStyle = "#d8e8cc";
-  ctx.fillText("Stand on the path for a moment", x + 16, y + 40);
-  ctx.fillStyle = "#1b1412";
-  ctx.fillRect(x + 16, y + 46, panelW - 32, 8);
-  ctx.fillStyle = "#fff0ad";
-  ctx.fillRect(x + 18, y + 48, Math.round((panelW - 36) * progress), 4);
+  ctx.fillStyle = locked ? "#f0c1bc" : "#d8e8cc";
+  if (locked) {
+    wrapText(ctx, state.nearExit.lockedText || "The path is sealed.", x + 16, y + 40, panelW - 32, 14);
+  } else {
+    ctx.fillText("Stand on the path for a moment", x + 16, y + 40);
+  }
+  if (!locked) {
+    ctx.fillStyle = "#1b1412";
+    ctx.fillRect(x + 16, y + 46, panelW - 32, 8);
+    ctx.fillStyle = "#fff0ad";
+    ctx.fillRect(x + 18, y + 48, Math.round((panelW - 36) * progress), 4);
+  }
 }
 
 function drawToast(ctx, state) {
@@ -809,4 +1036,63 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
   }
 
   if (line) ctx.fillText(line, x, currentY);
+}
+
+function buildComparisonLines(current, equipped) {
+  const keys = new Set([
+    ...Object.keys(current.bonuses || {}),
+    ...Object.keys(equipped?.bonuses || {}),
+  ]);
+
+  return [...keys].map((key) => {
+    const currentValue = current.bonuses?.[key] || 0;
+    const equippedValue = equipped?.bonuses?.[key] || 0;
+    return {
+      label: formatBonusKey(key),
+      current: `${currentValue > 0 ? "+" : ""}${currentValue}`,
+      delta: currentValue - equippedValue,
+    };
+  });
+}
+
+function formatActionCost(action) {
+  const parts = [];
+  if (action.costSilver) parts.push(`${action.costSilver} silver`);
+  for (const [itemId, amount] of Object.entries(action.costItems || {})) {
+    parts.push(`${amount} ${formatItemName(itemId)}`);
+  }
+  return parts.join("  |  ");
+}
+
+function formatItemName(itemId) {
+  return itemId
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function getRarityAccent(rarity, fallback) {
+  if (rarity === "epic") return "#d8c1ff";
+  if (rarity === "rare") return "#95d7ff";
+  if (rarity === "uncommon") return "#a6e28c";
+  return fallback;
+}
+
+function drawPanelChrome(ctx, x, y, width, height, accent) {
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 1.5, y + 1.5, width - 3, height - 3);
+  pixelRect(ctx, x + 8, y + 8, 18, 2, accent);
+  pixelRect(ctx, x + 8, y + 8, 2, 18, accent);
+  pixelRect(ctx, x + width - 26, y + 8, 18, 2, accent);
+  pixelRect(ctx, x + width - 10, y + 8, 2, 18, accent);
+  pixelRect(ctx, x + 8, y + height - 10, 18, 2, accent);
+  pixelRect(ctx, x + 8, y + height - 26, 2, 18, accent);
+  pixelRect(ctx, x + width - 26, y + height - 10, 18, 2, accent);
+  pixelRect(ctx, x + width - 10, y + height - 26, 2, 18, accent);
+}
+
+function pixelRect(ctx, x, y, width, height, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(width)), Math.max(1, Math.round(height)));
 }

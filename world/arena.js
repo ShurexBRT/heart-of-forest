@@ -349,6 +349,7 @@ function interactable(id, type, x, y, extra = {}) {
     collectKey: extra.collectKey || null,
     dialogueLines: extra.dialogueLines || null,
     toastText: extra.toastText || null,
+    serviceId: extra.serviceId || null,
     disabled: false,
     name: extra.name || type,
     sortY: extra.sortY ?? y + 10,
@@ -368,6 +369,8 @@ function makeExit(id, x, y, w, h, direction, connection) {
     label: connection?.label || "Path",
     toSceneId: connection?.toSceneId || "",
     targetEntryId: connection?.targetEntryId || "default",
+    requiresFlag: connection?.requiresFlag || null,
+    lockedText: connection?.lockedText || "",
   };
 }
 
@@ -400,11 +403,13 @@ function createBaseArena(context, tiles, props) {
 function buildWhisperingWoods(context, rng) {
   const tiles = createTiles(rng);
   stampRect(tiles, 8, 8, 18, 10, "soil", 0);
+  stampRect(tiles, 8, 18, 12, 8, "path", 0);
   stampEllipse(tiles, 48, 31, 16, 12, "path", 0);
   stampEllipse(tiles, 48, 31, 9, 7, "soil", 1);
   paintPath(tiles, 20, 18, 48, 31, 3, "path", 1);
   paintPath(tiles, 48, 31, 90, 28, 3, "path", 1);
   paintPath(tiles, 48, 31, 53, 7, 3, "path", 0);
+  paintPath(tiles, 20, 25, 18, 35, 2, "path", 0);
   scatterOverlay(tiles, rng, 10, 8, 18, 10, 24, "flowersWarm");
   scatterOverlay(tiles, rng, 65, 16, 14, 10, 18, "flowersCool");
 
@@ -450,6 +455,30 @@ function buildWhisperingWoods(context, rng) {
       toastText: "Moonleaf bundle gathered",
       sortY: 806,
     }),
+    interactable("waystone-seal-1", "seal", 1182, 382, {
+      name: "Waystone Seal",
+      promptLabel: "Recover Seal",
+      collectKey: "waystoneSealsRecovered",
+      toastText: "Waystone seal recovered",
+      requiresCleared: true,
+      sortY: 396,
+    }),
+    interactable("village-stash", "chest", 328, 304, {
+      name: "Supply Stash",
+      promptLabel: "Open Stash",
+      serviceId: "village_stash",
+      sortY: 316,
+      w: 24,
+      h: 20,
+    }),
+    interactable("waystone-altar", "shrine", 598, 282, {
+      name: "Waystone Altar",
+      promptLabel: "Commune at Altar",
+      serviceId: "waystone_altar",
+      sortY: 296,
+      w: 28,
+      h: 24,
+    }),
   ];
 
   return createBaseArena(context, tiles, {
@@ -479,13 +508,18 @@ function buildWhisperingWoods(context, rng) {
     ],
     obstacles: [
       cottage(140, 110),
+      cottage(452, 112),
       well(584, 350),
       fenceH(138, 306, 278),
+      fenceH(138, 424, 186),
       fenceV(138, 250, 98),
       fenceV(394, 248, 100),
+      fenceV(618, 248, 126),
       signpost(694, 376),
       lantern(486, 320),
       lantern(664, 278),
+      lantern(292, 302),
+      lantern(610, 278),
       bush(232, 676, 88, 54),
       bush(636, 726, 92, 56),
       tree(804, 168, 108, "forest"),
@@ -550,6 +584,14 @@ function buildMossrootMarsh(context, rng) {
       toastText: "Marsh lantern relit",
       requiresCleared: true,
       sortY: 326,
+    }),
+    interactable("waystone-seal-2", "seal", 1212, 244, {
+      name: "Waystone Seal",
+      promptLabel: "Recover Seal",
+      collectKey: "waystoneSealsRecovered",
+      toastText: "Waystone seal recovered",
+      requiresCleared: true,
+      sortY: 256,
     }),
   ];
 
@@ -863,6 +905,7 @@ function buildMossyRuins(context, rng) {
       default: { x: 806, y: 842 },
       southGate: { x: 806, y: 842 },
       eastGate: { x: 1450, y: 456 },
+      northVault: { x: 920, y: 108 },
     },
     spawnPoints: [
       { x: 192, y: 168 },
@@ -881,9 +924,11 @@ function buildMossyRuins(context, rng) {
     exits: [
       makeExit("southGate", 710, 884, 196, 52, "down", context.connections.southGate),
       makeExit("eastGate", 1498, 388, 54, 168, "right", context.connections.eastGate),
+      makeExit("northVault", 814, 24, 204, 62, "up", context.connections.northVault),
     ],
     obstacles: [
       ruin(678, 228, 204, 120, "arch"),
+      ruin(820, 112, 180, 102, "sealedGate"),
       ruin(992, 440, 138, 98, "pillar"),
       ruin(480, 564, 132, 96, "pillar"),
       water(240, 154, 214, 142, "marsh"),
@@ -903,6 +948,83 @@ function buildMossyRuins(context, rng) {
     npcs: [npc("orras", 250, 666)],
     interactables,
     hazards: [],
+  });
+}
+
+function buildSunkenReliquary(context, rng) {
+  const tiles = createTiles(rng);
+  stampRect(tiles, 0, 0, COLS, ROWS, "ruinStone", 0);
+  stampEllipse(tiles, 52, 30, 22, 14, "path", 0);
+  stampEllipse(tiles, 52, 30, 12, 8, "water", 0);
+  stampRect(tiles, 42, 10, 20, 12, "ruinStone", 1);
+  paintPath(tiles, 52, 56, 52, 30, 2, "path", 1);
+  paintPath(tiles, 52, 30, 52, 12, 2, "path", 0);
+  clearOverlayRect(tiles, 20, 8, 64, 40);
+  scatterOverlay(tiles, rng, 22, 16, 44, 18, 20, "flowersCool");
+
+  const interactables = [
+    interactable("reliquary-brazier-1", "totem", 694, 336, {
+      name: "Ward Brazier",
+      promptLabel: "Relight Brazier",
+      collectKey: "reliquaryBraziersLit",
+      toastText: "Ward brazier relit",
+      requiresCleared: true,
+      sortY: 348,
+    }),
+    interactable("reliquary-brazier-2", "totem", 1152, 336, {
+      name: "Ward Brazier",
+      promptLabel: "Relight Brazier",
+      collectKey: "reliquaryBraziersLit",
+      toastText: "Ward brazier relit",
+      requiresCleared: true,
+      sortY: 348,
+    }),
+  ];
+
+  return createBaseArena(context, tiles, {
+    playerSpawn: { x: 804, y: 842 },
+    entrySpawns: {
+      default: { x: 804, y: 842 },
+      southSteps: { x: 804, y: 842 },
+    },
+    spawnPoints: [
+      { x: 274, y: 218 },
+      { x: 548, y: 188 },
+      { x: 1324, y: 222 },
+      { x: 1292, y: 702 },
+      { x: 300, y: 714 },
+    ],
+    bossZone: { x: 936, y: 436, radius: 186 },
+    bossAddSpawns: [
+      { x: 764, y: 436 },
+      { x: 936, y: 284 },
+      { x: 1106, y: 436 },
+      { x: 936, y: 586 },
+    ],
+    exits: [makeExit("southSteps", 708, 884, 196, 52, "down", context.connections.southSteps)],
+    obstacles: [
+      ruin(760, 176, 228, 134, "altar"),
+      ruin(524, 312, 128, 94, "pillar"),
+      ruin(1210, 312, 128, 94, "pillar"),
+      ruin(520, 630, 136, 98, "pillar"),
+      ruin(1206, 630, 136, 98, "pillar"),
+      water(818, 364, 224, 128, "marsh"),
+      tree(212, 194, 112, "frost"),
+      tree(1288, 192, 112, "charredTree"),
+      rock(650, 544, 76, 44),
+      rock(1138, 546, 78, 46),
+      bush(344, 734, 86, 52, "frost"),
+      bush(1230, 734, 86, 52, "blight"),
+      lantern(760, 330, "frost"),
+      lantern(1112, 330, "warm"),
+      signpost(884, 786),
+    ],
+    npcs: [],
+    interactables,
+    hazards: [
+      { id: "reliquary-pool-1", x: 794, y: 366, w: 96, h: 68, damage: 8, interval: 0.74, type: "blight" },
+      { id: "reliquary-pool-2", x: 966, y: 422, w: 94, h: 66, damage: 8, interval: 0.74, type: "blight" },
+    ],
   });
 }
 
@@ -1084,6 +1206,10 @@ export function createArena(context = {}) {
 
   if (context.sceneStyle === "ancientHeart") {
     return buildAncientHeart(context, rng);
+  }
+
+  if (context.sceneStyle === "sunkenReliquary") {
+    return buildSunkenReliquary(context, rng);
   }
 
   return buildWhisperingWoods(context, rng);

@@ -45,6 +45,14 @@ export class Player {
     this.spiritRegen = 12;
     this.outOfCombatRegen = 3;
     this.incomingDamageMult = 1;
+    this.activeBuffs = {
+      ward: 0,
+      wardReduction: 0,
+      speed: 0,
+      speedBonus: 0,
+      spirit: 0,
+      spiritRegenBonus: 0,
+    };
     this.abilityInfo = buildAbilityInfo(modifiers);
     this.refreshFromModifiers(modifiers, { preserveVitals: false });
     this.reset(spawn);
@@ -61,6 +69,14 @@ export class Player {
     this.invulnerable = 0;
     this.hurtFlash = 0;
     this.dashTime = 0;
+    this.activeBuffs = {
+      ward: 0,
+      wardReduction: 0,
+      speed: 0,
+      speedBonus: 0,
+      spirit: 0,
+      spiritRegenBonus: 0,
+    };
     this.lastTrailAt = -1;
     this.hazardTimer = 0;
     this.animTime = 0;
@@ -80,6 +96,13 @@ export class Player {
     this.hurtFlash = Math.max(0, this.hurtFlash - dt);
     this.dashTime = Math.max(0, this.dashTime - dt);
     this.poseTimer = Math.max(0, this.poseTimer - dt);
+    this.activeBuffs.ward = Math.max(0, this.activeBuffs.ward - dt);
+    this.activeBuffs.speed = Math.max(0, this.activeBuffs.speed - dt);
+    this.activeBuffs.spirit = Math.max(0, this.activeBuffs.spirit - dt);
+    if (this.activeBuffs.ward <= 0) this.activeBuffs.wardReduction = 0;
+    if (this.activeBuffs.speed <= 0) this.activeBuffs.speedBonus = 0;
+    if (this.activeBuffs.spirit <= 0) this.activeBuffs.spiritRegenBonus = 0;
+    this.recalculateDerivedCombatStats();
 
     const speed = Math.hypot(this.vx, this.vy);
     const animRate = this.dashTime > 0 ? 16 : speed > 12 ? 4.8 + speed / 75 : 1.25;
@@ -151,10 +174,12 @@ export class Player {
 
     this.maxHp = 100 + (modifiers.maxHpBonus || 0);
     this.maxSpirit = 100 + (modifiers.maxSpiritBonus || 0);
-    this.spiritRegen = 12 + (modifiers.spiritRegenBonus || 0);
+    this.baseSpiritRegen = 12 + (modifiers.spiritRegenBonus || 0);
     this.outOfCombatRegen = 4 + (modifiers.healthRegenBonus || 0);
-    this.incomingDamageMult = modifiers.incomingDamageMult || 1;
+    this.baseIncomingDamageMult = modifiers.incomingDamageMult || 1;
+    this.baseMaxSpeed = 238 + (modifiers.moveSpeedBonus || 0);
     this.abilityInfo = buildAbilityInfo(modifiers);
+    this.recalculateDerivedCombatStats();
 
     if (!preserveVitals) {
       this.hp = this.maxHp;
@@ -164,6 +189,44 @@ export class Player {
 
     this.hp = Math.max(1, Math.min(this.maxHp, Math.round(this.maxHp * hpRatio)));
     this.spirit = Math.min(this.maxSpirit, Math.round(this.maxSpirit * spiritRatio));
+  }
+
+  recalculateDerivedCombatStats() {
+    const wardMultiplier = 1 - (this.activeBuffs.ward > 0 ? this.activeBuffs.wardReduction || 0 : 0);
+    this.incomingDamageMult = Math.max(0.45, (this.baseIncomingDamageMult || 1) * wardMultiplier);
+    this.maxSpeed = Math.round((this.baseMaxSpeed || 238) * (1 + (this.activeBuffs.speed > 0 ? this.activeBuffs.speedBonus || 0 : 0)));
+    this.spiritRegen = (this.baseSpiritRegen || 12) + (this.activeBuffs.spirit > 0 ? this.activeBuffs.spiritRegenBonus || 0 : 0);
+  }
+
+  applyConsumableEffect(effect = {}) {
+    let changed = false;
+
+    if (effect.wardDuration && effect.damageReduction) {
+      this.activeBuffs.ward = Math.max(this.activeBuffs.ward, effect.wardDuration);
+      this.activeBuffs.wardReduction = Math.max(this.activeBuffs.wardReduction, effect.damageReduction);
+      changed = true;
+    }
+
+    if (effect.speedDuration && effect.speedBonus) {
+      this.activeBuffs.speed = Math.max(this.activeBuffs.speed, effect.speedDuration);
+      this.activeBuffs.speedBonus = Math.max(this.activeBuffs.speedBonus, effect.speedBonus);
+      changed = true;
+    }
+
+    if (effect.speedDuration && effect.spiritRegenBonus) {
+      this.activeBuffs.spirit = Math.max(this.activeBuffs.spirit, effect.speedDuration);
+      this.activeBuffs.spiritRegenBonus = Math.max(
+        this.activeBuffs.spiritRegenBonus,
+        effect.spiritRegenBonus
+      );
+      changed = true;
+    }
+
+    if (changed) {
+      this.recalculateDerivedCombatStats();
+    }
+
+    return changed;
   }
 }
 

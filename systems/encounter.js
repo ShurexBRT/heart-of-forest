@@ -126,8 +126,8 @@ function generateWavePlans(waveTemplates, rng) {
     const template = waveSet[Math.floor(rng() * waveSet.length)];
     const shuffled = shuffleFrom(rng, template);
 
-    return shuffled.map((type, index) => ({
-      type,
+    return shuffled.map((spec, index) => ({
+      spec,
       delay: index === 0 ? 0.28 : randomRangeFrom(rng, 0.45, 0.85),
     }));
   });
@@ -151,23 +151,41 @@ function updateWaveSpawning(state, dt) {
   if (encounter.spawnTimer > 0) return;
 
   const next = encounter.spawnQueue.shift();
-  spawnEnemyFromDirector(state, next.type);
+  spawnEnemyFromDirector(state, next.spec);
   encounter.spawnTimer = next.delay;
 }
 
-function spawnEnemyFromDirector(state, type) {
+function spawnEnemyFromDirector(state, spawnSpec) {
   const player = state.player;
   const spawn = pickSpawnPoint(state.arena.spawnPoints, player.x, player.y, state.encounter.rng);
   const waveIndex = Math.max(0, state.encounter.waveIndex);
   const threat = Math.max(1, state.encounter.threatTier);
+  const spec = typeof spawnSpec === "string" ? { type: spawnSpec } : { ...spawnSpec };
   const hpScale = 1 + threat * 0.18 + waveIndex * 0.18;
   const damageScale = 1 + Math.max(0, threat - 1) * 0.08 + waveIndex * 0.06;
+  const eliteChance = Math.min(0.3, Math.max(0, (threat - 1) * 0.06 + waveIndex * 0.05));
+  const eliteAffixes = ["swift", "bulwark", "bloodbound", "spiteful"];
 
-  state.enemies.push(new Enemy(spawn.x, spawn.y, type, { hpScale, damageScale }));
+  if (!spec.elite && threat >= 2 && state.encounter.rng() < eliteChance) {
+    spec.elite = true;
+    spec.affixes = [eliteAffixes[Math.floor(state.encounter.rng() * eliteAffixes.length)]];
+  }
+
+  state.enemies.push(
+    new Enemy(spawn.x, spawn.y, spec.type, {
+      ...spec,
+      hpScale,
+      damageScale,
+    })
+  );
 
   spawnBurst(state, spawn.x, spawn.y, {
-    count: type === "brute" ? 18 : 14,
-    colors: type === "brute" ? ["#d26c51", "#f1b877", "#8fe170"] : ["#d8595c", "#f0c172", "#9ce873"],
+    count: spec.type === "brute" || spec.type === "mire_brute" ? 18 : 14,
+    colors: spec.elite
+      ? ["#e5d08a", "#bb8cff", "#9ce873"]
+      : spec.type === "brute" || spec.type === "mire_brute"
+        ? ["#d26c51", "#f1b877", "#8fe170"]
+        : ["#d8595c", "#f0c172", "#9ce873"],
     speed: 165,
     size: [2, 4],
     life: [0.14, 0.34],

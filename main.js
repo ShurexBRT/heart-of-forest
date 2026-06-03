@@ -22,6 +22,7 @@ import { updateEnvironment } from "./systems/environment.js";
 import { updateParticles } from "./systems/particles.js";
 import {
   assignItemToActionSlot,
+  getCurrency,
   createProgression,
   equipItem,
   getEquippedItems,
@@ -34,6 +35,16 @@ import {
   useConsumable,
 } from "./systems/progression.js";
 import { loadSnapshot, saveSnapshot } from "./systems/save.js";
+import {
+  clearActiveService,
+  getActiveService,
+  getSellHintVisible,
+  getServiceEntries,
+  getStashUiEntries,
+  performSelectedServiceAction,
+  sellSelectedInventoryEntry,
+  transferSelectedStashEntry,
+} from "./systems/services.js";
 import {
   advanceDialogue,
   beginInteraction,
@@ -57,6 +68,7 @@ const input = createInput(canvas);
 const snapshot = loadSnapshot();
 const progression = createProgression(snapshot?.progression);
 const state = createState(progression, snapshot);
+let fatalError = null;
 
 function createState(currentProgression, saveData = null) {
   const currentSceneId =
@@ -107,6 +119,11 @@ function createUiState(saved = null) {
     selectedEquipmentIndex: saved?.selectedEquipmentIndex || 0,
     selectedTalentIndex: saved?.selectedTalentIndex || 0,
     selectedQuestIndex: saved?.selectedQuestIndex || 0,
+    activeServiceId: null,
+    activeServiceLabel: "",
+    selectedServiceIndex: saved?.selectedServiceIndex || 0,
+    selectedStashIndex: saved?.selectedStashIndex || 0,
+    serviceSubpanel: saved?.serviceSubpanel || "stock",
   };
 }
 
@@ -299,6 +316,10 @@ function findExitForPlayer() {
   );
 }
 
+function isExitUnlocked(exit) {
+  return !exit?.requiresFlag || Boolean(state.progression.worldFlags?.[exit.requiresFlag]);
+}
+
 function startTransition(exit) {
   state.transition.active = true;
   state.transition.phase = "out";
@@ -365,6 +386,11 @@ function updateExitCharge(dt) {
     return;
   }
 
+  if (!isExitUnlocked(exit)) {
+    state.exitCharge = 0;
+    return;
+  }
+
   state.exitCharge = Math.min(1, state.exitCharge + dt / EXIT_HOLD_TIME);
   if (state.exitCharge >= 1) {
     startTransition(exit);
@@ -419,6 +445,7 @@ function isUiOpen() {
 function closePanels() {
   state.ui.questLogOpen = false;
   state.ui.menuOpen = false;
+  clearActiveService(state);
 }
 
 function openMenu(tab) {
@@ -431,11 +458,14 @@ function toggleQuestLog() {
   state.ui.questLogOpen = !state.ui.questLogOpen;
   if (state.ui.questLogOpen) {
     state.ui.menuOpen = false;
+    clearActiveService(state);
   }
 }
 
 function cycleMenuTab() {
-  const order = ["character", "inventory", "talents"];
+  const order = state.ui.activeServiceId
+    ? ["character", "inventory", "talents", "services"]
+    : ["character", "inventory", "talents"];
   const current = order.indexOf(state.ui.activeTab);
   state.ui.activeTab = order[(current + 1) % order.length];
 }
@@ -476,6 +506,11 @@ function showUseItemToast(result) {
 
   if (result.restored > 0) {
     setToast(`${result.item.name} restored ${result.restored} Spirit`, 1.8);
+    return;
+  }
+
+  if (result.buffApplied) {
+    setToast(`${result.item.name} is now active`, 1.8);
   }
 }
 
@@ -545,16 +580,29 @@ function handleMenuNavigation() {
       } else if (entry.category === "consumable") {
         const result = useConsumable(state.progression, entry.id, state.player);
         if (result.used) {
-          setToast(
-            result.healed > 0
-              ? `${entry.name} restored ${result.healed} HP`
-              : `${entry.name} restored ${result.restored} Spirit`,
-            1.9
-          );
+          if (result.healed > 0) {
+            setToast(`${entry.name} restored ${result.healed} HP`, 1.9);
+          } else if (result.restored > 0) {
+            setToast(`${entry.name} restored ${result.restored} Spirit`, 1.9);
+          } else if (result.buffApplied) {
+            setToast(`${entry.name} is now active`, 1.9);
+          }
         }
       }
 
       return true;
+    }
+
+    if (wasPressed(input, "x", "KeyX")) {
+      const entry = entries[state.ui.selectedInventoryIndex];
+      const result = sellSelectedInventoryEntry(state, entry);
+      if (result.success) {
+        setToast(result.text, 1.9);
+        clampSelection("selectedInventoryIndex", getInventoryEntries(state.progression).length);
+      } else if (getSellHintVisible(state)) {
+        setToast(result.reason || "That item cannot be sold.", 1.8);
+      }
+      return getSellHintVisible(state);
     }
   }
 
@@ -611,6 +659,92 @@ function handleMenuNavigation() {
       }
       return true;
     }
+  }
+
+  if (state.ui.activeTab === "services") {
+    const service = getActiveService(state);
+    if (!service) return false;
+
+    if (service.kind === "stash") {
+      const lists = getStashUiEntries(state);
+
+      if (wasPressed(input, "arrowleft", "ArrowLeft") || wasPressed(input, "a", "KeyA")) {
+        state.ui.serviceSubpanel = "pack";
+        clampSelection("selectedServiceIndex", lists.pack.length);
+        return true;
+      }
+
+      if (wasPressed(input, "arrowright", "ArrowRight") || wasPressed(input, "d", "KeyD")) {
+        state.ui.serviceSubpanel = "stash";
+        clampSelection("selectedStashIndex", lists.stash.length);
+        return true;
+      }
+
+      if (state.ui.serviceSubpanel === "pack") {
+        if (wasPressed(input, "arrowup", "ArrowUp") || wasPressed(input, "w", "KeyW")) {
+          moveSelection(-1, "selectedServiceIndex");
+          clampSelection("selectedServiceIndex", lists.pack.length);
+          return true;
+        }
+
+        if (wasPressed(input, "arrowdown", "ArrowDown") || wasPressed(input, "s", "KeyS")) {
+          moveSelection(1, "selectedServiceIndex");
+          clampSelection("selectedServiceIndex", lists.pack.length);
+          return true;
+        }
+      } else {
+        if (wasPressed(input, "arrowup", "ArrowUp") || wasPressed(input, "w", "KeyW")) {
+          moveSelection(-1, "selectedStashIndex");
+          clampSelection("selectedStashIndex", lists.stash.length);
+          return true;
+        }
+
+        if (wasPressed(input, "arrowdown", "ArrowDown") || wasPressed(input, "s", "KeyS")) {
+          moveSelection(1, "selectedStashIndex");
+          clampSelection("selectedStashIndex", lists.stash.length);
+          return true;
+        }
+      }
+
+      if (wasPressed(input, "enter", "Enter") || wasPressed(input, " ", "Space")) {
+        const result = transferSelectedStashEntry(state);
+        if (result.success) {
+          setToast(result.text, 1.8);
+          const refreshed = getStashUiEntries(state);
+          clampSelection("selectedServiceIndex", refreshed.pack.length);
+          clampSelection("selectedStashIndex", refreshed.stash.length);
+        }
+        return true;
+      }
+    } else {
+      const entries = getServiceEntries(state);
+      clampSelection("selectedServiceIndex", entries.length);
+
+      if (wasPressed(input, "arrowup", "ArrowUp") || wasPressed(input, "w", "KeyW")) {
+        moveSelection(-1, "selectedServiceIndex");
+        clampSelection("selectedServiceIndex", entries.length);
+        return true;
+      }
+
+      if (wasPressed(input, "arrowdown", "ArrowDown") || wasPressed(input, "s", "KeyS")) {
+        moveSelection(1, "selectedServiceIndex");
+        clampSelection("selectedServiceIndex", entries.length);
+        return true;
+      }
+
+      if (wasPressed(input, "enter", "Enter") || wasPressed(input, " ", "Space")) {
+        const result = performSelectedServiceAction(state);
+        if (result.success) {
+          refreshPlayerFromProgression();
+          setToast(result.text, 2);
+        } else if (result.reason) {
+          setToast(result.reason, 1.8);
+        }
+        return true;
+      }
+    }
+
+    return true;
   }
 
   return false;
@@ -730,6 +864,9 @@ function buildSnapshot() {
       selectedEquipmentIndex: state.ui.selectedEquipmentIndex,
       selectedTalentIndex: state.ui.selectedTalentIndex,
       selectedQuestIndex: state.ui.selectedQuestIndex,
+      selectedServiceIndex: state.ui.selectedServiceIndex,
+      selectedStashIndex: state.ui.selectedStashIndex,
+      serviceSubpanel: state.ui.serviceSubpanel,
     },
   };
 }
@@ -751,61 +888,106 @@ function setToast(text, duration = 2) {
 }
 
 function update(dt) {
-  state.time += dt;
-  state.shake = Math.max(0, state.shake - 30 * dt);
-  updateMouseWorld();
-  updateStoryRuntime(state, dt);
-  updateInteractionState();
-  updateAutosave(dt);
-
-  if (state.gameOver && (wasPressed(input, "r", "KeyR") || wasPressed(input, "enter", "Enter"))) {
-    reloadCurrentScene();
+  if (fatalError) {
     return;
   }
 
-  if (state.transition.active) {
-    updateTransition(dt);
-    updateCamera(dt);
-    return;
-  }
+  try {
+    state.time += dt;
+    state.shake = Math.max(0, state.shake - 30 * dt);
+    updateMouseWorld();
+    updateStoryRuntime(state, dt);
+    updateInteractionState();
+    updateAutosave(dt);
 
-  state.player.tick(dt);
-
-  const uiConsumed = handleUiInput();
-  const interactionBlocked = handleInteractionInput();
-  const gameplayBlocked = uiConsumed || interactionBlocked || isUiOpen();
-
-  if (!state.gameOver && !gameplayBlocked) {
-    handlePlayerAbilities(state, input);
-    state.player.move(dt, input, state);
-    updateCombatEffects(state, dt);
-    updateEnvironment(state, dt);
-
-    for (const enemy of state.enemies) {
-      enemy.update(dt, state);
+    if (state.gameOver && (wasPressed(input, "r", "KeyR") || wasPressed(input, "enter", "Enter"))) {
+      reloadCurrentScene();
+      return;
     }
 
-    state.enemies = state.enemies.filter((enemy) => !enemy.dead);
-    resolveEnemyCrowding(state);
-    updateEncounter(state, dt);
-    consumeStoryEvents(state);
+    if (state.transition.active) {
+      updateTransition(dt);
+      updateCamera(dt);
+      return;
+    }
+
+    state.player.tick(dt);
+
+    const uiConsumed = handleUiInput();
+    const interactionBlocked = handleInteractionInput();
+    const gameplayBlocked = uiConsumed || interactionBlocked || isUiOpen();
+
+    if (!state.gameOver && !gameplayBlocked) {
+      handlePlayerAbilities(state, input);
+      state.player.move(dt, input, state);
+      updateCombatEffects(state, dt);
+      updateEnvironment(state, dt);
+
+      for (const enemy of state.enemies) {
+        enemy.update(dt, state);
+      }
+
+      state.enemies = state.enemies.filter((enemy) => !enemy.dead);
+      resolveEnemyCrowding(state);
+      updateEncounter(state, dt);
+      consumeStoryEvents(state);
+    }
+
+    updateCombatPresence(dt);
+
+    if (state.areaCleared) {
+      handleSceneCleared();
+    }
+
+    updateExitCharge(dt);
+    updateParticles(state, dt);
+    updateCamera(dt);
+  } catch (error) {
+    fatalError = error;
+    console.error(error);
   }
-
-  updateCombatPresence(dt);
-
-  if (state.areaCleared) {
-    handleSceneCleared();
-  }
-
-  updateExitCharge(dt);
-  updateParticles(state, dt);
-  updateCamera(dt);
 }
 
 function render() {
-  state.activeQuests = getActiveQuestEntries(state.progression);
-  renderGame(ctx, state);
+  if (fatalError) {
+    window.__heartOfForestFatalError = String(fatalError?.stack || fatalError?.message || fatalError);
+    drawFatalErrorOverlay(fatalError);
+    return;
+  }
+
+  try {
+    state.activeQuests = getActiveQuestEntries(state.progression);
+    renderGame(ctx, state);
+  } catch (error) {
+    fatalError = error;
+    window.__heartOfForestFatalError = String(error?.stack || error?.message || error);
+    console.error(error);
+    drawFatalErrorOverlay(error);
+  }
 }
+
+function drawFatalErrorOverlay(error) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.fillStyle = "#12090a";
+  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.fillStyle = "#ffd7d0";
+  ctx.font = "700 20px Segoe UI";
+  ctx.fillText("Heart of Forest Render Error", 32, 48);
+  ctx.font = "14px Consolas, monospace";
+  const lines = String(error?.stack || error?.message || error)
+    .split("\n")
+    .slice(0, 12);
+  lines.forEach((line, index) => {
+    ctx.fillText(line.slice(0, 150), 32, 88 + index * 20);
+  });
+}
+
+window.addEventListener("error", (event) => {
+  fatalError = event.error || new Error(event.message || "Unknown runtime error");
+  window.__heartOfForestFatalError = String(fatalError?.stack || fatalError?.message || fatalError);
+  console.error(fatalError);
+});
 
 window.addEventListener("resize", resizeCanvas);
 window.addEventListener("beforeunload", persistState);

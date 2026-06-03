@@ -57,22 +57,75 @@ const ENEMY_CONFIG = {
   },
 };
 
+const ELITE_AFFIXES = {
+  swift: {
+    label: "Swift",
+    color: "#8adfff",
+    apply(config) {
+      config.speed *= 1.22;
+      config.wanderSpeed *= 1.2;
+      config.damage *= 1.08;
+    },
+  },
+  bulwark: {
+    label: "Bulwark",
+    color: "#f3cf83",
+    apply(config) {
+      config.maxHp *= 1.42;
+      config.rootMultiplier *= 0.72;
+      config.knockback *= 1.1;
+    },
+  },
+  bloodbound: {
+    label: "Bloodbound",
+    color: "#ff8e7e",
+    apply(config) {
+      config.damage *= 1.2;
+      config.attackRange *= 1.08;
+      config.windup *= 0.92;
+    },
+  },
+  spiteful: {
+    label: "Spiteful",
+    color: "#c7a3ff",
+    apply(config) {
+      config.detectRange *= 1.16;
+      config.leashRange *= 1.1;
+      if (config.projectileSpeed) config.projectileSpeed *= 1.12;
+      if (config.preferredRange) config.preferredRange *= 1.04;
+    },
+  },
+};
+
 export class Enemy {
   constructor(x, y, type = "thornling", options = {}) {
     const resolvedType =
       type === "basic" ? "thornling" : type === "brute" ? "mire_brute" : type;
-    const config = ENEMY_CONFIG[resolvedType] || ENEMY_CONFIG.thornling;
+    const baseConfig = ENEMY_CONFIG[resolvedType] || ENEMY_CONFIG.thornling;
+    const config = { ...baseConfig };
     const hpScale = options.hpScale ?? 1;
     const damageScale = options.damageScale ?? 1;
+    const affixes = (options.affixes || []).filter((id) => ELITE_AFFIXES[id]);
+
+    for (const affixId of affixes) {
+      ELITE_AFFIXES[affixId].apply(config);
+    }
 
     this.x = x;
     this.y = y;
     this.type = resolvedType;
     this.config = config;
+    this.affixes = affixes;
+    this.elite = Boolean(options.elite || affixes.length > 0);
+    this.name =
+      affixes.length > 0
+        ? `${ELITE_AFFIXES[affixes[0]].label} ${config.label}`
+        : config.label;
+    this.eliteColor = affixes.length > 0 ? ELITE_AFFIXES[affixes[0]].color : null;
     this.radius = config.radius;
-    this.maxHp = Math.round(config.maxHp * hpScale);
+    this.maxHp = Math.round(config.maxHp * hpScale * (this.elite ? 1.18 : 1));
     this.hp = this.maxHp;
-    this.damage = Math.round(config.damage * damageScale);
+    this.damage = Math.round(config.damage * damageScale * (this.elite ? 1.08 : 1));
     this.vx = 0;
     this.vy = 0;
     this.state = "idle";
@@ -253,7 +306,7 @@ export class Enemy {
       this.fireProjectile(state);
       this.state = "recover";
       this.stateTimer = this.config.recover;
-      this.attackCooldown = 1.2 + randomRange(0, 0.32);
+      this.attackCooldown = (this.elite ? 1.05 : 1.2) + randomRange(0, 0.32);
       return;
     }
 
@@ -266,7 +319,7 @@ export class Enemy {
     this.vy += Math.sin(this.attackAngle) * lunge;
     this.state = "recover";
     this.stateTimer = this.config.recover;
-    this.attackCooldown = 0.6;
+    this.attackCooldown = this.elite ? 0.48 : 0.6;
   }
 
   updateRecover(dt, playerDistance) {
@@ -289,7 +342,8 @@ export class Enemy {
       life: this.config.projectileLife,
       damage: this.damage,
       knockback: this.config.knockback,
-      type: "wisp",
+      type: this.elite ? "thorn" : "wisp",
+      owner: this,
     });
   }
 

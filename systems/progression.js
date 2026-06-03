@@ -36,6 +36,14 @@ function normalizeInventory(rawInventory = {}) {
   return normalized;
 }
 
+function normalizeFlags(rawFlags = {}) {
+  const normalized = {};
+  for (const [key, value] of Object.entries(rawFlags || {})) {
+    normalized[key] = Boolean(value);
+  }
+  return normalized;
+}
+
 function normalizeActionSlots(rawActionSlots = []) {
   const slots = Array.from({ length: ACTION_SLOT_COUNT }, (_, index) => rawActionSlots[index] || null);
   return slots.map((itemId) => (itemId && ITEM_DEFS[itemId] ? itemId : null));
@@ -95,6 +103,7 @@ export function createProgression(snapshot = null) {
       moonthread_amulet: 1,
       rootwoven_talisman: 1,
     },
+    stash: {},
     equipment: {
       trinket: "warden_brooch",
       amulet: null,
@@ -108,6 +117,8 @@ export function createProgression(snapshot = null) {
     questStates,
     questCounters: createQuestCounterDefaults(),
     conversationFlags: {},
+    worldFlags: {},
+    silver: 64,
     level: 1,
     xp: 0,
     nextLevelXp: getLevelTarget(1),
@@ -119,6 +130,7 @@ export function createProgression(snapshot = null) {
 
   const merged = deepClone(defaults);
   merged.inventory = normalizeInventory({ ...merged.inventory, ...(snapshot.inventory || {}) });
+  merged.stash = normalizeInventory({ ...merged.stash, ...(snapshot.stash || {}) });
   merged.equipment = { ...merged.equipment, ...(snapshot.equipment || {}) };
   merged.actionSlots = normalizeActionSlots(snapshot.actionSlots || merged.actionSlots);
   merged.talentPoints = snapshot.talentPoints ?? merged.talentPoints;
@@ -130,6 +142,8 @@ export function createProgression(snapshot = null) {
     ...merged.conversationFlags,
     ...(snapshot.conversationFlags || {}),
   };
+  merged.worldFlags = normalizeFlags({ ...merged.worldFlags, ...(snapshot.worldFlags || {}) });
+  merged.silver = Math.max(0, Math.floor(snapshot.silver ?? merged.silver));
   merged.level = Math.max(1, snapshot.level || merged.level);
   merged.xp = Math.max(0, snapshot.xp || 0);
   merged.nextLevelXp = Math.max(getLevelTarget(merged.level), snapshot.nextLevelXp || 0);
@@ -154,12 +168,41 @@ export function getItemCount(progression, itemId) {
   return progression.inventory[itemId] || 0;
 }
 
+export function getStashCount(progression, itemId) {
+  return progression.stash[itemId] || 0;
+}
+
+export function getCurrency(progression) {
+  return progression.silver || 0;
+}
+
+export function addCurrency(progression, amount) {
+  progression.silver = Math.max(0, Math.floor((progression.silver || 0) + amount));
+}
+
+export function spendCurrency(progression, amount) {
+  const cost = Math.max(0, Math.floor(amount || 0));
+  if ((progression.silver || 0) < cost) return false;
+  progression.silver -= cost;
+  return true;
+}
+
+export function hasWorldFlag(progression, flag) {
+  return Boolean(flag && progression.worldFlags?.[flag]);
+}
+
+export function setWorldFlag(progression, flag, value = true) {
+  if (!flag) return;
+  progression.worldFlags[flag] = Boolean(value);
+}
+
 export function awardRewards(progression, rewards) {
   if (!rewards) return { items: [], gainedXp: 0, levelsGained: 0 };
 
   const granted = [];
   let gainedXp = 0;
   let levelsGained = 0;
+  let gainedSilver = 0;
 
   for (const [key, amount] of Object.entries(rewards)) {
     if (key === "talentPoints") {
@@ -171,6 +214,12 @@ export function awardRewards(progression, rewards) {
       const result = grantExperience(progression, amount);
       gainedXp += result.gainedXp;
       levelsGained += result.levelsGained;
+      continue;
+    }
+
+    if (key === "silver") {
+      addCurrency(progression, amount);
+      gainedSilver += amount;
       continue;
     }
 
@@ -186,11 +235,19 @@ export function awardRewards(progression, rewards) {
     granted.push({ itemId: key, amount });
   }
 
-  return { items: granted, gainedXp, levelsGained };
+  return { items: granted, gainedXp, levelsGained, gainedSilver };
 }
 
 export function getInventoryEntries(progression, filter = null) {
   return Object.entries(progression.inventory)
+    .filter(([, amount]) => amount > 0)
+    .flatMap(([id, amount]) => createInventoryEntry(id, ITEM_DEFS[id], amount))
+    .filter((entry) => !filter || entry.category === filter || entry.slot === filter)
+    .sort((a, b) => (a.name === b.name ? a.stackIndex - b.stackIndex : a.name.localeCompare(b.name)));
+}
+
+export function getStashEntries(progression, filter = null) {
+  return Object.entries(progression.stash)
     .filter(([, amount]) => amount > 0)
     .flatMap(([id, amount]) => createInventoryEntry(id, ITEM_DEFS[id], amount))
     .filter((entry) => !filter || entry.category === filter || entry.slot === filter)
@@ -300,20 +357,27 @@ export function useConsumable(progression, itemId, player) {
   const spirit = item.effect?.spirit || 0;
   const healed = Math.min(heal, player.maxHp - player.hp);
   const restored = Math.min(spirit, player.maxSpirit - player.spirit);
+  const canApplyBuff = Boolean(
+    item.effect?.wardDuration || item.effect?.speedDuration || item.effect?.spiritRegenBonus
+  );
 
   if (healed <= 0 && restored <= 0) {
-    return { used: false };
+    if (!canApplyBuff) {
+      return { used: false };
+    }
   }
 
   removeItem(progression, itemId, 1);
-  player.hp = Math.min(player.maxHp, player.hp + healed);
-  player.spirit = Math.min(player.maxSpirit, player.spirit + restored);
+  if (healed > 0) player.hp = Math.min(player.maxHp, player.hp + healed);
+  if (restored > 0) player.spirit = Math.min(player.maxSpirit, player.spirit + restored);
+  const buffApplied = (canApplyBuff && player.applyConsumableEffect?.(item.effect || {})) || false;
 
   return {
     used: true,
     item,
     healed,
     restored,
+    buffApplied,
   };
 }
 
@@ -368,6 +432,7 @@ export function getPlayerBonuses(progression) {
     rootDurationBonus: 0,
     bloomBonus: 0,
     incomingDamageReductionBonus: 0,
+    moveSpeedBonus: 0,
   };
 
   for (const talent of TALENT_DEFS) {
@@ -401,6 +466,7 @@ export function incrementQuestCounter(progression, key, amount = 1) {
 export function awardEnemyLoot(progression, enemyType, biomeId, isBoss = false) {
   const lootTable = BIOMES[biomeId]?.lootTable || ["spirit_bloom"];
   const grants = [];
+  let silver = 0;
 
   if (isBoss) {
     const bossRewards =
@@ -419,39 +485,69 @@ export function awardEnemyLoot(progression, enemyType, biomeId, isBoss = false) 
       grants.push({ itemId, amount });
     }
 
-    return grants;
+    silver = biomeId === "ancient" ? 145 : biomeId === "blight" ? 132 : 108;
+    addCurrency(progression, silver);
+    return { items: grants, silver };
   }
 
   if (enemyType === "thornling") {
     const itemId = lootTable[0] || "spirit_bloom";
     addItem(progression, itemId, 1);
     grants.push({ itemId, amount: 1 });
+    silver = 5;
     if (Math.random() < 0.12) {
       addItem(progression, "health_potion", 1);
       grants.push({ itemId: "health_potion", amount: 1 });
     }
-    return grants;
+    addCurrency(progression, silver);
+    return { items: grants, silver };
   }
 
   if (enemyType === "wisp_archer") {
     const itemId = lootTable[1] || "moonleaf";
     addItem(progression, itemId, 1);
     grants.push({ itemId, amount: 1 });
+    silver = 7;
     if (Math.random() < 0.18) {
       addItem(progression, "spirit_tonic", 1);
       grants.push({ itemId: "spirit_tonic", amount: 1 });
     }
-    return grants;
+    addCurrency(progression, silver);
+    return { items: grants, silver };
   }
 
   const heavyDrop = lootTable[2] || lootTable[0] || "ironbark";
   addItem(progression, heavyDrop, 1);
   grants.push({ itemId: heavyDrop, amount: 1 });
+  silver = 11;
   if (Math.random() < 0.28) {
     addItem(progression, "health_potion", 1);
     grants.push({ itemId: "health_potion", amount: 1 });
   }
-  return grants;
+  addCurrency(progression, silver);
+  return { items: grants, silver };
+}
+
+export function awardEliteBonusLoot(progression, biomeId) {
+  const bonusItemsByBiome = {
+    forest: ["thornbound_clasp", "health_potion", "ward_elixir"],
+    marsh: ["marshlight_amulet", "spirit_tonic", "ward_elixir"],
+    highlands: ["warden_loop", "health_potion", "windstep_phial"],
+    ember: ["emberglass_relic", "greater_health_potion", "ward_elixir"],
+    frost: ["frostband_charm", "spirit_tonic", "windstep_phial"],
+    blight: ["rootwoven_talisman", "greater_health_potion", "ward_elixir"],
+    ancient: ["reliquary_loop", "greater_health_potion", "windstep_phial"],
+  };
+
+  const table = bonusItemsByBiome[biomeId] || ["health_potion", "spirit_tonic"];
+  const guaranteedSilver = 18;
+  const itemId = table[Math.floor(Math.random() * table.length)];
+  addItem(progression, itemId, 1);
+  addCurrency(progression, guaranteedSilver);
+  return {
+    items: [{ itemId, amount: 1 }],
+    silver: guaranteedSilver,
+  };
 }
 
 export function getXpProgress(progression) {
@@ -461,4 +557,57 @@ export function getXpProgress(progression) {
     nextLevelXp: progression.nextLevelXp,
     ratio: progression.nextLevelXp > 0 ? progression.xp / progression.nextLevelXp : 0,
   };
+}
+
+export function getItemValue(itemId) {
+  return ITEM_DEFS[itemId]?.value || 0;
+}
+
+export function sellInventoryItem(progression, itemId, amount = 1) {
+  const value = getItemValue(itemId);
+  if (value <= 0 || !removeItem(progression, itemId, amount)) {
+    return { sold: false, value: 0 };
+  }
+
+  const payout = Math.max(1, Math.floor(value * 0.55)) * amount;
+  addCurrency(progression, payout);
+  return { sold: true, value: payout };
+}
+
+export function buyInventoryItem(progression, itemId, amount = 1, price = null) {
+  const unitPrice = Math.max(0, Math.floor(price ?? getItemValue(itemId)));
+  const total = unitPrice * amount;
+  if (!ITEM_DEFS[itemId] || !spendCurrency(progression, total)) {
+    return { bought: false, total: 0 };
+  }
+
+  addItem(progression, itemId, amount);
+  return { bought: true, total };
+}
+
+export function stashInventoryItem(progression, itemId, amount = 1) {
+  if (!removeItem(progression, itemId, amount)) {
+    return false;
+  }
+  progression.stash[itemId] = (progression.stash[itemId] || 0) + amount;
+  return true;
+}
+
+export function withdrawStashItem(progression, itemId, amount = 1) {
+  if ((progression.stash[itemId] || 0) < amount) {
+    return false;
+  }
+  progression.stash[itemId] -= amount;
+  if (progression.stash[itemId] <= 0) {
+    delete progression.stash[itemId];
+  }
+  addItem(progression, itemId, amount);
+  return true;
+}
+
+export function resetTalents(progression) {
+  const spent = Object.keys(progression.talents).length;
+  progression.talents = {};
+  progression.talentPoints += spent;
+  return spent;
 }

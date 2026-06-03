@@ -6,7 +6,7 @@ export const QUEST_DEFS = {
     giverId: "elder_rowan",
     sceneId: "whispering_woods",
     startState: "available",
-    rewards: { items: { spirit_bloom: 3, health_potion: 2 }, xp: 80 },
+    rewards: { items: { spirit_bloom: 3, health_potion: 2 }, silver: 48, xp: 80 },
     objectives: [
       { key: "spiritFlowers", label: "Spirit Flowers gathered", required: 3 },
       { key: "thornlingsDefeated", label: "Thornlings defeated", required: 3 },
@@ -19,7 +19,7 @@ export const QUEST_DEFS = {
     giverId: "tamsin",
     sceneId: "whispering_woods",
     startState: "available",
-    rewards: { items: { spirit_tonic: 2, moonthread_amulet: 1 }, xp: 70 },
+    rewards: { items: { spirit_tonic: 2, moonthread_amulet: 1 }, silver: 44, xp: 70 },
     objectives: [
       { key: "moonleafBundles", label: "Moonleaf bundles gathered", required: 2 },
       { key: "marshLanternsLit", label: "Marsh lanterns relit", required: 2 },
@@ -32,7 +32,7 @@ export const QUEST_DEFS = {
     giverId: "nettle",
     sceneId: "mossroot_marsh",
     startState: "inactive",
-    rewards: { items: { bog_amber: 2, health_potion: 1, rootwoven_talisman: 1 }, xp: 95 },
+    rewards: { items: { bog_amber: 2, health_potion: 1, rootwoven_talisman: 1 }, silver: 62, xp: 95 },
     objectives: [{ key: "rootsCleansed", label: "Corrupted roots cleansed", required: 2 }],
   },
   ruins_of_memory: {
@@ -43,8 +43,44 @@ export const QUEST_DEFS = {
     sceneId: "mossy_ruins",
     prerequisiteId: "whispering_call",
     startState: "inactive",
-    rewards: { items: { relic_shard: 2, spirit_tonic: 1 }, talentPoints: 1, xp: 100 },
+    rewards: { items: { relic_shard: 2, spirit_tonic: 1 }, silver: 74, talentPoints: 1, xp: 100 },
     objectives: [{ key: "relicCachesRecovered", label: "Relic caches recovered", required: 2 }],
+  },
+  sealed_reliquary: {
+    id: "sealed_reliquary",
+    title: "The Sealed Reliquary",
+    description: "Orras believes two old waystone seals can open the buried vault beneath the ruins. Recover them and wake the forgotten road.",
+    giverId: "orras",
+    sceneId: "mossy_ruins",
+    prerequisiteId: "ruins_of_memory",
+    startState: "inactive",
+    completeFlags: ["sunken_reliquary_open"],
+    rewards: {
+      items: { relic_shard: 1, warden_loop: 1, health_potion: 1 },
+      silver: 88,
+      xp: 118,
+    },
+    objectives: [
+      { key: "waystoneSealsRecovered", label: "Waystone seals recovered", required: 2 },
+    ],
+  },
+  depths_of_memory: {
+    id: "depths_of_memory",
+    title: "Depths of Memory",
+    description: "Enter the Sunken Reliquary, relight the ward braziers, and break the thing nesting in its heart.",
+    autoActivateSceneId: "sunken_reliquary",
+    prerequisiteId: "sealed_reliquary",
+    completeFlags: ["sunken_reliquary_cleansed"],
+    rewards: {
+      items: { reliquary_loop: 1, greater_health_potion: 1, ward_elixir: 1 },
+      silver: 156,
+      talentPoints: 1,
+      xp: 180,
+    },
+    objectives: [
+      { key: "reliquaryBraziersLit", label: "Ward braziers relit", required: 2 },
+      { key: "reliquaryKeeperDefeated", label: "Rootbound Custodian defeated", required: 1 },
+    ],
   },
   ember_totems: {
     id: "ember_totems",
@@ -54,7 +90,7 @@ export const QUEST_DEFS = {
     sceneId: "emberpine_grove",
     prerequisiteId: "ruins_of_memory",
     startState: "inactive",
-    rewards: { items: { cinder_resin: 2, emberglass_relic: 1, greater_health_potion: 1 }, xp: 120 },
+    rewards: { items: { cinder_resin: 2, emberglass_relic: 1, greater_health_potion: 1 }, silver: 92, xp: 120 },
     objectives: [{ key: "totemsActivated", label: "Totems rekindled", required: 3 }],
   },
   lost_scout: {
@@ -65,7 +101,7 @@ export const QUEST_DEFS = {
     sceneId: "frostveil_tundra",
     prerequisiteId: "ember_totems",
     startState: "inactive",
-    rewards: { items: { stonebloom: 2, frostband_charm: 1, spirit_tonic: 1 }, xp: 128 },
+    rewards: { items: { stonebloom: 2, frostband_charm: 1, spirit_tonic: 1 }, silver: 98, xp: 128 },
     objectives: [{ key: "scoutFound", label: "Lost scout located", required: 1 }],
   },
   blight_watch: {
@@ -76,7 +112,7 @@ export const QUEST_DEFS = {
     sceneId: "blighted_woods",
     prerequisiteId: "lost_scout",
     startState: "inactive",
-    rewards: { items: { greater_health_potion: 2, heartseed: 1 }, xp: 150 },
+    rewards: { items: { greater_health_potion: 2, heartseed: 1 }, silver: 120, xp: 150 },
     objectives: [
       { key: "blightEffigiesBroken", label: "Blight effigies shattered", required: 2 },
       { key: "wispsDefeated", label: "Wisps driven off", required: 4 },
@@ -88,7 +124,7 @@ export const QUEST_DEFS = {
     description: "Push into the ruins, survive the corrupted court, and break Elder Hollow before the forest falls silent.",
     autoActivateSceneId: "hollowheart_ruins",
     prerequisiteId: "blight_watch",
-    rewards: { items: { heartseed_pendant: 1, relic_shard: 2, greater_health_potion: 2 }, talentPoints: 2, xp: 220 },
+    rewards: { items: { heartseed_pendant: 1, relic_shard: 2, greater_health_potion: 2 }, silver: 180, talentPoints: 2, xp: 220 },
     objectives: [{ key: "elderHollowDefeated", label: "Elder Hollow defeated", required: 1 }],
   },
 };
@@ -98,6 +134,7 @@ export const NPC_DEFS = {
     id: "elder_rowan",
     name: "Elder Rowan",
     role: "Main Quest",
+    serviceId: "waystone_altar",
     palette: { hood: "#efe9dd", cloak: "#6e9d63", accent: "#d6bb73" },
     dialogue: {
       intro: [
@@ -150,6 +187,7 @@ export const NPC_DEFS = {
     id: "tamsin",
     name: "Tamsin",
     role: "Apothecary",
+    serviceId: "apothecary",
     palette: { hood: "#f4ebde", cloak: "#8a5d8b", accent: "#f0b87b" },
     dialogue: {
       intro: [

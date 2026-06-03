@@ -5,7 +5,9 @@ import {
   getPlayerBonuses,
   getQuestCounter,
   incrementQuestCounter,
+  setWorldFlag,
 } from "./progression.js";
+import { openServiceUi } from "./services.js";
 
 const INTERACTION_RADIUS = 60;
 
@@ -69,6 +71,10 @@ export function consumeStoryEvents(state) {
     if (event.type === "bossDefeated" && event.bossId === "elder_hollow") {
       incrementQuestCounter(state.progression, "elderHollowDefeated", 1);
     }
+
+    if (event.type === "bossDefeated" && event.bossId === "rootbound_custodian") {
+      incrementQuestCounter(state.progression, "reliquaryKeeperDefeated", 1);
+    }
   }
 
   refreshQuestStates(state);
@@ -89,9 +95,7 @@ export function refreshQuestStates(state) {
       if (quest.giverId) {
         setToast(state, `Quest Complete: ${quest.title}`, 2.6);
       } else {
-        const rewardSummary = awardRewards(progression, quest.rewards);
-        state.player.refreshFromModifiers(getPlayerBonuses(progression));
-        progression.questStates[quest.id] = "done";
+        const rewardSummary = finalizeQuest(state, quest);
         setToast(
           state,
           rewardSummary.levelsGained > 0
@@ -197,7 +201,7 @@ function openNpcDialogue(state, npc) {
   if (!npcDef) return;
 
   const progression = state.progression;
-  const handledQuest = Object.values(QUEST_DEFS).find((quest) => quest.giverId === npc.id);
+  const handledQuest = pickNpcQuest(progression, npc.id);
   let lines = npcDef.dialogue.default || npcDef.dialogue.after || [npc.name];
   let onClose = null;
 
@@ -209,15 +213,17 @@ function openNpcDialogue(state, npc) {
       onClose = () => {
         progression.questStates[handledQuest.id] = "active";
         setToast(state, `Quest Started: ${handledQuest.title}`, 2.4);
+        maybeOpenNpcService(state, npcDef);
       };
     } else if (status === "active") {
       lines = npcDef.dialogue.progress || lines;
+      onClose = () => {
+        maybeOpenNpcService(state, npcDef);
+      };
     } else if (status === "complete") {
       lines = npcDef.dialogue.complete || lines;
       onClose = () => {
-        progression.questStates[handledQuest.id] = "done";
-        const rewardSummary = awardRewards(progression, handledQuest.rewards);
-        state.player.refreshFromModifiers(getPlayerBonuses(progression));
+        const rewardSummary = finalizeQuest(state, handledQuest);
         setToast(
           state,
           rewardSummary.levelsGained > 0
@@ -225,10 +231,18 @@ function openNpcDialogue(state, npc) {
             : `Rewards Received: ${handledQuest.title}`,
           2.4
         );
+        maybeOpenNpcService(state, npcDef);
       };
     } else {
       lines = npcDef.dialogue.after || lines;
+      onClose = () => {
+        maybeOpenNpcService(state, npcDef);
+      };
     }
+  } else if (npcDef.serviceId) {
+    onClose = () => {
+      maybeOpenNpcService(state, npcDef);
+    };
   }
 
   state.story.dialogue = {
@@ -239,7 +253,27 @@ function openNpcDialogue(state, npc) {
   };
 }
 
+function pickNpcQuest(progression, npcId) {
+  const quests = Object.values(QUEST_DEFS).filter((quest) => quest.giverId === npcId);
+  if (quests.length === 0) return null;
+
+  const priority = ["available", "complete", "active", "inactive", "done"];
+  for (const status of priority) {
+    const quest = quests.find((entry) => progression.questStates[entry.id] === status);
+    if (quest) {
+      return quest;
+    }
+  }
+
+  return quests[0];
+}
+
 function useInteractable(state, interactable) {
+  if (interactable.serviceId) {
+    openServiceUi(state, interactable.serviceId, interactable.name);
+    return;
+  }
+
   if (interactable.disabled) return;
   if (interactable.requiresCleared && !state.sceneProgress[state.currentSceneId]?.cleared) {
     setToast(state, "Clear the nearby corruption first.", 1.8);
@@ -278,6 +312,22 @@ function markSceneObjectState(state, objectId) {
 function isQuestDone(progression, questId) {
   const status = progression.questStates[questId];
   return status === "done" || status === "complete";
+}
+
+function finalizeQuest(state, quest) {
+  const progression = state.progression;
+  progression.questStates[quest.id] = "done";
+  const rewardSummary = awardRewards(progression, quest.rewards);
+  for (const flag of quest.completeFlags || []) {
+    setWorldFlag(progression, flag, true);
+  }
+  state.player.refreshFromModifiers(getPlayerBonuses(progression));
+  return rewardSummary;
+}
+
+function maybeOpenNpcService(state, npcDef) {
+  if (!npcDef.serviceId) return;
+  openServiceUi(state, npcDef.serviceId, npcDef.name);
 }
 
 function setToast(state, text, duration) {

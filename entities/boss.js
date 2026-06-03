@@ -13,7 +13,7 @@ export class Boss {
     this.y = spawn.y;
     this.zone = zone;
     this.radius = 44;
-    this.maxHp = 1120;
+    this.maxHp = config.bossMaxHp || 1120;
     this.hp = this.maxHp;
     this.vx = 0;
     this.vy = 0;
@@ -264,15 +264,23 @@ export class Boss {
 
   performSummon(state) {
     const composition =
-      this.phase >= 3
-        ? ["wisp_archer", "mire_brute", "thornling"]
-        : ["thornling", "wisp_archer"];
+      this.id === "rootbound_custodian"
+        ? this.phase >= 3
+          ? [{ type: "mire_brute", elite: true, affixes: ["bulwark"] }, "thornling"]
+          : ["thornling", { type: "wisp_archer", elite: true, affixes: ["swift"] }]
+        : this.phase >= 3
+          ? ["wisp_archer", "mire_brute", "thornling"]
+          : ["thornling", "wisp_archer"];
 
     const spawns = [...state.arena.bossAddSpawns];
 
-    composition.forEach((type, index) => {
+    composition.forEach((spec, index) => {
       const spawn = spawns[index % spawns.length];
-      state.enemies.push(new Enemy(spawn.x, spawn.y, type));
+      if (typeof spec === "string") {
+        state.enemies.push(new Enemy(spawn.x, spawn.y, spec));
+      } else {
+        state.enemies.push(new Enemy(spawn.x, spawn.y, spec.type, spec));
+      }
       spawnBurst(state, spawn.x, spawn.y, {
         count: 18,
         colors: ["#f0ce78", "#9be570", "#d4634a"],
@@ -282,7 +290,7 @@ export class Boss {
       });
     });
 
-    state.encounter.bannerText = "The Hollow Calls";
+    state.encounter.bannerText = this.id === "rootbound_custodian" ? "Vault Echoes Stir" : "The Hollow Calls";
     state.encounter.bannerTimer = 1.5;
   }
 
@@ -293,7 +301,14 @@ export class Boss {
 
     if (finalPhase > this.phase) {
       this.phase = finalPhase;
-      state.encounter.bannerText = this.phase === 2 ? "Elder Hollow Rises" : "Heartwood Frenzy";
+      state.encounter.bannerText =
+        this.id === "rootbound_custodian"
+          ? this.phase === 2
+            ? "Reliquary Stirs"
+            : "Rootbound Fury"
+          : this.phase === 2
+            ? "Elder Hollow Rises"
+            : "Heartwood Frenzy";
       state.encounter.bannerTimer = 1.8;
       state.shake = Math.max(state.shake, 7);
     }

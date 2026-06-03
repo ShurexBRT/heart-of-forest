@@ -50,6 +50,7 @@ export function renderGame(ctx, state) {
   drawHostileProjectiles(ctx, state, origin);
   drawSwings(ctx, state, origin);
   drawParticles(ctx, state, origin);
+  drawSceneAtmosphere(ctx, state);
 
   drawHud(ctx, state, player.abilityInfo);
 }
@@ -346,21 +347,28 @@ function drawGroundEffects(ctx, state, origin) {
 function drawExitMarkers(ctx, state, origin) {
   for (const exit of state.arena.exits) {
     const active = state.nearExit?.id === exit.id;
+    const locked = Boolean(exit.requiresFlag && !state.progression.worldFlags?.[exit.requiresFlag]);
     const center = toScreen(origin, exit.x + exit.w / 2, exit.y + exit.h / 2);
 
     ctx.save();
     ctx.globalAlpha = active ? 0.92 : 0.5;
-    drawExitArrow(ctx, center.x, center.y, exit.direction);
+    drawExitArrow(ctx, center.x, center.y, exit.direction, locked ? "#d79489" : "#fff0ad");
     if (active) {
       pixelRect(ctx, center.x - 30, center.y - 26, 60, 6, "#1b1412");
-      pixelRect(ctx, center.x - 29, center.y - 25, Math.round(58 * state.exitCharge), 4, "#fff0ad");
+      pixelRect(
+        ctx,
+        center.x - 29,
+        center.y - 25,
+        Math.round(58 * state.exitCharge),
+        4,
+        locked ? "#d79489" : "#fff0ad"
+      );
     }
     ctx.restore();
   }
 }
 
-function drawExitArrow(ctx, x, y, direction) {
-  const color = "#fff0ad";
+function drawExitArrow(ctx, x, y, direction, color = "#fff0ad") {
 
   if (direction === "right") {
     pixelRect(ctx, x - 10, y - 4, 18, 8, color);
@@ -759,6 +767,28 @@ function drawInteractable(ctx, item, origin) {
     pixelRect(ctx, point.x - 12, point.y - 14, 24, 12, "#6b7b87");
     pixelRect(ctx, point.x - 4, point.y - 24, 8, 10, "#cfdde8");
   }
+
+  if (item.type === "seal") {
+    drawIsoShadow(ctx, point.x, point.y, 12, 6);
+    pixelRect(ctx, point.x - 9, point.y - 18, 18, 14, "#7e6d67");
+    pixelRect(ctx, point.x - 6, point.y - 15, 12, 8, "#d8c988");
+    pixelRect(ctx, point.x - 2, point.y - 12, 4, 2, "#8f7b45");
+  }
+
+  if (item.type === "chest") {
+    drawIsoShadow(ctx, point.x, point.y, 12, 6);
+    pixelRect(ctx, point.x - 12, point.y - 16, 24, 12, "#6d4b30");
+    pixelRect(ctx, point.x - 12, point.y - 10, 24, 8, "#8f613d");
+    pixelRect(ctx, point.x - 2, point.y - 12, 4, 10, "#d3b67d");
+  }
+
+  if (item.type === "shrine") {
+    drawIsoShadow(ctx, point.x, point.y, 16, 8);
+    pixelRect(ctx, point.x - 10, point.y - 28, 20, 24, "#6f6b71");
+    pixelRect(ctx, point.x - 6, point.y - 22, 12, 14, "#cfc6b7");
+    pixelRect(ctx, point.x - 2, point.y - 34, 4, 8, "#9ee88b");
+    pixelRect(ctx, point.x - 7, point.y - 36, 14, 2, "#f0de9a");
+  }
 }
 
 function drawNpc(ctx, npc, origin) {
@@ -845,6 +875,13 @@ function drawBoss(ctx, boss, state, origin) {
 }
 
 function drawEnemyStatus(ctx, enemy, state, origin) {
+  if (enemy.elite) {
+    ctx.save();
+    ctx.globalAlpha = 0.72;
+    drawIsoRing(ctx, origin, enemy.x, enemy.y, enemy.radius + 10, 8, enemy.eliteColor || "#e8d07d");
+    ctx.restore();
+  }
+
   if (enemy.rooted > 0) {
     ctx.save();
     ctx.globalAlpha = 0.78;
@@ -904,6 +941,13 @@ function drawEnemyHealth(ctx, enemy, x, y) {
     4,
     enemy.type === "mire_brute" ? "#ef7b58" : enemy.type === "wisp_archer" ? "#8fd9ff" : "#e05256"
   );
+  if (enemy.elite) {
+    ctx.fillStyle = enemy.eliteColor || "#e8d07d";
+    ctx.font = "700 10px Segoe UI, Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(enemy.name, x, y - 48);
+    ctx.textAlign = "left";
+  }
 }
 
 function drawSwings(ctx, state, origin) {
@@ -940,6 +984,42 @@ function drawParticles(ctx, state, origin) {
       Math.max(1, Math.round(particle.size)),
       particle.color
     );
+    ctx.restore();
+  }
+}
+
+function drawSceneAtmosphere(ctx, state) {
+  const { width, height } = state.viewport;
+  const style = state.scene.sceneStyle;
+  let overlay = "rgba(10, 14, 12, 0.06)";
+
+  if (style === "emberpineGrove") overlay = "rgba(58, 22, 14, 0.09)";
+  if (style === "frostveilTundra") overlay = "rgba(16, 28, 40, 0.08)";
+  if (style === "blightedWoods" || style === "hollowheartRuins") overlay = "rgba(34, 14, 18, 0.1)";
+  if (style === "ancientHeart" || style === "sunkenReliquary") overlay = "rgba(24, 18, 36, 0.08)";
+
+  ctx.save();
+  ctx.fillStyle = overlay;
+  ctx.fillRect(0, 0, width, height);
+  ctx.restore();
+
+  for (let i = 0; i < 10; i += 1) {
+    const drift = (state.time * 18 + i * 137) % (width + 120);
+    const bob = Math.sin(state.time * 0.8 + i * 0.9) * 18;
+    const x = drift - 60;
+    const y = 110 + (i % 5) * 94 + bob;
+    const color =
+      style === "frostveilTundra"
+        ? "#d6f5ff"
+        : style === "emberpineGrove"
+          ? "#ffbb7f"
+          : style === "blightedWoods" || style === "hollowheartRuins"
+            ? "#cc8b82"
+            : "#dff4b2";
+    ctx.save();
+    ctx.globalAlpha = 0.08;
+    pixelRect(ctx, x, y, 2, 2, color);
+    pixelRect(ctx, x + 4, y + 2, 2, 2, color);
     ctx.restore();
   }
 }

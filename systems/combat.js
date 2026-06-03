@@ -7,7 +7,7 @@ import {
   TAU,
 } from "../core/math.js";
 import { getMovementVector, wasPressed } from "../core/input.js";
-import { getPlayerBonuses, awardEnemyLoot, grantExperience } from "./progression.js";
+import { getPlayerBonuses, awardEliteBonusLoot, awardEnemyLoot, grantExperience } from "./progression.js";
 import { collidesWithObstacle } from "./collision.js";
 import { spawnBurst } from "./particles.js";
 
@@ -535,7 +535,7 @@ function damageHostile(state, target, amount, sourceX, sourceY, knockback, stun)
       state.storyEvents.push({ type: "enemyDefeated", enemyType: target.type });
     }
 
-    const xpValue = target.isBoss ? 180 : ENEMY_XP[target.type] || 14;
+    const xpValue = target.isBoss ? 180 : (ENEMY_XP[target.type] || 14) + (target.elite ? 18 : 0);
     const xpResult = grantExperience(state.progression, xpValue);
     if (xpResult.levelsGained > 0) {
       state.player.refreshFromModifiers(getPlayerBonuses(state.progression));
@@ -544,10 +544,23 @@ function damageHostile(state, target, amount, sourceX, sourceY, knockback, stun)
       setToast(state, `Level ${state.progression.level} reached`, 2.6);
     }
 
-    const loot = awardEnemyLoot(state.progression, target.type, state.scene.biomeId, Boolean(target.isBoss));
-    if (loot.length > 0 && (target.isBoss || loot.some((entry) => entry.itemId.includes("potion")))) {
-      const lead = loot[0];
-      setToast(state, `Looted ${lead.amount} ${formatItemName(lead.itemId)}`, 1.9);
+    const lootResult = awardEnemyLoot(
+      state.progression,
+      target.type,
+      state.scene.biomeId,
+      Boolean(target.isBoss)
+    );
+    const eliteBonus =
+      target.elite && !target.isBoss ? awardEliteBonusLoot(state.progression, state.scene.biomeId) : null;
+    const combinedLoot = [
+      ...(lootResult?.items || []),
+      ...(eliteBonus?.items || []),
+    ];
+    const silverLoot = (lootResult?.silver || 0) + (eliteBonus?.silver || 0);
+    if (combinedLoot.length > 0 && (target.isBoss || target.elite || combinedLoot.some((entry) => entry.itemId.includes("potion")))) {
+      const lead = combinedLoot[0];
+      const silverText = silverLoot > 0 ? ` and ${silverLoot} silver` : "";
+      setToast(state, `Looted ${lead.amount} ${formatItemName(lead.itemId)}${silverText}`, 1.9);
     }
 
     if (target.isBoss) {
