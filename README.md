@@ -59,6 +59,7 @@ Trenutni fokus je na malom, povezanom ARPG vertical slice-u:
 - XP, level-ups, talent points, and talent unlocks
 - local save via `localStorage`
 - quest log, character sheet, inventory, and talents UI
+- clickable character / inventory / talent / service panels with hover tooltips
 - service UI for:
   - apothecary shop
   - waystone altar

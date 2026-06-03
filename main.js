@@ -11,6 +11,7 @@ import { INITIAL_SCENE_ID, SCENES } from "./data/sceneNetwork.js";
 import { TALENT_DEFS } from "./data/gameData.js";
 import { Player } from "./entities/player.js";
 import { renderGame } from "./rendering/renderer.js";
+import { getUiHoverTarget } from "./ui/hud.js";
 import {
   handlePlayerAbilities,
   markCombat,
@@ -124,6 +125,7 @@ function createUiState(saved = null) {
     selectedServiceIndex: saved?.selectedServiceIndex || 0,
     selectedStashIndex: saved?.selectedStashIndex || 0,
     serviceSubpanel: saved?.serviceSubpanel || "stock",
+    hoverTarget: null,
   };
 }
 
@@ -514,6 +516,80 @@ function showUseItemToast(result) {
   }
 }
 
+function activateInventoryEntry(entry) {
+  if (!entry) return false;
+
+  if (entry.category === "equipment") {
+    if (equipItem(state.progression, entry.id)) {
+      refreshPlayerFromProgression();
+      setToast(`Equipped ${entry.name}`, 1.9);
+    }
+    return true;
+  }
+
+  if (entry.category === "consumable") {
+    const result = useConsumable(state.progression, entry.id, state.player);
+    if (result.used) {
+      showUseItemToast(result);
+    }
+    return true;
+  }
+
+  return false;
+}
+
+function sellInventoryEntry(entry) {
+  const result = sellSelectedInventoryEntry(state, entry);
+  if (result.success) {
+    setToast(result.text, 1.9);
+    clampSelection("selectedInventoryIndex", getInventoryEntries(state.progression).length);
+  } else if (getSellHintVisible(state)) {
+    setToast(result.reason || "That item cannot be sold.", 1.8);
+  }
+  return getSellHintVisible(state);
+}
+
+function unequipSelectedEntry() {
+  const equipped = getEquippedItems(state.progression);
+  const slot = equipped[state.ui.selectedEquipmentIndex]?.slot;
+  if (slot && unequipItem(state.progression, slot)) {
+    refreshPlayerFromProgression();
+    setToast(`Unequipped ${slot}`, 1.7);
+  }
+  return true;
+}
+
+function unlockSelectedTalent() {
+  const talent = TALENT_DEFS[state.ui.selectedTalentIndex];
+  if (talent && unlockTalent(state.progression, talent.id)) {
+    refreshPlayerFromProgression();
+    setToast(`Unlocked ${talent.name}`, 2);
+  }
+  return true;
+}
+
+function runSelectedServiceAction() {
+  const result = performSelectedServiceAction(state);
+  if (result.success) {
+    refreshPlayerFromProgression();
+    setToast(result.text, 2);
+  } else if (result.reason) {
+    setToast(result.reason, 1.8);
+  }
+  return true;
+}
+
+function transferSelectedStash() {
+  const result = transferSelectedStashEntry(state);
+  if (result.success) {
+    setToast(result.text, 1.8);
+    const refreshed = getStashUiEntries(state);
+    clampSelection("selectedServiceIndex", refreshed.pack.length);
+    clampSelection("selectedStashIndex", refreshed.stash.length);
+  }
+  return true;
+}
+
 function tryAssignSelectedInventoryToActionSlot(slotIndex, entries) {
   const entry = entries[state.ui.selectedInventoryIndex];
   if (!entry) return false;
@@ -534,7 +610,100 @@ function tryAssignSelectedInventoryToActionSlot(slotIndex, entries) {
   return true;
 }
 
+function assignInventoryEntryToActionSlot(slotIndex, entry) {
+  if (!entry) return false;
+  if (!isActionSlotAssignable(entry.id)) {
+    setToast("Only usable items can be assigned to action slots", 1.8);
+    return true;
+  }
+
+  const result = assignItemToActionSlot(state.progression, slotIndex, entry.id);
+  if (!result.changed) return true;
+
+  setToast(
+    result.cleared
+      ? `Cleared action slot ${slotIndex + 2}`
+      : `${entry.name} assigned to slot ${slotIndex + 2}`,
+    1.8
+  );
+  return true;
+}
+
+function handleMouseUiInput() {
+  if (!input.mouse.leftPressed) {
+    return false;
+  }
+
+  const target = getUiHoverTarget(state, input.mouse.x, input.mouse.y);
+  if (!target?.action) {
+    return false;
+  }
+
+  switch (target.action) {
+    case "open-tab":
+      openMenu(target.tab);
+      return true;
+    case "quest-select":
+      state.ui.selectedQuestIndex = target.index;
+      return true;
+    case "inventory-select":
+      state.ui.selectedInventoryIndex = target.index;
+      return true;
+    case "inventory-primary":
+      state.ui.selectedInventoryIndex = target.index;
+      return activateInventoryEntry(target.entry);
+    case "inventory-sell":
+      state.ui.selectedInventoryIndex = target.index;
+      return sellInventoryEntry(target.entry);
+    case "inventory-bind":
+      state.ui.selectedInventoryIndex = target.index;
+      return assignInventoryEntryToActionSlot(target.slotIndex, target.entry);
+    case "equipment-select":
+      state.ui.selectedEquipmentIndex = target.index;
+      return true;
+    case "equipment-unequip":
+      state.ui.selectedEquipmentIndex = target.index;
+      return unequipSelectedEntry();
+    case "talent-select":
+      state.ui.selectedTalentIndex = target.index;
+      return true;
+    case "talent-unlock":
+      state.ui.selectedTalentIndex = target.index;
+      return unlockSelectedTalent();
+    case "service-select":
+      if (target.subpanel) {
+        state.ui.serviceSubpanel = target.subpanel;
+      }
+      if (target.subpanel === "stash") {
+        state.ui.selectedStashIndex = target.index;
+      } else {
+        state.ui.selectedServiceIndex = target.index;
+      }
+      return true;
+    case "service-activate":
+      if (target.subpanel) {
+        state.ui.serviceSubpanel = target.subpanel;
+      }
+      if (target.subpanel === "stash") {
+        state.ui.selectedStashIndex = target.index;
+        return transferSelectedStash();
+      }
+      state.ui.selectedServiceIndex = target.index;
+      return runSelectedServiceAction();
+    case "hud-action-slot":
+      return tryUseBoundActionSlot(target.slotIndex);
+    case "hud-quick-item":
+      return tryUseQuickItem(target.itemId);
+    default:
+      return false;
+  }
+}
+
 function handleMenuNavigation() {
+  if (handleMouseUiInput()) {
+    return true;
+  }
+
   if (wasPressed(input, "tab", "Tab")) {
     cycleMenuTab();
     return true;
@@ -571,38 +740,12 @@ function handleMenuNavigation() {
     if ((wasPressed(input, "enter", "Enter") || wasPressed(input, " ", "Space")) && entries.length > 0) {
       const entry = entries[state.ui.selectedInventoryIndex];
       if (!entry) return true;
-
-      if (entry.category === "equipment") {
-        if (equipItem(state.progression, entry.id)) {
-          refreshPlayerFromProgression();
-          setToast(`Equipped ${entry.name}`, 1.9);
-        }
-      } else if (entry.category === "consumable") {
-        const result = useConsumable(state.progression, entry.id, state.player);
-        if (result.used) {
-          if (result.healed > 0) {
-            setToast(`${entry.name} restored ${result.healed} HP`, 1.9);
-          } else if (result.restored > 0) {
-            setToast(`${entry.name} restored ${result.restored} Spirit`, 1.9);
-          } else if (result.buffApplied) {
-            setToast(`${entry.name} is now active`, 1.9);
-          }
-        }
-      }
-
-      return true;
+      return activateInventoryEntry(entry);
     }
 
     if (wasPressed(input, "x", "KeyX")) {
       const entry = entries[state.ui.selectedInventoryIndex];
-      const result = sellSelectedInventoryEntry(state, entry);
-      if (result.success) {
-        setToast(result.text, 1.9);
-        clampSelection("selectedInventoryIndex", getInventoryEntries(state.progression).length);
-      } else if (getSellHintVisible(state)) {
-        setToast(result.reason || "That item cannot be sold.", 1.8);
-      }
-      return getSellHintVisible(state);
+      return sellInventoryEntry(entry);
     }
   }
 
@@ -627,12 +770,7 @@ function handleMenuNavigation() {
       wasPressed(input, "delete", "Delete") ||
       wasPressed(input, "u", "KeyU")
     ) {
-      const slot = equipped[state.ui.selectedEquipmentIndex]?.slot;
-      if (slot && unequipItem(state.progression, slot)) {
-        refreshPlayerFromProgression();
-        setToast(`Unequipped ${slot}`, 1.7);
-      }
-      return true;
+      return unequipSelectedEntry();
     }
   }
 
@@ -652,12 +790,7 @@ function handleMenuNavigation() {
     }
 
     if (wasPressed(input, "enter", "Enter") || wasPressed(input, " ", "Space")) {
-      const talent = TALENT_DEFS[state.ui.selectedTalentIndex];
-      if (talent && unlockTalent(state.progression, talent.id)) {
-        refreshPlayerFromProgression();
-        setToast(`Unlocked ${talent.name}`, 2);
-      }
-      return true;
+      return unlockSelectedTalent();
     }
   }
 
@@ -707,14 +840,7 @@ function handleMenuNavigation() {
       }
 
       if (wasPressed(input, "enter", "Enter") || wasPressed(input, " ", "Space")) {
-        const result = transferSelectedStashEntry(state);
-        if (result.success) {
-          setToast(result.text, 1.8);
-          const refreshed = getStashUiEntries(state);
-          clampSelection("selectedServiceIndex", refreshed.pack.length);
-          clampSelection("selectedStashIndex", refreshed.stash.length);
-        }
-        return true;
+        return transferSelectedStash();
       }
     } else {
       const entries = getServiceEntries(state);
@@ -733,14 +859,7 @@ function handleMenuNavigation() {
       }
 
       if (wasPressed(input, "enter", "Enter") || wasPressed(input, " ", "Space")) {
-        const result = performSelectedServiceAction(state);
-        if (result.success) {
-          refreshPlayerFromProgression();
-          setToast(result.text, 2);
-        } else if (result.reason) {
-          setToast(result.reason, 1.8);
-        }
-        return true;
+        return runSelectedServiceAction();
       }
     }
 
@@ -753,6 +872,10 @@ function handleMenuNavigation() {
 function handleUiInput() {
   if (state.story.dialogue) {
     return false;
+  }
+
+  if ((state.ui.questLogOpen || (!state.ui.menuOpen && !state.ui.questLogOpen)) && handleMouseUiInput()) {
+    return true;
   }
 
   if (wasPressed(input, "escape", "Escape")) {
@@ -957,6 +1080,7 @@ function render() {
 
   try {
     state.activeQuests = getActiveQuestEntries(state.progression);
+    state.ui.hoverTarget = getUiHoverTarget(state, input.mouse.x, input.mouse.y);
     renderGame(ctx, state);
   } catch (error) {
     fatalError = error;

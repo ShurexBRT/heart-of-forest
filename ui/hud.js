@@ -25,9 +25,22 @@ export function drawHud(ctx, state, abilityInfo) {
   drawToast(ctx, state);
   if (state.ui.questLogOpen) drawQuestLogOverlay(ctx, state);
   if (state.ui.menuOpen) drawCharacterOverlay(ctx, state);
+  drawHoverTooltip(ctx, state);
   drawDialogue(ctx, state);
   drawTransitionOverlay(ctx, state);
   drawEndState(ctx, state);
+}
+
+export function getUiHoverTarget(state, mouseX, mouseY) {
+  if (state.ui.menuOpen) {
+    return getMenuHoverTarget(state, mouseX, mouseY);
+  }
+
+  if (state.ui.questLogOpen) {
+    return getQuestLogHoverTarget(state, mouseX, mouseY);
+  }
+
+  return getHudHoverOnlyTarget(state, mouseX, mouseY);
 }
 
 function drawBottomHud(ctx, state, abilityInfo) {
@@ -508,6 +521,7 @@ function drawCharacterTab(ctx, state, x, y, width, height, bonuses) {
   const statsX = x + 220;
   const statsY = y + 122;
   const lineHeight = 24;
+  const panel = getCharacterPanelData(state, { x, y, width, height });
   const stats = [
     ["Level", state.progression.level],
     ["Health", `${Math.round(state.player.hp)} / ${state.player.maxHp}`],
@@ -533,7 +547,6 @@ function drawCharacterTab(ctx, state, x, y, width, height, bonuses) {
     ctx.fillText(String(value), statsX + 130, statsY + lineHeight * index);
   });
 
-  const equipped = getEquippedItems(state.progression);
   const slotX = x + width - 280;
   let slotY = y + 122;
 
@@ -541,7 +554,7 @@ function drawCharacterTab(ctx, state, x, y, width, height, bonuses) {
   ctx.font = "700 16px Segoe UI, Arial";
   ctx.fillText("Equipment", slotX, slotY - 18);
 
-  equipped.forEach((entry, index) => {
+  panel.equipped.forEach((entry, index) => {
     const selected = index === state.ui.selectedEquipmentIndex;
     ctx.fillStyle = selected ? "rgba(121, 184, 255, 0.16)" : "rgba(0, 0, 0, 0.32)";
     ctx.fillRect(slotX, slotY - 16, 220, 34);
@@ -555,14 +568,19 @@ function drawCharacterTab(ctx, state, x, y, width, height, bonuses) {
     ctx.fillText(entry.item?.name || "Empty", slotX + 88, slotY + 4);
     slotY += 42;
   });
+
+  if (panel.unequipButton) {
+    drawActionButton(ctx, panel.unequipButton, state.ui.hoverTarget, "#0f151c", "#f6ead0");
+  }
 }
 
 function drawInventoryTab(ctx, state, x, y, width, height) {
-  const entries = getInventoryEntries(state.progression);
+  const panel = getInventoryPanelData(state, { x, y, width, height });
+  const { entries, selectedEntry, actionSlots, service, detailsRect } = panel;
   const listX = x + 220;
   const listWidth = 352;
-  const detailsX = x + width - 292;
-  const detailsY = y + 128;
+  const detailsX = detailsRect.x;
+  const detailsY = detailsRect.y + 18;
   let rowY = y + 122;
 
   ctx.fillStyle = "#fff2d5";
@@ -570,11 +588,10 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
   ctx.fillText("Inventory", listX, rowY - 18);
   ctx.font = "11px Segoe UI, Arial";
   ctx.fillStyle = "#cfd9d3";
-  const service = getActiveService(state);
   const inventoryHelp =
     service?.kind === "shop"
-      ? "Enter uses/equips  |  2/3/4 bind  |  X sell selected"
-      : "Enter uses/equips  |  2/3/4 binds selected usable";
+      ? "Enter or click buttons  |  2/3/4 bind  |  X sell selected"
+      : "Enter or click buttons  |  2/3/4 binds selected usable";
   ctx.fillText(inventoryHelp, listX + 18, rowY - 2);
 
   if (entries.length === 0) {
@@ -606,9 +623,7 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
     rowY += 40;
   });
 
-  const selectedEntry = entries[state.ui.selectedInventoryIndex];
   if (!selectedEntry) return;
-  const actionSlots = getActionSlotEntries(state.progression);
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
   ctx.fillRect(detailsX, detailsY - 18, 240, 214);
@@ -624,7 +639,14 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
   ctx.font = "11px Segoe UI, Arial";
   ctx.fillText(`Value ${getItemValue(selectedEntry.id)} silver`, detailsX + 12, detailsY + 76);
 
-  let detailY = detailsY + 96;
+  if (panel.primaryButton) {
+    drawActionButton(ctx, panel.primaryButton, state.ui.hoverTarget, "#11202c", "#f6ead0");
+  }
+  if (panel.sellButton) {
+    drawActionButton(ctx, panel.sellButton, state.ui.hoverTarget, "#241714", "#fff0dd");
+  }
+
+  let detailY = detailsY + ((panel.primaryButton || panel.sellButton) ? 116 : 96);
   if (selectedEntry.maxStack) {
     ctx.fillStyle = "#d7e4cf";
     ctx.font = "11px Segoe UI, Arial";
@@ -679,23 +701,19 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
     ctx.fillText("Action Slots", detailsX + 12, detailY + 4);
 
     actionSlots.forEach((slot, index) => {
-      const slotX = detailsX + 12 + index * 72;
+      const button = panel.bindButtons[index];
+      if (!button) return;
       const assigned = slot.itemId === selectedEntry.id;
-      ctx.fillStyle = assigned ? "rgba(121, 184, 255, 0.2)" : "rgba(0, 0, 0, 0.32)";
-      ctx.fillRect(slotX, detailY + 14, 62, 36);
-      ctx.strokeStyle = assigned ? "#79b8ff" : "#2d3848";
-      ctx.strokeRect(slotX, detailY + 14, 62, 36);
-      ctx.fillStyle = assigned ? "#fff5d8" : "#cfd9d3";
-      ctx.font = "700 12px Segoe UI, Arial";
-      ctx.fillText(slot.key, slotX + 8, detailY + 30);
+      drawActionButton(ctx, button, state.ui.hoverTarget, assigned ? "#14263a" : "#11161d", assigned ? "#fff5d8" : "#cfd9d3");
       ctx.font = "10px Segoe UI, Arial";
       ctx.fillStyle = "#9dd9a2";
-      ctx.fillText(assigned ? "Bound" : "Assign", slotX + 8, detailY + 43);
+      ctx.fillText(assigned ? "Bound" : "Assign", button.rect.x + 8, button.rect.y + 29);
     });
   }
 }
 
 function drawTalentTab(ctx, state, x, y, width, height) {
+  const panel = getTalentPanelData(state, { x, y, width, height });
   let rowY = y + 122;
   ctx.fillStyle = "#fff2d5";
   ctx.font = "700 16px Segoe UI, Arial";
@@ -718,9 +736,13 @@ function drawTalentTab(ctx, state, x, y, width, height) {
     ctx.font = "11px Segoe UI, Arial";
     ctx.fillText(talent.description, x + 232, rowY + 18);
     ctx.fillStyle = unlocked ? "#9ce1a3" : state.progression.talentPoints > 0 ? "#f1d786" : "#8692a3";
-    ctx.fillText(unlocked ? "Unlocked" : "Press Enter to unlock", x + width - 238, rowY + 18);
+    ctx.fillText(unlocked ? "Unlocked" : "Choose and unlock", x + width - 238, rowY + 18);
     rowY += 46;
   });
+
+  if (panel.unlockButton) {
+    drawActionButton(ctx, panel.unlockButton, state.ui.hoverTarget, "#142219", "#f6ead0");
+  }
 
   const unlocked = getUnlockedTalentList(state.progression);
   ctx.fillStyle = "#fff2d5";
@@ -741,9 +763,8 @@ function drawTalentTab(ctx, state, x, y, width, height) {
 }
 
 function drawServiceTab(ctx, state, x, y, width, height) {
-  const service = getActiveService(state);
-  const bodyX = x + 220;
-  const bodyY = y + 122;
+  const panel = getServicePanelData(state, { x, y, width, height });
+  const { service, bodyX, bodyY } = panel;
 
   ctx.fillStyle = "#fff2d5";
   ctx.font = "700 16px Segoe UI, Arial";
@@ -764,9 +785,8 @@ function drawServiceTab(ctx, state, x, y, width, height) {
   ctx.fillText(`Silver: ${getCurrency(state.progression)}`, bodyX, bodyY + 8);
 
   if (service.kind === "shop") {
-    const entries = getServiceEntries(state);
     let rowY = bodyY + 34;
-    entries.forEach((entry, index) => {
+    panel.rows.forEach(({ entry, index }) => {
       const selected = index === state.ui.selectedServiceIndex;
       ctx.fillStyle = selected ? "rgba(121, 184, 255, 0.16)" : "rgba(0, 0, 0, 0.26)";
       ctx.fillRect(bodyX, rowY - 16, width - 280, 38);
@@ -787,13 +807,57 @@ function drawServiceTab(ctx, state, x, y, width, height) {
       ctx.textAlign = "left";
       rowY += 46;
     });
+
+    if (panel.selected) {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
+      ctx.fillRect(panel.detailsRect.x, panel.detailsRect.y, panel.detailsRect.width, panel.detailsRect.height);
+      ctx.strokeStyle = "#2d3848";
+      ctx.strokeRect(panel.detailsRect.x, panel.detailsRect.y, panel.detailsRect.width, panel.detailsRect.height);
+      ctx.fillStyle = getRarityAccent(panel.selected.item.rarity, "#fff2d5");
+      ctx.font = "700 14px Segoe UI, Arial";
+      ctx.fillText(panel.selected.item.name, panel.detailsRect.x + 12, panel.detailsRect.y + 20);
+      ctx.fillStyle = "#d7e4cf";
+      ctx.font = "12px Segoe UI, Arial";
+      wrapText(ctx, panel.selected.item.description, panel.detailsRect.x + 12, panel.detailsRect.y + 42, panel.detailsRect.width - 24, 18);
+      ctx.fillStyle = "#e9d281";
+      ctx.font = "11px Segoe UI, Arial";
+      ctx.fillText(`Price ${panel.selected.price} silver`, panel.detailsRect.x + 12, panel.detailsRect.y + 106);
+
+      if (panel.selected.item.category === "equipment" && panel.selected.item.slot) {
+        const equippedItem = getEquippedItems(state.progression).find((entry) => entry.slot === panel.selected.item.slot)?.item;
+        let compareY = panel.detailsRect.y + 130;
+        ctx.fillStyle = "#fff2d5";
+        ctx.font = "700 12px Segoe UI, Arial";
+        ctx.fillText("Comparison", panel.detailsRect.x + 12, compareY);
+        compareY += 18;
+        if (equippedItem) {
+          ctx.fillStyle = getRarityAccent(equippedItem.rarity, "#d7e4cf");
+          ctx.font = "700 11px Segoe UI, Arial";
+          ctx.fillText(`Equipped: ${equippedItem.name}`, panel.detailsRect.x + 12, compareY);
+          compareY += 16;
+          for (const line of buildComparisonLines(panel.selected.item, equippedItem)) {
+            ctx.fillStyle = line.delta > 0 ? "#9ce1a3" : line.delta < 0 ? "#f0a08d" : "#d7e4cf";
+            ctx.font = "11px Segoe UI, Arial";
+            ctx.fillText(`${line.label}: ${line.current} (${line.delta > 0 ? "+" : ""}${line.delta})`, panel.detailsRect.x + 12, compareY);
+            compareY += 14;
+          }
+        } else {
+          ctx.fillStyle = "#d7e4cf";
+          ctx.font = "11px Segoe UI, Arial";
+          ctx.fillText("Nothing equipped in this slot.", panel.detailsRect.x + 12, compareY);
+        }
+      }
+
+      if (panel.actionButton) {
+        drawActionButton(ctx, panel.actionButton, state.ui.hoverTarget, "#241d12", "#fff6dd");
+      }
+    }
     return;
   }
 
   if (service.kind === "altar") {
-    const entries = getServiceEntries(state);
     let rowY = bodyY + 34;
-    entries.forEach((entry, index) => {
+    panel.rows.forEach(({ entry, index }) => {
       const selected = index === state.ui.selectedServiceIndex;
       ctx.fillStyle = selected ? "rgba(121, 184, 255, 0.16)" : "rgba(0, 0, 0, 0.26)";
       ctx.fillRect(bodyX, rowY - 16, width - 280, 46);
@@ -809,25 +873,26 @@ function drawServiceTab(ctx, state, x, y, width, height) {
       ctx.fillText(formatActionCost(entry), bodyX + 12, rowY + 33);
       rowY += 54;
     });
+    if (panel.actionButton) {
+      drawActionButton(ctx, panel.actionButton, state.ui.hoverTarget, "#182117", "#fff6dd");
+    }
     return;
   }
 
-  const lists = getStashUiEntries(state);
-  const panelW = Math.floor((width - 320) / 2);
-  drawStashColumn(ctx, bodyX, bodyY + 28, panelW, "Pack", lists.pack, state.ui.selectedServiceIndex, state.ui.serviceSubpanel === "pack");
+  drawStashColumn(ctx, bodyX, bodyY + 28, panel.panelW, "Pack", panel.lists.pack, state.ui.selectedServiceIndex, state.ui.serviceSubpanel === "pack");
   drawStashColumn(
     ctx,
-    bodyX + panelW + 24,
+    bodyX + panel.panelW + 24,
     bodyY + 28,
-    panelW,
+    panel.panelW,
     "Stash",
-    lists.stash,
+    panel.lists.stash,
     state.ui.selectedStashIndex,
     state.ui.serviceSubpanel === "stash"
   );
   ctx.fillStyle = "#d7e4cf";
   ctx.font = "11px Segoe UI, Arial";
-  ctx.fillText("Left/Right switch lists  |  Enter transfers one item", bodyX, y + height - 36);
+  ctx.fillText("Click a list to focus it  |  Click selected row to transfer one item", bodyX, y + height - 36);
 }
 
 function drawStashColumn(ctx, x, y, width, label, entries, selectedIndex, active) {
@@ -1020,22 +1085,29 @@ function drawEndState(ctx, state) {
 }
 
 function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+  const lines = toWrappedLines(ctx, text, maxWidth);
+  lines.forEach((line, index) => {
+    ctx.fillText(line, x, y + index * lineHeight);
+  });
+}
+
+function toWrappedLines(ctx, text, maxWidth) {
   const words = text.split(" ");
   let line = "";
-  let currentY = y;
+  const lines = [];
 
   for (const word of words) {
     const testLine = line ? `${line} ${word}` : word;
     if (ctx.measureText(testLine).width > maxWidth && line) {
-      ctx.fillText(line, x, currentY);
+      lines.push(line);
       line = word;
-      currentY += lineHeight;
     } else {
       line = testLine;
     }
   }
 
-  if (line) ctx.fillText(line, x, currentY);
+  if (line) lines.push(line);
+  return lines;
 }
 
 function buildComparisonLines(current, equipped) {
@@ -1078,6 +1150,21 @@ function getRarityAccent(rarity, fallback) {
   return fallback;
 }
 
+function drawActionButton(ctx, button, hoverTarget, fill, textColor) {
+  const hovered =
+    hoverTarget?.action === button.action &&
+    hoverTarget?.index === button.index &&
+    hoverTarget?.slotIndex === button.slotIndex &&
+    hoverTarget?.subpanel === button.subpanel;
+  ctx.fillStyle = hovered ? "rgba(121, 184, 255, 0.18)" : fill;
+  ctx.fillRect(button.rect.x, button.rect.y, button.rect.width, button.rect.height);
+  ctx.strokeStyle = hovered ? "#d9efff" : button.accent;
+  ctx.strokeRect(button.rect.x, button.rect.y, button.rect.width, button.rect.height);
+  ctx.fillStyle = textColor;
+  ctx.font = "700 11px Segoe UI, Arial";
+  ctx.fillText(button.label, button.rect.x + 10, button.rect.y + 18);
+}
+
 function drawPanelChrome(ctx, x, y, width, height, accent) {
   ctx.strokeStyle = accent;
   ctx.lineWidth = 1;
@@ -1095,4 +1182,611 @@ function drawPanelChrome(ctx, x, y, width, height, accent) {
 function pixelRect(ctx, x, y, width, height, color) {
   ctx.fillStyle = color;
   ctx.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(width)), Math.max(1, Math.round(height)));
+}
+
+function rect(x, y, width, height) {
+  return { x, y, width, height };
+}
+
+function pointInRect(x, y, box) {
+  return (
+    box &&
+    x >= box.x &&
+    x <= box.x + box.width &&
+    y >= box.y &&
+    y <= box.y + box.height
+  );
+}
+
+function makeButton(x, y, width, height, label, action, accent = "#79b8ff", extra = {}) {
+  return {
+    rect: { x, y, width, height },
+    label,
+    accent,
+    action,
+    ...extra,
+  };
+}
+
+function getCharacterOverlayFrame(state) {
+  return {
+    x: 68,
+    y: 70,
+    width: state.viewport.width - 136,
+    height: state.viewport.height - 150,
+  };
+}
+
+function getTabTargets(state, frame) {
+  const tabs = [
+    ["character", "Character"],
+    ["inventory", "Inventory"],
+    ["talents", "Talents"],
+  ];
+  if (state.ui.activeServiceId) {
+    tabs.push(["services", "Services"]);
+  }
+
+  return tabs.map(([id, label], index) => ({
+    rect: rect(frame.x + 18 + index * 126, frame.y + 48, 116, 28),
+    action: "open-tab",
+    tab: id,
+    label,
+    tooltip: {
+      title: label,
+      lines: [`Open the ${label.toLowerCase()} panel.`],
+      accent: "#8ab6ff",
+    },
+  }));
+}
+
+function getInventoryPanelData(state, frame) {
+  const entries = getInventoryEntries(state.progression);
+  const listX = frame.x + 220;
+  const listWidth = 352;
+  const detailsX = frame.x + frame.width - 292;
+  const detailsY = frame.y + 128;
+  const rows = entries.map((entry, index) => ({
+    entry,
+    index,
+    rect: rect(listX, frame.y + 106 + index * 40, listWidth, 34),
+  }));
+  const selectedEntry = entries[state.ui.selectedInventoryIndex] || null;
+  const actionSlots = getActionSlotEntries(state.progression);
+  const service = getActiveService(state);
+  const data = {
+    entries,
+    rows,
+    selectedEntry,
+    actionSlots,
+    service,
+    detailsRect: rect(detailsX, detailsY - 18, 240, 214),
+    primaryButton: null,
+    sellButton: null,
+    bindButtons: [],
+  };
+
+  if (!selectedEntry) {
+    return data;
+  }
+
+  const canPrimary =
+    selectedEntry.category === "equipment" || selectedEntry.category === "consumable";
+  if (canPrimary) {
+    const primaryLabel = selectedEntry.category === "equipment" ? "Equip" : "Use";
+    data.primaryButton = makeButton(
+      detailsX + 12,
+      detailsY + 76,
+      98,
+      28,
+      primaryLabel,
+      "inventory-primary",
+      "#79b8ff",
+      { index: state.ui.selectedInventoryIndex, entry: selectedEntry }
+    );
+  }
+
+  if (service?.kind === "shop") {
+    data.sellButton = makeButton(
+      detailsX + 128,
+      detailsY + 76,
+      100,
+      28,
+      "Sell",
+      "inventory-sell",
+      "#d99b74",
+      { index: state.ui.selectedInventoryIndex, entry: selectedEntry }
+    );
+  }
+
+  let detailY = detailsY + ((data.primaryButton || data.sellButton) ? 116 : 96);
+  if (selectedEntry.maxStack) {
+    detailY += 34;
+  }
+  if (selectedEntry.bonuses) {
+    detailY += Object.keys(selectedEntry.bonuses).length * 16 + 4;
+  }
+  if (selectedEntry.category === "equipment" && selectedEntry.slot) {
+    const equippedItem = getEquippedItems(state.progression).find((entry) => entry.slot === selectedEntry.slot)?.item;
+    detailY += equippedItem ? 58 + buildComparisonLines(selectedEntry, equippedItem).length * 14 : 42;
+  }
+
+  if (selectedEntry.usable || selectedEntry.category === "consumable" || selectedEntry.effect) {
+    data.bindButtons = actionSlots.map((slot, slotIndex) =>
+      makeButton(detailsX + 12 + slotIndex * 72, detailY + 14, 62, 36, `Bind ${slot.key}`, "inventory-bind", "#79b8ff", {
+        slotIndex,
+        index: state.ui.selectedInventoryIndex,
+        entry: selectedEntry,
+        assigned: slot.itemId === selectedEntry.id,
+      })
+    );
+  }
+
+  return data;
+}
+
+function getCharacterPanelData(state, frame) {
+  const slotX = frame.x + frame.width - 280;
+  const slotY = frame.y + 122;
+  const equipped = getEquippedItems(state.progression);
+  const rows = equipped.map((entry, index) => ({
+    ...entry,
+    index,
+    rect: rect(slotX, slotY - 16 + index * 42, 220, 34),
+  }));
+  const selected = equipped[state.ui.selectedEquipmentIndex] || null;
+  return {
+    equipped,
+    rows,
+    unequipButton:
+      selected?.item
+        ? makeButton(slotX, slotY + equipped.length * 42 + 6, 220, 28, "Unequip", "equipment-unequip", "#d99b74", {
+            index: state.ui.selectedEquipmentIndex,
+          })
+        : null,
+  };
+}
+
+function getTalentPanelData(state, frame) {
+  const rows = TALENT_DEFS.map((talent, index) => ({
+    talent,
+    index,
+    rect: rect(frame.x + 220, frame.y + 106 + index * 46, frame.width - 280, 38),
+  }));
+  const selectedTalent = TALENT_DEFS[state.ui.selectedTalentIndex] || null;
+  const selectedRow = rows[state.ui.selectedTalentIndex] || null;
+  return {
+    rows,
+    selectedTalent,
+    unlockButton:
+      selectedTalent && !state.progression.talents[selectedTalent.id]
+        ? makeButton(
+            selectedRow.rect.x + selectedRow.rect.width - 122,
+            selectedRow.rect.y + 6,
+            108,
+            24,
+            "Unlock",
+            "talent-unlock",
+            "#9ce1a3",
+            { index: state.ui.selectedTalentIndex, talent: selectedTalent }
+          )
+        : null,
+  };
+}
+
+function getServicePanelData(state, frame) {
+  const service = getActiveService(state);
+  const bodyX = frame.x + 220;
+  const bodyY = frame.y + 122;
+
+  if (!service) {
+    return { service, bodyX, bodyY };
+  }
+
+  if (service.kind === "shop") {
+    const entries = getServiceEntries(state);
+    const rows = entries.map((entry, index) => ({
+      entry,
+      index,
+      rect: rect(bodyX, bodyY + 18 + index * 46, frame.width - 280, 38),
+    }));
+    const selected = entries[state.ui.selectedServiceIndex] || null;
+    const detailsX = frame.x + frame.width - 292;
+    const detailsY = frame.y + 128;
+    const buyButton = selected
+      ? makeButton(detailsX + 12, detailsY + 168, 216, 28, selected.affordable ? `Buy for ${selected.price} silver` : "Not enough silver", "service-activate", selected.affordable ? "#d7bb71" : "#8a6e6a", {
+          index: state.ui.selectedServiceIndex,
+          entry: selected,
+        })
+      : null;
+    return {
+      service,
+      bodyX,
+      bodyY,
+      rows,
+      selected,
+      detailsRect: rect(detailsX, detailsY - 18, 240, 214),
+      actionButton: buyButton,
+    };
+  }
+
+  if (service.kind === "altar") {
+    const entries = getServiceEntries(state);
+    const rows = entries.map((entry, index) => ({
+      entry,
+      index,
+      rect: rect(bodyX, bodyY + 18 + index * 54, frame.width - 280, 46),
+    }));
+    const selected = entries[state.ui.selectedServiceIndex] || null;
+    const actionButton = selected
+      ? makeButton(bodyX, frame.y + frame.height - 86, frame.width - 280, 30, selected.affordable ? "Invoke Rite" : "Requirements Not Met", "service-activate", selected.affordable ? "#b1e29f" : "#8a6e6a", {
+          index: state.ui.selectedServiceIndex,
+          entry: selected,
+        })
+      : null;
+    return {
+      service,
+      bodyX,
+      bodyY,
+      rows,
+      selected,
+      actionButton,
+    };
+  }
+
+  const lists = getStashUiEntries(state);
+  const panelW = Math.floor((frame.width - 320) / 2);
+  const packRows = lists.pack.slice(0, 6).map((entry, index) => ({
+    entry,
+    index,
+    rect: rect(bodyX + 8, bodyY + 34 + index * 36, panelW - 16, 30),
+  }));
+  const stashRows = lists.stash.slice(0, 6).map((entry, index) => ({
+    entry,
+    index,
+    rect: rect(bodyX + panelW + 32, bodyY + 34 + index * 36, panelW - 16, 30),
+  }));
+  return {
+    service,
+    bodyX,
+    bodyY,
+    panelW,
+    lists,
+    packRows,
+    stashRows,
+  };
+}
+
+function getQuestLogPanelData(state) {
+  const quests = state.activeQuests || [];
+  const x = 56;
+  const y = 84;
+  const width = state.viewport.width - 112;
+  return {
+    quests,
+    rows: quests.map((quest, index) => ({
+      quest,
+      index,
+      rect: rect(x + 18, y + 46 + index * 92, width - 36, 78),
+    })),
+  };
+}
+
+function buildItemTooltip(entry, lines = []) {
+  const tooltipLines = [entry.description];
+  if (entry.bonuses) {
+    for (const [key, value] of Object.entries(entry.bonuses)) {
+      tooltipLines.push(`${formatBonusKey(key)}: ${value > 0 ? "+" : ""}${value}`);
+    }
+  }
+  if (entry.maxStack && typeof entry.amount === "number") {
+    tooltipLines.push(`Stack ${entry.amount}/${entry.maxStack}`);
+  }
+  tooltipLines.push(`Value ${getItemValue(entry.id)} silver`);
+  return {
+    title: entry.name,
+    lines: [...tooltipLines, ...lines].filter(Boolean),
+    accent: getRarityAccent(entry.rarity, entry.color || "#79b8ff"),
+  };
+}
+
+function getMenuHoverTarget(state, mouseX, mouseY) {
+  const frame = getCharacterOverlayFrame(state);
+  const tabTarget = getTabTargets(state, frame).find((target) => pointInRect(mouseX, mouseY, target.rect));
+  if (tabTarget) return tabTarget;
+
+  if (state.ui.activeTab === "character") {
+    const panel = getCharacterPanelData(state, frame);
+    for (const row of panel.rows) {
+      if (pointInRect(mouseX, mouseY, row.rect)) {
+        return {
+          action: "equipment-select",
+          index: row.index,
+          rect: row.rect,
+          tooltip: row.item
+            ? buildItemTooltip(row.item, [`Slot: ${row.slot}`])
+            : { title: row.slot.toUpperCase(), lines: ["Empty equipment slot."], accent: "#7f8a95" },
+        };
+      }
+    }
+    if (panel.unequipButton && pointInRect(mouseX, mouseY, panel.unequipButton.rect)) {
+      return {
+        ...panel.unequipButton,
+        tooltip: { title: "Unequip", lines: ["Return the selected item to your inventory."], accent: panel.unequipButton.accent },
+      };
+    }
+    return null;
+  }
+
+  if (state.ui.activeTab === "inventory") {
+    const panel = getInventoryPanelData(state, frame);
+    if (panel.primaryButton && pointInRect(mouseX, mouseY, panel.primaryButton.rect)) {
+      return {
+        ...panel.primaryButton,
+        tooltip: { title: panel.primaryButton.label, lines: [panel.primaryButton.entry.description], accent: panel.primaryButton.accent },
+      };
+    }
+    if (panel.sellButton && pointInRect(mouseX, mouseY, panel.sellButton.rect)) {
+      return {
+        ...panel.sellButton,
+        tooltip: { title: "Sell", lines: [`Sell for ${getItemValue(panel.sellButton.entry.id)} silver.`], accent: panel.sellButton.accent },
+      };
+    }
+    for (const button of panel.bindButtons) {
+      if (pointInRect(mouseX, mouseY, button.rect)) {
+        return {
+          ...button,
+          tooltip: {
+            title: button.assigned ? `Bound to ${button.slotIndex + 2}` : `Bind to ${button.slotIndex + 2}`,
+            lines: [button.assigned ? "Click to clear or refresh this binding." : "Assign this usable item to the quick bar."],
+            accent: button.accent,
+          },
+        };
+      }
+    }
+    for (const row of panel.rows) {
+      if (pointInRect(mouseX, mouseY, row.rect)) {
+        return {
+          action: "inventory-select",
+          index: row.index,
+          entry: row.entry,
+          rect: row.rect,
+          tooltip: buildItemTooltip(row.entry),
+        };
+      }
+    }
+    return null;
+  }
+
+  if (state.ui.activeTab === "talents") {
+    const panel = getTalentPanelData(state, frame);
+    if (panel.unlockButton && pointInRect(mouseX, mouseY, panel.unlockButton.rect)) {
+      return {
+        ...panel.unlockButton,
+        tooltip: { title: "Unlock Talent", lines: [panel.unlockButton.talent.description], accent: panel.unlockButton.accent },
+      };
+    }
+    for (const row of panel.rows) {
+      if (pointInRect(mouseX, mouseY, row.rect)) {
+        return {
+          action: "talent-select",
+          index: row.index,
+          talent: row.talent,
+          rect: row.rect,
+          tooltip: { title: row.talent.name, lines: [row.talent.tree, row.talent.description], accent: "#9ce1a3" },
+        };
+      }
+    }
+    return null;
+  }
+
+  if (state.ui.activeTab === "services") {
+    const panel = getServicePanelData(state, frame);
+    if (!panel.service) return null;
+
+    if (panel.service.kind === "shop" || panel.service.kind === "altar") {
+      if (panel.actionButton && pointInRect(mouseX, mouseY, panel.actionButton.rect)) {
+        return {
+          ...panel.actionButton,
+          tooltip: panel.service.kind === "shop"
+            ? buildItemTooltip(panel.selected.item, [`Price ${panel.selected.price} silver`])
+            : { title: panel.selected.title, lines: [panel.selected.description, formatActionCost(panel.selected)], accent: panel.actionButton.accent },
+        };
+      }
+      for (const row of panel.rows) {
+        if (pointInRect(mouseX, mouseY, row.rect)) {
+          const tooltip =
+            panel.service.kind === "shop"
+              ? buildItemTooltip(row.entry.item, [`Price ${row.entry.price} silver`])
+              : { title: row.entry.title, lines: [row.entry.description, formatActionCost(row.entry)], accent: row.entry.affordable ? "#a6e28c" : "#c67d72" };
+          return {
+            action: "service-select",
+            index: row.index,
+            entry: row.entry,
+            rect: row.rect,
+            tooltip,
+          };
+        }
+      }
+      return null;
+    }
+
+    for (const row of panel.packRows) {
+      if (pointInRect(mouseX, mouseY, row.rect)) {
+        return {
+          action: state.ui.serviceSubpanel === "pack" && state.ui.selectedServiceIndex === row.index ? "service-activate" : "service-select",
+          subpanel: "pack",
+          index: row.index,
+          entry: row.entry,
+          rect: row.rect,
+          tooltip: buildItemTooltip(row.entry, ["Store one item in the stash."]),
+        };
+      }
+    }
+
+    for (const row of panel.stashRows) {
+      if (pointInRect(mouseX, mouseY, row.rect)) {
+        return {
+          action: state.ui.serviceSubpanel === "stash" && state.ui.selectedStashIndex === row.index ? "service-activate" : "service-select",
+          subpanel: "stash",
+          index: row.index,
+          entry: row.entry,
+          rect: row.rect,
+          tooltip: buildItemTooltip(row.entry, ["Withdraw one item from the stash."]),
+        };
+      }
+    }
+    return null;
+  }
+
+  return null;
+}
+
+function getQuestLogHoverTarget(state, mouseX, mouseY) {
+  const panel = getQuestLogPanelData(state);
+  for (const row of panel.rows) {
+    if (pointInRect(mouseX, mouseY, row.rect)) {
+      return {
+        action: "quest-select",
+        index: row.index,
+        rect: row.rect,
+        tooltip: {
+          title: row.quest.title,
+          lines: [row.quest.description, ...row.quest.objectives.map((objective) => `${objective.label}: ${Math.min(objective.current, objective.required)}/${objective.required}`)],
+          accent: "#d7bb71",
+        },
+      };
+    }
+  }
+  return null;
+}
+
+function getHudHoverOnlyTarget(state, mouseX, mouseY) {
+  const hud = getBottomHudInteractionData(state);
+  for (const slot of hud.abilitySlots) {
+    if (pointInRect(mouseX, mouseY, slot.rect)) {
+      return {
+        rect: slot.rect,
+        tooltip: {
+          title: slot.info.label,
+          lines: [
+            slot.info.cost > 0 ? `Cost ${slot.info.cost} Spirit` : "No Spirit cost",
+            `Cooldown ${slot.info.cooldown.toFixed(2)}s`,
+          ],
+          accent: slot.color,
+        },
+      };
+    }
+  }
+
+  for (const slot of hud.actionSlots) {
+    if (pointInRect(mouseX, mouseY, slot.rect)) {
+      if (!slot.item) return { rect: slot.rect, tooltip: { title: `Slot ${slot.key}`, lines: ["No item assigned."], accent: "#6d7884" } };
+      return {
+        action: "hud-action-slot",
+        slotIndex: slot.index,
+        rect: slot.rect,
+        tooltip: buildItemTooltip(slot.item, [`Quick Slot ${slot.key}`, `Owned ${slot.count}`]),
+      };
+    }
+  }
+
+  for (const chip of hud.quickItems) {
+    if (pointInRect(mouseX, mouseY, chip.rect)) {
+      return {
+        action: "hud-quick-item",
+        itemId: chip.itemId,
+        rect: chip.rect,
+        tooltip: {
+          title: chip.label,
+          lines: [`Quick use with ${chip.key}.`, `Owned ${chip.count}`],
+          accent: chip.color,
+        },
+      };
+    }
+  }
+
+  return null;
+}
+
+function getBottomHudInteractionData(state) {
+  const { width, height } = state.viewport;
+  const panelW = 760;
+  const panelH = 132;
+  const x = width / 2 - panelW / 2;
+  const y = height - panelH - 16;
+  const abilityRowWidth = 76 * 4 + 10 * 3;
+  const abilityStartX = x + panelW / 2 - abilityRowWidth / 2;
+  const actionStartX = x + panelW / 2 - 147;
+  const abilities = [
+    ["staff", "#f2d07a"],
+    ["bolt", "#74ddff"],
+    ["dash", "#b7f0dd"],
+    ["root", "#8ce36d"],
+  ];
+  const actionSlots = getActionSlotEntries(state.progression);
+  return {
+    abilitySlots: abilities.map(([name, color], index) => ({
+      name,
+      color,
+      info: state.player.abilityInfo[name],
+      rect: rect(abilityStartX + index * 86, y + 18, 76, 54),
+    })),
+    actionSlots: actionSlots.map((slot, index) => ({
+      ...slot,
+      rect: rect(actionStartX + index * 102, y + 82, 90, 34),
+    })),
+    quickItems: [
+      {
+        key: "5",
+        label: "Health Potion",
+        count: state.progression.inventory.health_potion || 0,
+        itemId: "health_potion",
+        color: "#df6a67",
+        rect: rect(x + 18, y + 98, 92, 22),
+      },
+      {
+        key: "6",
+        label: "Spirit Tonic",
+        count: state.progression.inventory.spirit_tonic || 0,
+        itemId: "spirit_tonic",
+        color: "#6ecff7",
+        rect: rect(x + panelW - 110, y + 98, 92, 22),
+      },
+    ],
+  };
+}
+
+function drawHoverTooltip(ctx, state) {
+  const target = state.ui.hoverTarget;
+  if (!target?.tooltip || state.story.dialogue || state.transition.active) {
+    return;
+  }
+
+  const { title, lines, accent } = target.tooltip;
+  ctx.save();
+  ctx.font = "12px Segoe UI, Arial";
+  const maxTextWidth = 240;
+  const wrappedLines = lines.flatMap((line) => toWrappedLines(ctx, line, maxTextWidth));
+  const allLines = [title, ...wrappedLines];
+  const maxWidth = Math.max(...allLines.map((line) => ctx.measureText(line).width), 120);
+  const boxW = Math.min(320, Math.ceil(maxWidth) + 24);
+  const boxH = 20 + wrappedLines.length * 16 + 22;
+  const cursorX = Math.min(state.viewport.width - boxW - 16, state.ui.hoverTarget.rect ? state.ui.hoverTarget.rect.x + state.ui.hoverTarget.rect.width + 12 : 20);
+  const cursorY = Math.min(state.viewport.height - boxH - 16, state.ui.hoverTarget.rect ? state.ui.hoverTarget.rect.y + 8 : 20);
+
+  ctx.fillStyle = "rgba(0,0,0,0.88)";
+  ctx.fillRect(cursorX, cursorY, boxW, boxH);
+  ctx.fillStyle = "#10161d";
+  ctx.fillRect(cursorX + 3, cursorY + 3, boxW - 6, boxH - 6);
+  drawPanelChrome(ctx, cursorX, cursorY, boxW, boxH, accent || "#8aa7b4");
+  ctx.fillStyle = accent || "#fff2d5";
+  ctx.font = "700 12px Segoe UI, Arial";
+  ctx.fillText(title, cursorX + 12, cursorY + 18);
+  ctx.fillStyle = "#d7e4cf";
+  ctx.font = "11px Segoe UI, Arial";
+  wrappedLines.forEach((line, index) => {
+    ctx.fillText(line, cursorX + 12, cursorY + 38 + index * 16);
+  });
+  ctx.restore();
 }
