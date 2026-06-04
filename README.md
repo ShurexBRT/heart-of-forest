@@ -18,6 +18,7 @@ Trenutni fokus je na malom, povezanom ARPG vertical slice-u:
 - `Right Click`: Spirit Bolt
 - `Space`: Quick Dash
 - `1`: Root Snare
+- `R`: Verdant Pulse (unlock in Talents)
 - `2`, `3`, `4`: bound action slots
 - `5`: Health Potion
 - `6`: Spirit Tonic
@@ -41,14 +42,17 @@ Trenutni fokus je na malom, povezanom ARPG vertical slice-u:
   - `Frostpine Tundra`
   - `Blighted Woods`
   - `Hollowheart Ruins`
+  - `Ancient Heart`
   - `Sunken Reliquary`
   - `Chapel of Tides`
+  - `Starfall Sanctum`
 - hub-style village presentation with NPC interactions
 - combat kit:
   - Staff Strike
   - Spirit Bolt
   - Quick Dash
   - Root Snare
+  - Verdant Pulse (talent-locked AoE burst that detonates bloom and clears nearby projectiles)
 - out-of-combat health regeneration
 - enemy waves, boss encounters, and elite affixes
 - enemy roster:
@@ -78,10 +82,13 @@ Trenutni fokus je na malom, povezanom ARPG vertical slice-u:
   - village stash
 - ambient WebAudio layer with combat, UI, loot, quest, and travel feedback
 - item rewards, silver currency, usable potions, and buff consumables
+- expanded loot pool with additional pulse-focused trinkets, amulets, talismans, relics, and new consumables
 - quest consequence flags that visibly change roads, lanterns, NPC placement, and dungeon access
 - multi-step relic / marsh quest chains that open:
   - `Sunken Reliquary`
   - `Chapel of Tides`
+- late-game Selka quest chain that opens:
+  - `Starfall Sanctum`
 
 ## Running Locally
 
@@ -108,7 +115,7 @@ http://localhost:4177/
 - `data/storyData.js`
   - quest defs, NPC defs, dialogue, rewards
 - `entities/player.js`
-  - Ayla movement, buffs, vitals, cooldown model
+  - Ayla movement, buffs, vitals, cooldown model, and active ability data
 - `entities/enemy.js`
   - enemy roles and elite affix setup
 - `entities/boss.js`
@@ -120,7 +127,7 @@ http://localhost:4177/
 - `ui/hud.js`
   - HUD, quest log, character/inventory/talents/services panels
 - `systems/combat.js`
-  - combat resolution, loot drops, kill rewards
+  - combat resolution, active spells, loot drops, kill rewards
 - `systems/encounter.js`
   - wave pacing, spawn direction, elite rolls
 - `systems/progression.js`
@@ -142,8 +149,8 @@ http://localhost:4177/
 
 ## Next Logical Step
 
-- richer biome-specific drops and more unique vendor stock
-- another handcrafted dungeon branch with its own miniboss
 - stronger enemy/NPC sprite identity pass
+- one more handcrafted dungeon branch in the mid-game path
 - more world-state reactions after late-game clears
+- richer vendor compare UX and clickable drag-and-drop slot assignment
 - optional audio asset swap from synth feedback to authored SFX

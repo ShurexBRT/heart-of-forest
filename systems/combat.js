@@ -20,6 +20,7 @@ const ROOT_RADIUS = 48;
 const BLOOM_WINDOW = 1.1;
 const BLOOM_BOLT_BONUS = 12;
 const COMBAT_TAG_DURATION = 4.2;
+const PULSE_PROJECTILE_CLEAR_PAD = 18;
 
 const ENEMY_XP = {
   thornling: 16,
@@ -36,11 +37,13 @@ export function handlePlayerAbilities(state, input) {
   if (input.mouse.rightPressed) castSpiritBolt(state);
   if (wasPressed(input, " ", "Space")) castDash(state, input);
   if (wasPressed(input, "1", "Digit1")) castRootSnare(state);
+  if (wasPressed(input, "r", "KeyR")) castVerdantPulse(state);
 }
 
 export function updateCombatEffects(state, dt) {
   updateProjectiles(state, dt);
   updateRoots(state, dt);
+  updatePulses(state, dt);
   updateSwings(state, dt);
   updateAfterImages(state, dt);
 }
@@ -325,6 +328,114 @@ function castRootSnare(state) {
   });
 }
 
+function castVerdantPulse(state) {
+  const player = state.player;
+  const info = player.abilityInfo.pulse;
+
+  if (!info.unlocked || player.cooldowns.pulse > 0 || !player.canSpend(info.cost)) return;
+
+  player.cooldowns.pulse = info.cooldown;
+  player.spendSpirit(info.cost);
+  player.playPose("cast", 0.28);
+  markCombat(state);
+  queueAudio(state, "pulse");
+
+  state.pulses.push({
+    x: player.x,
+    y: player.y,
+    radius: info.radius,
+    life: 0.34,
+    maxLife: 0.34,
+  });
+
+  let hits = 0;
+  let totalHeal = 0;
+  let totalRefund = 0;
+  let dispelled = 0;
+
+  const affectTarget = (target, rootMultiplier = 1) => {
+    if (target.dead) return;
+
+    const wasRooted = target.rooted > 0;
+    const bloomed = target.bloom > 0;
+    const bonusDamage =
+      (bloomed ? 10 + Math.floor((state.player.abilityInfo.bloomBonus || 0) * 0.6) : 0) +
+      (wasRooted ? 6 : 0);
+
+    if (bloomed) {
+      target.bloom = 0;
+      totalHeal += target.isBoss ? 8 : 5;
+      totalRefund += 6;
+    } else if (wasRooted) {
+      totalRefund += 2;
+    }
+
+    target.rooted = Math.max(target.rooted, info.rootDuration * rootMultiplier);
+    damageHostile(state, target, info.damage + bonusDamage, player.x, player.y, 205, 0.12);
+    hits += 1;
+  };
+
+  for (const enemy of state.enemies) {
+    if (enemy.dead) continue;
+    if (distance(player.x, player.y, enemy.x, enemy.y) <= info.radius + enemy.radius) {
+      affectTarget(enemy, enemy.config?.rootMultiplier || 1);
+    }
+  }
+
+  const boss = getActiveBoss(state);
+  if (boss && distance(player.x, player.y, boss.x, boss.y) <= info.radius + boss.radius) {
+    affectTarget(boss, 0.68);
+  }
+
+  for (const projectile of state.hostileProjectiles) {
+    if (distance(player.x, player.y, projectile.x, projectile.y) <= info.radius + PULSE_PROJECTILE_CLEAR_PAD) {
+      projectile.life = 0;
+      dispelled += 1;
+
+      spawnBurst(state, projectile.x, projectile.y, {
+        count: 8,
+        colors: ["#bffcff", "#88ddff", "#f5ffff"],
+        speed: 120,
+        size: [1, 3],
+        life: [0.08, 0.22],
+      });
+    }
+  }
+
+  if (dispelled > 0) {
+    state.hostileProjectiles = state.hostileProjectiles.filter((projectile) => projectile.life > 0);
+  }
+
+  if (totalRefund > 0) {
+    gainSpirit(state, totalRefund);
+  }
+
+  if (totalHeal > 0) {
+    player.hp = Math.min(player.maxHp, player.hp + totalHeal);
+    spawnBurst(state, player.x, player.y - 12, {
+      count: 10 + Math.min(8, totalHeal),
+      colors: ["#bff7b8", "#7fe389", "#f2ffd8"],
+      speed: 125,
+      size: [2, 4],
+      life: [0.12, 0.28],
+      spread: Math.PI * 0.85,
+      angle: -Math.PI / 2,
+    });
+  }
+
+  spawnBurst(state, player.x, player.y, {
+    count: hits > 0 || dispelled > 0 ? 28 : 18,
+    colors: hits > 0 ? ["#d9ffb2", "#83eb83", "#79dfff", "#f1ffdf"] : ["#bcefb7", "#8ed998", "#efffdd"],
+    speed: hits > 0 ? 255 : 180,
+    size: [2, 5],
+    life: [0.14, 0.42],
+  });
+
+  if (hits > 0 || dispelled > 0) {
+    state.shake = Math.max(state.shake, dispelled > 0 ? 4 : 3.2);
+  }
+}
+
 function updateProjectiles(state, dt) {
   for (const projectile of state.projectiles) {
     const moveX = projectile.vx * dt;
@@ -426,6 +537,14 @@ function updateRoots(state, dt) {
   }
 
   state.roots = state.roots.filter((root) => root.life > 0);
+}
+
+function updatePulses(state, dt) {
+  for (const pulse of state.pulses) {
+    pulse.life -= dt;
+  }
+
+  state.pulses = state.pulses.filter((pulse) => pulse.life > 0);
 }
 
 function updateSwings(state, dt) {

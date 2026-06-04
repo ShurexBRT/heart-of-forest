@@ -138,8 +138,14 @@ export class Boss {
     const hazards = [];
     const center = { x: state.player.x, y: state.player.y };
     const count = this.phase >= 2 ? 6 : 4;
-    const eruptionDamage = this.id === "bog_matron" ? (this.phase >= 2 ? 20 : 16) : this.phase >= 2 ? 22 : 18;
-    const eruptionType = this.id === "bog_matron" ? "mire" : "thorn";
+    const eruptionDamage =
+      this.id === "bog_matron"
+        ? this.phase >= 2 ? 20 : 16
+        : this.id === "starwoken_sentinel"
+          ? this.phase >= 2 ? 19 : 15
+          : this.phase >= 2 ? 22 : 18;
+    const eruptionType =
+      this.id === "bog_matron" ? "mire" : this.id === "starwoken_sentinel" ? "frost" : "thorn";
 
     for (let i = 0; i < count; i += 1) {
       const angle = randomRange(0, TAU);
@@ -167,6 +173,8 @@ export class Boss {
       colors:
         this.id === "bog_matron"
           ? ["#8bd9e6", "#69b8cb", "#d6f3f8"]
+          : this.id === "starwoken_sentinel"
+            ? ["#b6dfff", "#d8ceff", "#f2f8ff"]
           : ["#8ceb6b", "#5bbd55", "#f0cf77"],
       speed: 170,
       size: [2, 4],
@@ -210,7 +218,10 @@ export class Boss {
 
     spawnBurst(state, attack.targetX, attack.targetY, {
       count: 32,
-      colors: ["#ffb772", "#ff7f69", "#f5e48b"],
+      colors:
+        this.id === "starwoken_sentinel"
+          ? ["#d8deff", "#9bcfff", "#f6f3ff"]
+          : ["#ffb772", "#ff7f69", "#f5e48b"],
       speed: 300,
       size: [2, 6],
       life: [0.18, 0.55],
@@ -242,9 +253,19 @@ export class Boss {
         vy: Math.sin(angle) * (this.phase >= 2 ? 356 : 320),
         radius: 8,
         life: 2.2,
-        damage: this.id === "bog_matron" ? (this.phase >= 2 ? 16 : 13) : this.phase >= 2 ? 18 : 14,
+        damage:
+          this.id === "bog_matron"
+            ? this.phase >= 2 ? 16 : 13
+            : this.id === "starwoken_sentinel"
+              ? this.phase >= 2 ? 17 : 14
+              : this.phase >= 2 ? 18 : 14,
         knockback: 175,
-        type: this.id === "bog_matron" ? "spirit" : "thorn",
+        type:
+          this.id === "bog_matron"
+            ? "spirit"
+            : this.id === "starwoken_sentinel"
+              ? "frost"
+              : "thorn",
       });
     }
 
@@ -253,6 +274,8 @@ export class Boss {
       colors:
         this.id === "bog_matron"
           ? ["#79d9f5", "#c2f1ff", "#6fa995"]
+          : this.id === "starwoken_sentinel"
+            ? ["#d4d9ff", "#a7cfff", "#eff8ff"]
           : ["#d35d48", "#ffb868", "#9cdc79"],
       speed: 180,
       size: [2, 4],
@@ -264,7 +287,10 @@ export class Boss {
     state.shake = Math.max(state.shake, 5);
     spawnBurst(state, this.x, this.y, {
       count: 14,
-      colors: ["#7ce567", "#efb35e", "#f1f8a6"],
+      colors:
+        this.id === "starwoken_sentinel"
+          ? ["#c8dcff", "#e2d7ff", "#fbfcff"]
+          : ["#7ce567", "#efb35e", "#f1f8a6"],
       speed: 150,
       size: [2, 4],
       life: [0.12, 0.28],
@@ -285,6 +311,14 @@ export class Boss {
                 "mire_brute",
               ]
             : ["thornling", "thorn_weaver", "wisp_archer"]
+        : this.id === "starwoken_sentinel"
+          ? this.phase >= 3
+            ? [
+                { type: "wisp_archer", elite: true, affixes: ["spiteful"] },
+                { type: "thornling", elite: true, affixes: ["swift"] },
+                "thorn_weaver",
+              ]
+            : ["wisp_archer", "thorn_weaver", "thornling"]
         : this.phase >= 3
           ? ["wisp_archer", "mire_brute", "thornling"]
           : ["thornling", "wisp_archer"];
@@ -312,6 +346,8 @@ export class Boss {
         ? "Vault Echoes Stir"
         : this.id === "bog_matron"
           ? "The Tides Answer"
+          : this.id === "starwoken_sentinel"
+            ? "The Spire Answers"
           : "The Hollow Calls";
     state.encounter.bannerTimer = 1.5;
   }
@@ -332,6 +368,10 @@ export class Boss {
             ? this.phase === 2
               ? "Floodwake Rising"
               : "Matron of the Mire"
+            : this.id === "starwoken_sentinel"
+              ? this.phase === 2
+                ? "Starfall Awakens"
+                : "Sentinel of the Spire"
           : this.phase === 2
             ? "Elder Hollow Rises"
             : "Heartwood Frenzy";

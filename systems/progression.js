@@ -523,6 +523,10 @@ export function getPlayerBonuses(progression) {
     dashCooldownBonus: 0,
     rootDurationBonus: 0,
     bloomBonus: 0,
+    pulseUnlocked: 0,
+    pulseDamageBonus: 0,
+    pulseRadiusBonus: 0,
+    pulseCooldownBonus: 0,
     incomingDamageReductionBonus: 0,
     moveSpeedBonus: 0,
   };
@@ -566,11 +570,15 @@ export function awardEnemyLoot(progression, enemyType, biomeId, source = {}) {
       biomeId === "ember"
         ? { emberwake_seal: 1, emberglass_relic: 1, greater_health_potion: 2, relic_shard: 2 }
         : biomeId === "frost"
-          ? { tundra_signet: 1, frostband_charm: 1, greater_spirit_tonic: 1, stonebloom: 2 }
+          ? source?.id === "veil_seraph"
+            ? { seraphim_lens: 1, starwell_relic: 1, starfire_tonic: 1, relic_shard: 2 }
+            : { tundra_signet: 1, frostband_charm: 1, greater_spirit_tonic: 1, stonebloom: 2 }
           : biomeId === "ancient"
             ? source?.id === "rootbound_custodian"
               ? { custodian_spindle: 1, reliquary_loop: 1, greater_spirit_tonic: 1, ward_elixir: 1 }
-              : { heartseed_pendant: 1, heartseed: 1, greater_health_potion: 2 }
+              : source?.id === "starwoken_sentinel"
+                ? { selkas_vigil: 1, heartwake_pendant: 1, groveguard_phial: 1, relic_shard: 2 }
+                : { heartseed_pendant: 1, heartseed: 1, greater_health_potion: 2 }
             : biomeId === "blight"
               ? { hollowcourt_pendant: 1, heartseed: 1, rootwoven_talisman: 1, greater_health_potion: 1 }
               : { rowans_oath_brooch: 1, moonthread_amulet: 1, health_potion: 2, spirit_bloom: 2 };
@@ -580,7 +588,14 @@ export function awardEnemyLoot(progression, enemyType, biomeId, source = {}) {
       grants.push({ itemId, amount });
     }
 
-    silver = biomeId === "ancient" ? 145 : biomeId === "blight" ? 132 : 108;
+    silver =
+      source?.id === "veil_seraph"
+        ? 154
+        : biomeId === "ancient"
+          ? 145
+          : biomeId === "blight"
+            ? 132
+            : 108;
     addCurrency(progression, silver);
     return { items: grants, silver };
   }

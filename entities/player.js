@@ -5,6 +5,7 @@ import { moveCircleWithCollisions } from "../systems/collision.js";
 export const PLAYER_ABILITY_INFO = {
   staff: {
     label: "Staff Strike",
+    shortLabel: "Staff",
     key: "LMB",
     cooldown: 0.28,
     cost: 0,
@@ -14,6 +15,7 @@ export const PLAYER_ABILITY_INFO = {
   },
   bolt: {
     label: "Spirit Bolt",
+    shortLabel: "Bolt",
     key: "RMB",
     cooldown: 0.42,
     cost: 14,
@@ -23,16 +25,28 @@ export const PLAYER_ABILITY_INFO = {
   },
   dash: {
     label: "Quick Dash",
+    shortLabel: "Dash",
     key: "Space",
     cooldown: 1.05,
     cost: 0,
   },
   root: {
     label: "Root Snare",
+    shortLabel: "Root",
     key: "1",
     cooldown: 2.6,
     cost: 24,
     duration: 1.35,
+  },
+  pulse: {
+    label: "Verdant Pulse",
+    shortLabel: "Pulse",
+    key: "R",
+    cooldown: 4.4,
+    cost: 30,
+    damage: 28,
+    radius: 112,
+    rootDuration: 0.42,
   },
 };
 
@@ -87,6 +101,7 @@ export class Player {
       bolt: 0,
       dash: 0,
       root: 0,
+      pulse: 0,
     };
   }
 
@@ -251,6 +266,14 @@ function buildAbilityInfo(modifiers) {
     root: {
       ...PLAYER_ABILITY_INFO.root,
       duration: PLAYER_ABILITY_INFO.root.duration + (modifiers.rootDurationBonus || 0),
+    },
+    pulse: {
+      ...PLAYER_ABILITY_INFO.pulse,
+      unlocked: Boolean(modifiers.pulseUnlocked),
+      damage: PLAYER_ABILITY_INFO.pulse.damage + (modifiers.pulseDamageBonus || 0),
+      radius: PLAYER_ABILITY_INFO.pulse.radius + (modifiers.pulseRadiusBonus || 0),
+      cooldown: Math.max(1.8, PLAYER_ABILITY_INFO.pulse.cooldown - (modifiers.pulseCooldownBonus || 0)),
+      rootDuration: PLAYER_ABILITY_INFO.pulse.rootDuration + (modifiers.rootDurationBonus || 0) * 0.4,
     },
     bloomBonus: modifiers.bloomBonus || 0,
   };

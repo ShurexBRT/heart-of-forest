@@ -178,6 +178,10 @@ function playCue(audio, event) {
     case "root":
       toneSweep(audio, 210, 320, 0.24, 0.07, "triangle");
       break;
+    case "pulse":
+      chord(audio, [204, 258, 322], 0.24, 0.055, "triangle");
+      toneSweep(audio, 280, 190, 0.18, 0.035, "sine");
+      break;
     case "enemy-hit":
       toneSweep(audio, 180, 120, 0.07, 0.05, "square");
       break;

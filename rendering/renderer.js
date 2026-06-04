@@ -261,8 +261,10 @@ function drawBackdropGlow(ctx, arena, offsetX, offsetY) {
         ? "rgba(170, 220, 255, 0.12)"
         : arena.sceneStyle === "chapelOfTides"
           ? "rgba(134, 206, 224, 0.12)"
-        : arena.sceneStyle === "hollowheartRuins"
-          ? "rgba(176, 83, 74, 0.12)"
+          : arena.sceneStyle === "starfallSanctum"
+            ? "rgba(208, 214, 255, 0.13)"
+          : arena.sceneStyle === "hollowheartRuins"
+            ? "rgba(176, 83, 74, 0.12)"
           : arena.sceneStyle === "ancientHeart" || arena.sceneStyle === "sunkenReliquary"
             ? "rgba(198, 174, 255, 0.11)"
           : "rgba(207, 235, 163, 0.08)";
@@ -331,6 +333,32 @@ function drawGroundEffects(ctx, state, origin) {
       const x2 = root.x + Math.cos(angle) * outer;
       const y2 = root.y + Math.sin(angle) * outer;
       drawIsoLine(ctx, origin, x1, y1, x2, y2, 4, "#76df66");
+    }
+    ctx.restore();
+  }
+
+  for (const pulse of state.pulses || []) {
+    const progress = Math.max(0, pulse.life / pulse.maxLife);
+    const radius = pulse.radius * (1.06 - progress * 0.16);
+
+    ctx.save();
+    ctx.globalAlpha = 0.18 + progress * 0.28;
+    drawIsoRing(ctx, origin, pulse.x, pulse.y, radius, 14, "#9ae97d");
+    drawIsoRing(ctx, origin, pulse.x, pulse.y, Math.max(22, radius - 22), 12, "#7edbff");
+    for (let i = 0; i < 8; i += 1) {
+      const angle = (Math.PI * 2 * i) / 8;
+      const inner = 20;
+      const outer = radius - 6;
+      drawIsoLine(
+        ctx,
+        origin,
+        pulse.x + Math.cos(angle) * inner,
+        pulse.y + Math.sin(angle) * inner,
+        pulse.x + Math.cos(angle) * outer,
+        pulse.y + Math.sin(angle) * outer,
+        3,
+        i % 2 === 0 ? "#b8ffb0" : "#9bddff"
+      );
     }
     ctx.restore();
   }
@@ -1013,6 +1041,7 @@ function drawSceneAtmosphere(ctx, state) {
   if (style === "blightedWoods" || style === "hollowheartRuins") overlay = "rgba(34, 14, 18, 0.1)";
   if (style === "chapelOfTides") overlay = "rgba(12, 26, 30, 0.1)";
   if (style === "ancientHeart" || style === "sunkenReliquary") overlay = "rgba(24, 18, 36, 0.08)";
+  if (style === "starfallSanctum") overlay = "rgba(18, 20, 42, 0.1)";
 
   ctx.save();
   ctx.fillStyle = overlay;
@@ -1031,9 +1060,11 @@ function drawSceneAtmosphere(ctx, state) {
           ? "#ffbb7f"
           : style === "chapelOfTides"
             ? "#94e7ff"
-          : style === "blightedWoods" || style === "hollowheartRuins"
-            ? "#cc8b82"
-            : "#dff4b2";
+            : style === "starfallSanctum"
+              ? "#d8deff"
+            : style === "blightedWoods" || style === "hollowheartRuins"
+              ? "#cc8b82"
+              : "#dff4b2";
     ctx.save();
     ctx.globalAlpha = 0.08;
     pixelRect(ctx, x, y, 2, 2, color);

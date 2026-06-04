@@ -42,6 +42,16 @@ const SHOP_SORT_BUTTONS = [
   ["recent", "Recent"],
 ];
 
+function getHudAbilitySpecs() {
+  return [
+    ["staff", "#f2d07a"],
+    ["bolt", "#74ddff"],
+    ["dash", "#b7f0dd"],
+    ["root", "#8ce36d"],
+    ["pulse", "#b9f48a"],
+  ];
+}
+
 export function drawHud(ctx, state, abilityInfo) {
   drawSceneInfo(ctx, state);
   drawBossBar(ctx, state);
@@ -83,7 +93,7 @@ function drawBottomHud(ctx, state, abilityInfo) {
 
   ctx.fillStyle = "rgba(228, 238, 214, 0.78)";
   ctx.font = "11px Segoe UI, Arial";
-  ctx.fillText(`Lv ${xp.level}  |  Q Quest Log  |  C Character  |  I Inventory  |  T Talents  |  2-4 Action`, x + 18, y - 8);
+  ctx.fillText(`Lv ${xp.level}  |  Q Quest Log  |  C Character  |  I Inventory  |  T Talents  |  R Pulse  |  2-4 Action`, x + 18, y - 8);
 
   ctx.fillStyle = "rgba(5, 8, 12, 0.84)";
   ctx.fillRect(x, y, panelW, panelH);
@@ -100,7 +110,7 @@ function drawBottomHud(ctx, state, abilityInfo) {
   ctx.fillText(`${Math.round(state.player.spirit)}/${state.player.maxSpirit}`, x + panelW - 78, y + 64);
   ctx.textAlign = "left";
 
-  const abilityRowWidth = 76 * 4 + 10 * 3;
+  const abilityRowWidth = getHudAbilitySpecs().length * 76 + (getHudAbilitySpecs().length - 1) * 10;
   drawAbilitySlots(ctx, x + panelW / 2 - abilityRowWidth / 2, y + 18, state.player, abilityInfo);
   drawActionSlots(ctx, x + panelW / 2 - 147, y + 82, state.progression);
   drawQuickCounters(ctx, x + 18, y + 98, healthPotions, spiritTonics, panelW);
@@ -142,12 +152,7 @@ function drawOrb(ctx, cx, cy, radius, ratio, dark, light) {
 }
 
 function drawAbilitySlots(ctx, startX, y, player, abilityInfo) {
-  const abilities = [
-    ["staff", "#f2d07a"],
-    ["bolt", "#74ddff"],
-    ["dash", "#b7f0dd"],
-    ["root", "#8ce36d"],
-  ];
+  const abilities = getHudAbilitySpecs();
   const slotW = 76;
   const slotH = 54;
   const gap = 10;
@@ -158,6 +163,7 @@ function drawAbilitySlots(ctx, startX, y, player, abilityInfo) {
     const x = startX + i * (slotW + gap);
     const cooldown = player.cooldowns[name];
     const ratio = info.cooldown > 0 ? Math.min(1, cooldown / info.cooldown) : 0;
+    const unlocked = info.unlocked !== false;
 
     ctx.fillStyle = "rgba(0, 0, 0, 0.64)";
     ctx.fillRect(x, y, slotW, slotH);
@@ -172,17 +178,20 @@ function drawAbilitySlots(ctx, startX, y, player, abilityInfo) {
       ctx.fillRect(x + 3, y + 3, slotW - 6, (slotH - 6) * ratio);
     }
 
-    if (info.cost > 0 && player.spirit < info.cost) {
+    if (!unlocked) {
+      ctx.fillStyle = "rgba(9, 12, 18, 0.72)";
+      ctx.fillRect(x + 3, y + 3, slotW - 6, slotH - 6);
+    } else if (info.cost > 0 && player.spirit < info.cost) {
       ctx.fillStyle = "rgba(27, 51, 68, 0.46)";
       ctx.fillRect(x + 3, y + 3, slotW - 6, slotH - 6);
     }
 
-    ctx.fillStyle = "#f7fff1";
+    ctx.fillStyle = unlocked ? "#f7fff1" : "#88939f";
     ctx.font = "700 16px Segoe UI, Arial";
     ctx.fillText(info.key, x + 10, y + 22);
     ctx.font = "12px Segoe UI, Arial";
-    ctx.fillStyle = "#d7e4cf";
-    ctx.fillText(info.label, x + 10, y + 40);
+    ctx.fillStyle = unlocked ? "#d7e4cf" : "#97a2ae";
+    ctx.fillText(unlocked ? info.shortLabel || info.label : "Locked", x + 10, y + 40);
   }
 }
 
@@ -1546,11 +1555,24 @@ function getQuestLogPanelData(state) {
   };
 }
 
-function buildItemTooltip(entry, lines = []) {
+function buildItemTooltip(entry, lines = [], progression = null) {
   const tooltipLines = [entry.description];
   if (entry.bonuses) {
     for (const [key, value] of Object.entries(entry.bonuses)) {
       tooltipLines.push(`${formatBonusKey(key)}: ${value > 0 ? "+" : ""}${value}`);
+    }
+  }
+  if (progression && entry.category === "equipment" && entry.slot) {
+    const equippedItem = getEquippedItems(progression).find((candidate) => candidate.slot === entry.slot)?.item;
+    if (equippedItem && equippedItem.id !== entry.id) {
+      tooltipLines.push(`Equipped: ${equippedItem.name}`);
+      for (const comparison of buildComparisonLines(entry, equippedItem)) {
+        tooltipLines.push(
+          `${comparison.label}: ${comparison.current} (${comparison.delta > 0 ? "+" : ""}${comparison.delta})`
+        );
+      }
+    } else if (!equippedItem) {
+      tooltipLines.push("Open equipment slot.");
     }
   }
   if (entry.maxStack && typeof entry.amount === "number") {
@@ -1578,7 +1600,7 @@ function getMenuHoverTarget(state, mouseX, mouseY) {
           index: row.index,
           rect: row.rect,
           tooltip: row.item
-            ? buildItemTooltip(row.item, [`Slot: ${row.slot}`])
+            ? buildItemTooltip(row.item, [`Slot: ${row.slot}`], state.progression)
             : { title: row.slot.toUpperCase(), lines: ["Empty equipment slot."], accent: "#7f8a95" },
         };
       }
@@ -1649,7 +1671,7 @@ function getMenuHoverTarget(state, mouseX, mouseY) {
           index: row.index,
           entry: row.entry,
           rect: row.rect,
-          tooltip: buildItemTooltip(row.entry),
+          tooltip: buildItemTooltip(row.entry, [], state.progression),
         };
       }
     }
@@ -1726,7 +1748,11 @@ function getMenuHoverTarget(state, mouseX, mouseY) {
         return {
           ...panel.actionButton,
           tooltip: panel.service.kind === "shop"
-            ? buildItemTooltip(selectedItem, [panel.selected.mode === "buyback" ? `Recover for ${panel.selected.price} silver` : `Price ${panel.selected.price} silver`])
+            ? buildItemTooltip(
+                selectedItem,
+                [panel.selected.mode === "buyback" ? `Recover for ${panel.selected.price} silver` : `Price ${panel.selected.price} silver`],
+                state.progression
+              )
             : { title: panel.selected.title, lines: [panel.selected.description, formatActionCost(panel.selected)], accent: panel.actionButton.accent },
         };
       }
@@ -1735,7 +1761,11 @@ function getMenuHoverTarget(state, mouseX, mouseY) {
           const serviceItem = row.entry.item || row.entry;
           const tooltip =
             panel.service.kind === "shop"
-              ? buildItemTooltip(serviceItem, [row.entry.mode === "buyback" ? `Recover for ${row.entry.price} silver` : `Price ${row.entry.price} silver`])
+              ? buildItemTooltip(
+                  serviceItem,
+                  [row.entry.mode === "buyback" ? `Recover for ${row.entry.price} silver` : `Price ${row.entry.price} silver`],
+                  state.progression
+                )
               : { title: row.entry.title, lines: [row.entry.description, formatActionCost(row.entry)], accent: row.entry.affordable ? "#a6e28c" : "#c67d72" };
           return {
             action: "service-select",
@@ -1757,7 +1787,7 @@ function getMenuHoverTarget(state, mouseX, mouseY) {
           index: row.index,
           entry: row.entry,
           rect: row.rect,
-          tooltip: buildItemTooltip(row.entry, ["Store one item in the stash."]),
+          tooltip: buildItemTooltip(row.entry, ["Store one item in the stash."], state.progression),
         };
       }
     }
@@ -1770,7 +1800,7 @@ function getMenuHoverTarget(state, mouseX, mouseY) {
           index: row.index,
           entry: row.entry,
           rect: row.rect,
-          tooltip: buildItemTooltip(row.entry, ["Withdraw one item from the stash."]),
+          tooltip: buildItemTooltip(row.entry, ["Withdraw one item from the stash."], state.progression),
         };
       }
     }
@@ -1803,14 +1833,17 @@ function getHudHoverOnlyTarget(state, mouseX, mouseY) {
   const hud = getBottomHudInteractionData(state);
   for (const slot of hud.abilitySlots) {
     if (pointInRect(mouseX, mouseY, slot.rect)) {
+      const locked = slot.info.unlocked === false;
       return {
         rect: slot.rect,
         tooltip: {
           title: slot.info.label,
-          lines: [
-            slot.info.cost > 0 ? `Cost ${slot.info.cost} Spirit` : "No Spirit cost",
-            `Cooldown ${slot.info.cooldown.toFixed(2)}s`,
-          ],
+          lines: locked
+            ? ["Unlock this magic in the Talents tab.", "Spirit tree"]
+            : [
+                slot.info.cost > 0 ? `Cost ${slot.info.cost} Spirit` : "No Spirit cost",
+                `Cooldown ${slot.info.cooldown.toFixed(2)}s`,
+              ],
           accent: slot.color,
         },
       };
@@ -1824,7 +1857,7 @@ function getHudHoverOnlyTarget(state, mouseX, mouseY) {
         action: "hud-action-slot",
         slotIndex: slot.index,
         rect: slot.rect,
-        tooltip: buildItemTooltip(slot.item, [`Quick Slot ${slot.key}`, `Owned ${slot.count}`]),
+        tooltip: buildItemTooltip(slot.item, [`Quick Slot ${slot.key}`, `Owned ${slot.count}`], state.progression),
       };
     }
   }
@@ -1853,15 +1886,10 @@ function getBottomHudInteractionData(state) {
   const panelH = 132;
   const x = width / 2 - panelW / 2;
   const y = height - panelH - 16;
-  const abilityRowWidth = 76 * 4 + 10 * 3;
+  const abilities = getHudAbilitySpecs();
+  const abilityRowWidth = abilities.length * 76 + (abilities.length - 1) * 10;
   const abilityStartX = x + panelW / 2 - abilityRowWidth / 2;
   const actionStartX = x + panelW / 2 - 147;
-  const abilities = [
-    ["staff", "#f2d07a"],
-    ["bolt", "#74ddff"],
-    ["dash", "#b7f0dd"],
-    ["root", "#8ce36d"],
-  ];
   const actionSlots = getActionSlotEntries(state.progression);
   return {
     abilitySlots: abilities.map(([name, color], index) => ({

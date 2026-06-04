@@ -165,6 +165,39 @@ export const QUEST_DEFS = {
     rewards: { items: { heartseed_pendant: 1, relic_shard: 2, greater_health_potion: 2 }, silver: 180, talentPoints: 2, xp: 220 },
     objectives: [{ key: "elderHollowDefeated", label: "Elder Hollow defeated", required: 1 }],
   },
+  pilgrims_lantern: {
+    id: "pilgrims_lantern",
+    title: "Pilgrim's Lantern",
+    description: "Selka can feel an old sanctum answer beneath the Ancient Heart. Gather Heart Blooms and restore the star seals to wake the hidden path.",
+    giverId: "selka",
+    sceneId: "ancient_heart",
+    prerequisiteId: "elder_hollow",
+    startState: "inactive",
+    completeFlags: ["starfall_sanctum_open"],
+    rewards: { items: { groveguard_phial: 1, starfire_tonic: 1, relic_shard: 1 }, silver: 136, talentPoints: 1, xp: 168 },
+    objectives: [
+      { key: "heartBloomsGathered", label: "Heart Blooms gathered", required: 2 },
+      { key: "starSealsRecovered", label: "Star seals restored", required: 2 },
+    ],
+  },
+  starfall_sanctum: {
+    id: "starfall_sanctum",
+    title: "Starfall Sanctum",
+    description: "Step into the hidden sanctum, relight its braziers, and break the sentinel guarding the pilgrim spire.",
+    autoActivateSceneId: "starfall_sanctum",
+    prerequisiteId: "pilgrims_lantern",
+    completeFlags: ["starfall_sanctum_cleansed"],
+    rewards: {
+      items: { starwell_relic: 1, greater_spirit_tonic: 1, relic_shard: 1 },
+      silver: 198,
+      talentPoints: 1,
+      xp: 220,
+    },
+    objectives: [
+      { key: "starBraziersLit", label: "Sanctum braziers relit", required: 2 },
+      { key: "starwokenSentinelDefeated", label: "Starwoken Sentinel defeated", required: 1 },
+    ],
+  },
 };
 
 export const NPC_DEFS = {
@@ -340,9 +373,20 @@ export const NPC_DEFS = {
     role: "Heart Pilgrim",
     palette: { hood: "#efe7dd", cloak: "#7e67a6", accent: "#f0dd92" },
     dialogue: {
-      default: [
-        "Past the court the forest still keeps one bright chamber.",
-        "If you reach the Ancient Heart, walk softly. The place remembers even the roots beneath you.",
+      intro: [
+        "The Heart still keeps one hidden lantern for those willing to listen.",
+        "Bring me the two Heart Blooms and wake the star seals. The sanctum beneath this place should answer.",
+      ],
+      progress: [
+        "The blooms carry the song, but the path will stay shuttered until both star seals answer with them.",
+      ],
+      complete: [
+        "There, you can hear it now. The sanctum door has remembered its name.",
+        "Go gently, Ayla. The sentinel below was built to judge the unready.",
+      ],
+      after: [
+        "The hidden chamber is awake now.",
+        "If the lantern below still burns when you return, the Heart may remember your name for a long while.",
       ],
     },
   },

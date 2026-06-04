@@ -188,6 +188,7 @@ function buildSceneState(sceneId, entryId, currentProgression, sceneProgress, vi
     hostileProjectiles: [],
     eruptions: [],
     roots: [],
+    pulses: [],
     swings: [],
     particles: [],
     afterImages: [],

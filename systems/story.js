@@ -82,6 +82,10 @@ export function consumeStoryEvents(state) {
     if (event.type === "bossDefeated" && event.bossId === "bog_matron") {
       incrementQuestCounter(state.progression, "bogMatronDefeated", 1);
     }
+
+    if (event.type === "bossDefeated" && event.bossId === "starwoken_sentinel") {
+      incrementQuestCounter(state.progression, "starwokenSentinelDefeated", 1);
+    }
   }
 
   refreshQuestStates(state);

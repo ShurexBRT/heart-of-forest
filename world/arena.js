@@ -1263,14 +1263,32 @@ function buildAncientHeart(context, rng) {
     interactable("heart-bloom-1", "flower", 784, 352, {
       name: "Heart Bloom",
       promptLabel: "Gather Heart Bloom",
+      collectKey: "heartBloomsGathered",
       toastText: "Heart Bloom gathered",
       sortY: 362,
     }),
     interactable("heart-bloom-2", "flower", 1032, 520, {
       name: "Heart Bloom",
       promptLabel: "Gather Heart Bloom",
+      collectKey: "heartBloomsGathered",
       toastText: "Heart Bloom gathered",
       sortY: 530,
+    }),
+    interactable("star-seal-1", "seal", 628, 318, {
+      name: "Star Seal",
+      promptLabel: "Restore Star Seal",
+      collectKey: "starSealsRecovered",
+      toastText: "Star seal restored",
+      requiresCleared: true,
+      sortY: 332,
+    }),
+    interactable("star-seal-2", "seal", 1208, 356, {
+      name: "Star Seal",
+      promptLabel: "Restore Star Seal",
+      collectKey: "starSealsRecovered",
+      toastText: "Star seal restored",
+      requiresCleared: true,
+      sortY: 370,
     }),
   ];
 
@@ -1279,6 +1297,7 @@ function buildAncientHeart(context, rng) {
     entrySpawns: {
       default: { x: 804, y: 842 },
       southGate: { x: 804, y: 842 },
+      northSanctum: { x: 932, y: 116 },
     },
     spawnPoints: [
       { x: 242, y: 194 },
@@ -1296,6 +1315,7 @@ function buildAncientHeart(context, rng) {
     ],
     exits: [
       makeExit("southGate", 708, 884, 196, 52, "down", context.connections.southGate),
+      makeExit("northSanctum", 840, 24, 184, 62, "up", context.connections.northSanctum),
     ],
     obstacles: [
       ruin(760, 208, 214, 128, "altar"),
@@ -1311,11 +1331,95 @@ function buildAncientHeart(context, rng) {
       bush(1216, 742, 88, 54, "forest"),
       lantern(892, 338, "frost"),
       lantern(1034, 338, "warm"),
+      ...(flags.starfall_sanctum_open ? [lantern(934, 204, "cool"), signpost(1018, 212)] : []),
+      ...(flags.starfall_sanctum_cleansed ? [lantern(1118, 336, "warm"), lantern(776, 336, "warm")] : []),
     ],
     npcs: [
       npc("selka", 254, 670),
       ...(flags.elder_hollow_broken ? [npc("mara", 1088, 372)] : []),
+      ...(flags.starfall_sanctum_cleansed ? [npc("halen", 920, 286)] : []),
     ],
+    interactables,
+    hazards: [],
+  });
+}
+
+function buildStarfallSanctum(context, rng) {
+  const flags = context.worldFlags || {};
+  const tiles = createTiles(rng);
+  stampRect(tiles, 0, 0, COLS, ROWS, "ruinStone", 0);
+  stampEllipse(tiles, 52, 30, 20, 13, "path", 0);
+  stampEllipse(tiles, 52, 30, 9, 6, "ice", 0);
+  paintPath(tiles, 52, 56, 52, 30, 2, "path", 1);
+  paintPath(tiles, 52, 30, 24, 16, 2, "path", 0);
+  paintPath(tiles, 52, 30, 80, 16, 2, "path", 0);
+  clearOverlayRect(tiles, 18, 10, 64, 40);
+  scatterOverlay(tiles, rng, 18, 12, 60, 20, 18, "flowersCool");
+  scatterOverlay(tiles, rng, 24, 14, 50, 18, 14, "frostFlowers");
+
+  const interactables = [
+    interactable("star-brazier-1", "totem", 706, 324, {
+      name: "Star Brazier",
+      promptLabel: "Relight Brazier",
+      collectKey: "starBraziersLit",
+      toastText: "Star brazier relit",
+      requiresCleared: true,
+      sortY: 338,
+    }),
+    interactable("star-brazier-2", "totem", 1156, 324, {
+      name: "Star Brazier",
+      promptLabel: "Relight Brazier",
+      collectKey: "starBraziersLit",
+      toastText: "Star brazier relit",
+      requiresCleared: true,
+      sortY: 338,
+    }),
+  ];
+
+  return createBaseArena(context, tiles, {
+    playerSpawn: { x: 804, y: 842 },
+    entrySpawns: {
+      default: { x: 804, y: 842 },
+      southSteps: { x: 804, y: 842 },
+    },
+    spawnPoints: [
+      { x: 238, y: 208 },
+      { x: 532, y: 184 },
+      { x: 1326, y: 214 },
+      { x: 1308, y: 706 },
+      { x: 304, y: 728 },
+    ],
+    bossZone: { x: 934, y: 438, radius: 196 },
+    bossAddSpawns: [
+      { x: 760, y: 438 },
+      { x: 934, y: 286 },
+      { x: 1108, y: 438 },
+      { x: 934, y: 590 },
+    ],
+    exits: [makeExit("southSteps", 708, 884, 196, 52, "down", context.connections.southSteps)],
+    obstacles: [
+      ruin(742, 176, 252, 142, "altar"),
+      ruin(528, 316, 130, 98, "pillar"),
+      ruin(1210, 316, 130, 98, "pillar"),
+      ruin(506, 622, 142, 102, "pillar"),
+      ruin(1224, 622, 142, 102, "pillar"),
+      water(792, 370, 290, 146, "ice"),
+      water(270, 194, 184, 126, "ice"),
+      water(1136, 194, 180, 126, "ice"),
+      bridge(816, 518, 236, 40),
+      tree(208, 194, 112, "frost"),
+      tree(1274, 194, 112, "frost"),
+      tree(224, 706, 110, "frost"),
+      tree(1270, 706, 110, "charredTree"),
+      rock(646, 548, 78, 46, "iceRock"),
+      rock(1132, 548, 78, 46, "iceRock"),
+      bush(384, 748, 88, 54, "frost"),
+      bush(1118, 748, 88, 54, "forest"),
+      lantern(776, 332, "frost"),
+      lantern(1082, 332, "warm"),
+      ...(flags.starfall_sanctum_cleansed ? [signpost(906, 776), lantern(932, 226, "warm")] : []),
+    ],
+    npcs: [],
     interactables,
     hazards: [],
   });
@@ -1350,6 +1454,10 @@ export function createArena(context = {}) {
 
   if (context.sceneStyle === "ancientHeart") {
     return buildAncientHeart(context, rng);
+  }
+
+  if (context.sceneStyle === "starfallSanctum") {
+    return buildStarfallSanctum(context, rng);
   }
 
   if (context.sceneStyle === "sunkenReliquary") {
