@@ -14,8 +14,8 @@ export const SCENES = {
     sceneStyle: "whisperingWoods",
     introDelay: 0.55,
     waveTemplates: [
-      [["thornling", "thornling"]],
-      [["thornling", "thornling", "thornling"]],
+      [["thornling", "barkling"]],
+      [["thornling", "barkling", "root_stalker"], ["barkling", "barkling", "thornling"]],
     ],
     connections: {
       eastRoad: {
@@ -43,8 +43,8 @@ export const SCENES = {
     sceneStyle: "mossrootMarsh",
     introDelay: 0.42,
     waveTemplates: [
-      [["thornling", "thornling", "mire_brute"]],
-      [["thornling", "mire_brute", "thorn_weaver"]],
+      [["mire_spitter", "thornling", "bog_lurker"], ["mire_spitter", "barkling", "bog_lurker"]],
+      [["mire_spitter", "bog_lurker", "mire_spitter"], ["bog_lurker", "mire_spitter", "thorn_weaver"]],
     ],
     connections: {
       westGate: {
@@ -84,8 +84,8 @@ export const SCENES = {
     sceneStyle: "mossyRuins",
     introDelay: 0.44,
     waveTemplates: [
-      [["thornling", "thornling", "wisp_archer"]],
-      [["mire_brute", "thorn_weaver", "wisp_archer"]],
+      [["barkling", "root_stalker", "wisp_archer"]],
+      [["bog_lurker", "root_stalker", "wisp_archer"], ["mire_brute", "barkling", "root_stalker"]],
     ],
     connections: {
       southGate: {
@@ -120,8 +120,8 @@ export const SCENES = {
     sceneStyle: "emberpineGrove",
     introDelay: 0.38,
     waveTemplates: [
-      [["thornling", "wisp_archer", "thorn_weaver"]],
-      [["mire_brute", "thornling", "wisp_archer"]],
+      [["cinder_imp", "thornling", "ash_brute"], ["cinder_imp", "cinder_imp", "thornling"]],
+      [["ash_brute", "cinder_imp", "cinder_imp"], ["ash_brute", "cinder_imp", "wisp_archer"]],
     ],
     connections: {
       westGate: {
@@ -149,9 +149,9 @@ export const SCENES = {
     sceneStyle: "frostveilTundra",
     introDelay: 0.34,
     waveTemplates: [
-      [["wisp_archer", "thornling", "thorn_weaver"]],
-      [["wisp_archer", "mire_brute", "thornling"]],
-      [["wisp_archer", "wisp_archer", "thornling"]],
+      [["frost_wisp", "frost_wisp", "icebound_guardian"]],
+      [["frost_wisp", "icebound_guardian", "wisp_archer"], ["frost_wisp", "icebound_guardian", "thornling"]],
+      [["frost_wisp", "frost_wisp", "icebound_guardian"], ["frost_wisp", "icebound_guardian", "icebound_guardian"]],
     ],
     connections: {
       westGate: {
@@ -184,9 +184,9 @@ export const SCENES = {
     sceneStyle: "blightedWoods",
     introDelay: 0.33,
     waveTemplates: [
-      [["wisp_archer", "thornling", "mire_brute"]],
-      [["wisp_archer", "wisp_archer", "thorn_weaver", "mire_brute"]],
-      [["mire_brute", "wisp_archer", "thornling", "thornling"]],
+      [["blight_hound", "rot_weaver", "bog_lurker"]],
+      [["blight_hound", "blight_hound", "rot_weaver", "mire_brute"]],
+      [["rot_weaver", "blight_hound", "mire_brute", "wisp_archer"]],
     ],
     connections: {
       westGate: {
@@ -221,9 +221,9 @@ export const SCENES = {
     sceneStyle: "hollowheartRuins",
     introDelay: 0.32,
     waveTemplates: [
-      [["thornling", "wisp_archer", "mire_brute"]],
-      [["thornling", "thorn_weaver", "mire_brute", "wisp_archer"]],
-      [["mire_brute", "wisp_archer", "thornling", "thornling"]],
+      [["blight_hound", "rot_weaver", "bog_lurker"]],
+      [["blight_hound", "rot_weaver", "mire_brute", "wisp_archer"]],
+      [["mire_brute", "rot_weaver", "blight_hound", "blight_hound"]],
     ],
     connections: {
       southGate: {
@@ -256,8 +256,8 @@ export const SCENES = {
     sceneStyle: "ancientHeart",
     introDelay: 0.28,
     waveTemplates: [
-      [["wisp_archer", "mire_brute", "thornling"]],
-      [["wisp_archer", "wisp_archer", "mire_brute"]],
+      [["relic_sentinel", "starbound_archer", "wisp_archer"]],
+      [["relic_sentinel", "relic_sentinel", "starbound_archer"]],
     ],
     connections: {
       southGate: {
@@ -290,8 +290,8 @@ export const SCENES = {
     sceneStyle: "starfallSanctum",
     introDelay: 0.28,
     waveTemplates: [
-      [["wisp_archer", "thorn_weaver", { type: "thornling", elite: true, affixes: ["swift"] }]],
-      [["mire_brute", "wisp_archer", { type: "thorn_weaver", elite: true, affixes: ["spiteful"] }]],
+      [["starbound_archer", "relic_sentinel", { type: "frost_wisp", elite: true, affixes: ["swift"] }]],
+      [["relic_sentinel", "starbound_archer", { type: "starbound_archer", elite: true, affixes: ["spiteful"] }]],
     ],
     connections: {
       southSteps: {
@@ -317,8 +317,8 @@ export const SCENES = {
     sceneStyle: "sunkenReliquary",
     introDelay: 0.32,
     waveTemplates: [
-      [["thornling", { type: "wisp_archer", elite: true, affixes: ["swift"] }]],
-      [["mire_brute", "wisp_archer", { type: "thornling", elite: true, affixes: ["bulwark"] }]],
+      [["relic_sentinel", { type: "starbound_archer", elite: true, affixes: ["swift"] }]],
+      [["relic_sentinel", "starbound_archer", { type: "relic_sentinel", elite: true, affixes: ["bulwark"] }]],
     ],
     connections: {
       southSteps: {
@@ -344,8 +344,8 @@ export const SCENES = {
     sceneStyle: "chapelOfTides",
     introDelay: 0.32,
     waveTemplates: [
-      [["thornling", "thorn_weaver", "wisp_archer"]],
-      [["mire_brute", "thorn_weaver", "thornling"]],
+      [["mire_spitter", "bog_lurker", "thorn_weaver"]],
+      [["bog_lurker", "mire_spitter", "mire_spitter"], ["mire_spitter", "bog_lurker", "mire_brute"]],
     ],
     connections: {
       southSteps: {

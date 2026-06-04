@@ -4,11 +4,91 @@ import { damagePlayer } from "../systems/combat.js";
 import { spawnBurst } from "../systems/particles.js";
 import { Enemy } from "./enemy.js";
 
+const BOSS_IDENTITY = {
+  elder_hollow: {
+    hazardType: "blight",
+    volleyProjectileType: "blight",
+    eruptionDamage: [18, 22],
+    volleyDamage: [14, 18],
+    eruptionColors: ["#d88cff", "#8c5cc2", "#f2d89a"],
+    slamColors: ["#d88cff", "#ffb772", "#f5e48b"],
+    volleyColors: ["#d88cff", "#ffb868", "#8e6ce0"],
+    eruptionBurstColors: ["#d88cff", "#f0b35e", "#f5e48b"],
+    summonPhase2: ["blight_hound", "rot_weaver", "bog_lurker"],
+    summonPhase3: [{ type: "rot_weaver", elite: true, affixes: ["spiteful"] }, "blight_hound", "mire_brute"],
+    summonBanner: "The Hollow Calls",
+    phaseBanners: ["Elder Hollow Rises", "Heartwood Frenzy"],
+    summonBurstColors: ["#efc678", "#c183ff", "#d4634a"],
+    slamTelegraphColor: "#f2b97c",
+    volleyTelegraphColor: "#dda4ff",
+  },
+  bog_matron: {
+    hazardType: "mire",
+    volleyProjectileType: "mire",
+    eruptionDamage: [16, 20],
+    volleyDamage: [13, 16],
+    eruptionColors: ["#8bd9e6", "#69b8cb", "#d6f3f8"],
+    slamColors: ["#7ed5e8", "#bcecff", "#f4ffff"],
+    volleyColors: ["#79d9f5", "#c2f1ff", "#6fa995"],
+    eruptionBurstColors: ["#7fd5da", "#a9eef0", "#dffbff"],
+    summonPhase2: ["mire_spitter", "bog_lurker", "thorn_weaver"],
+    summonPhase3: [{ type: "mire_spitter", elite: true, affixes: ["spiteful"] }, "bog_lurker", "mire_brute"],
+    summonBanner: "The Tides Answer",
+    phaseBanners: ["Floodwake Rising", "Matron of the Mire"],
+    summonBurstColors: ["#9de9ea", "#6fbcc5", "#d6fff7"],
+    slamTelegraphColor: "#9ce3ea",
+    volleyTelegraphColor: "#b8f0ff",
+  },
+  rootbound_custodian: {
+    hazardType: "ancient",
+    volleyProjectileType: "ancient",
+    eruptionDamage: [18, 22],
+    volleyDamage: [15, 18],
+    eruptionColors: ["#e4d39a", "#b99ae1", "#f8f1d9"],
+    slamColors: ["#efdca8", "#cba3ff", "#fff9e4"],
+    volleyColors: ["#edd79b", "#bd9bf0", "#f7f4ff"],
+    eruptionBurstColors: ["#efdca7", "#c4a4f0", "#fff8e2"],
+    summonPhase2: ["relic_sentinel", { type: "starbound_archer", elite: true, affixes: ["swift"] }],
+    summonPhase3: [{ type: "relic_sentinel", elite: true, affixes: ["bulwark"] }, "starbound_archer"],
+    summonBanner: "Vault Echoes Stir",
+    phaseBanners: ["Reliquary Stirs", "Rootbound Fury"],
+    summonBurstColors: ["#f0ce78", "#c8aff2", "#fff4da"],
+    slamTelegraphColor: "#f2d9a1",
+    volleyTelegraphColor: "#d7b7ff",
+  },
+  starwoken_sentinel: {
+    hazardType: "ancient",
+    volleyProjectileType: "ancient",
+    eruptionDamage: [15, 19],
+    volleyDamage: [14, 17],
+    eruptionColors: ["#b6dfff", "#d8ceff", "#f2f8ff"],
+    slamColors: ["#d8deff", "#9bcfff", "#f6f3ff"],
+    volleyColors: ["#d4d9ff", "#a7cfff", "#eff8ff"],
+    eruptionBurstColors: ["#c8dcff", "#e2d7ff", "#fbfcff"],
+    summonPhase2: ["starbound_archer", "relic_sentinel", "thorn_weaver"],
+    summonPhase3: [{ type: "starbound_archer", elite: true, affixes: ["spiteful"] }, { type: "relic_sentinel", elite: true, affixes: ["bulwark"] }, "frost_wisp"],
+    summonBanner: "The Spire Answers",
+    phaseBanners: ["Starfall Awakens", "Sentinel of the Spire"],
+    summonBurstColors: ["#c9d9ff", "#e2d5ff", "#f7fbff"],
+    slamTelegraphColor: "#d3ddff",
+    volleyTelegraphColor: "#e4d8ff",
+  },
+};
+
+function getBossIdentity(id) {
+  return BOSS_IDENTITY[id] || BOSS_IDENTITY.elder_hollow;
+}
+
+function phasePair(values, phase) {
+  return phase >= 2 ? values[1] : values[0];
+}
+
 export class Boss {
   constructor(spawn, zone, config = {}) {
     this.isBoss = true;
     this.id = config.bossId || "elder_hollow";
     this.name = config.bossName || "Elder Hollow";
+    this.identity = getBossIdentity(this.id);
     this.x = spawn.x;
     this.y = spawn.y;
     this.zone = zone;
@@ -138,14 +218,8 @@ export class Boss {
     const hazards = [];
     const center = { x: state.player.x, y: state.player.y };
     const count = this.phase >= 2 ? 6 : 4;
-    const eruptionDamage =
-      this.id === "bog_matron"
-        ? this.phase >= 2 ? 20 : 16
-        : this.id === "starwoken_sentinel"
-          ? this.phase >= 2 ? 19 : 15
-          : this.phase >= 2 ? 22 : 18;
-    const eruptionType =
-      this.id === "bog_matron" ? "mire" : this.id === "starwoken_sentinel" ? "frost" : "thorn";
+    const eruptionDamage = phasePair(this.identity.eruptionDamage, this.phase);
+    const eruptionType = this.identity.hazardType || "thorn";
 
     for (let i = 0; i < count; i += 1) {
       const angle = randomRange(0, TAU);
@@ -170,12 +244,7 @@ export class Boss {
 
     spawnBurst(state, this.x, this.y, {
       count: 18,
-      colors:
-        this.id === "bog_matron"
-          ? ["#8bd9e6", "#69b8cb", "#d6f3f8"]
-          : this.id === "starwoken_sentinel"
-            ? ["#b6dfff", "#d8ceff", "#f2f8ff"]
-          : ["#8ceb6b", "#5bbd55", "#f0cf77"],
+      colors: this.identity.eruptionColors || ["#8ceb6b", "#5bbd55", "#f0cf77"],
       speed: 170,
       size: [2, 4],
       life: [0.14, 0.34],
@@ -218,10 +287,7 @@ export class Boss {
 
     spawnBurst(state, attack.targetX, attack.targetY, {
       count: 32,
-      colors:
-        this.id === "starwoken_sentinel"
-          ? ["#d8deff", "#9bcfff", "#f6f3ff"]
-          : ["#ffb772", "#ff7f69", "#f5e48b"],
+      colors: this.identity.slamColors || ["#ffb772", "#ff7f69", "#f5e48b"],
       speed: 300,
       size: [2, 6],
       life: [0.18, 0.55],
@@ -253,30 +319,15 @@ export class Boss {
         vy: Math.sin(angle) * (this.phase >= 2 ? 356 : 320),
         radius: 8,
         life: 2.2,
-        damage:
-          this.id === "bog_matron"
-            ? this.phase >= 2 ? 16 : 13
-            : this.id === "starwoken_sentinel"
-              ? this.phase >= 2 ? 17 : 14
-              : this.phase >= 2 ? 18 : 14,
+        damage: phasePair(this.identity.volleyDamage, this.phase),
         knockback: 175,
-        type:
-          this.id === "bog_matron"
-            ? "spirit"
-            : this.id === "starwoken_sentinel"
-              ? "frost"
-              : "thorn",
+        type: this.identity.volleyProjectileType || "thorn",
       });
     }
 
     spawnBurst(state, this.x, this.y, {
       count: 20,
-      colors:
-        this.id === "bog_matron"
-          ? ["#79d9f5", "#c2f1ff", "#6fa995"]
-          : this.id === "starwoken_sentinel"
-            ? ["#d4d9ff", "#a7cfff", "#eff8ff"]
-          : ["#d35d48", "#ffb868", "#9cdc79"],
+      colors: this.identity.volleyColors || ["#d35d48", "#ffb868", "#9cdc79"],
       speed: 180,
       size: [2, 4],
       life: [0.14, 0.32],
@@ -287,10 +338,7 @@ export class Boss {
     state.shake = Math.max(state.shake, 5);
     spawnBurst(state, this.x, this.y, {
       count: 14,
-      colors:
-        this.id === "starwoken_sentinel"
-          ? ["#c8dcff", "#e2d7ff", "#fbfcff"]
-          : ["#7ce567", "#efb35e", "#f1f8a6"],
+      colors: this.identity.eruptionBurstColors || ["#7ce567", "#efb35e", "#f1f8a6"],
       speed: 150,
       size: [2, 4],
       life: [0.12, 0.28],
@@ -298,30 +346,7 @@ export class Boss {
   }
 
   performSummon(state) {
-    const composition =
-      this.id === "rootbound_custodian"
-        ? this.phase >= 3
-          ? [{ type: "mire_brute", elite: true, affixes: ["bulwark"] }, "thornling"]
-          : ["thornling", { type: "wisp_archer", elite: true, affixes: ["swift"] }]
-        : this.id === "bog_matron"
-          ? this.phase >= 3
-            ? [
-                { type: "thorn_weaver", elite: true, affixes: ["spiteful"] },
-                "wisp_archer",
-                "mire_brute",
-              ]
-            : ["thornling", "thorn_weaver", "wisp_archer"]
-        : this.id === "starwoken_sentinel"
-          ? this.phase >= 3
-            ? [
-                { type: "wisp_archer", elite: true, affixes: ["spiteful"] },
-                { type: "thornling", elite: true, affixes: ["swift"] },
-                "thorn_weaver",
-              ]
-            : ["wisp_archer", "thorn_weaver", "thornling"]
-        : this.phase >= 3
-          ? ["wisp_archer", "mire_brute", "thornling"]
-          : ["thornling", "wisp_archer"];
+    const composition = this.phase >= 3 ? this.identity.summonPhase3 : this.identity.summonPhase2;
 
     const spawns = [...state.arena.bossAddSpawns];
 
@@ -334,21 +359,14 @@ export class Boss {
       }
       spawnBurst(state, spawn.x, spawn.y, {
         count: 18,
-        colors: ["#f0ce78", "#9be570", "#d4634a"],
+        colors: this.identity.summonBurstColors || ["#f0ce78", "#9be570", "#d4634a"],
         speed: 180,
         size: [2, 5],
         life: [0.16, 0.36],
       });
     });
 
-    state.encounter.bannerText =
-      this.id === "rootbound_custodian"
-        ? "Vault Echoes Stir"
-        : this.id === "bog_matron"
-          ? "The Tides Answer"
-          : this.id === "starwoken_sentinel"
-            ? "The Spire Answers"
-          : "The Hollow Calls";
+    state.encounter.bannerText = this.identity.summonBanner || "The Hollow Calls";
     state.encounter.bannerTimer = 1.5;
   }
 
@@ -360,21 +378,9 @@ export class Boss {
     if (finalPhase > this.phase) {
       this.phase = finalPhase;
       state.encounter.bannerText =
-        this.id === "rootbound_custodian"
-          ? this.phase === 2
-            ? "Reliquary Stirs"
-            : "Rootbound Fury"
-          : this.id === "bog_matron"
-            ? this.phase === 2
-              ? "Floodwake Rising"
-              : "Matron of the Mire"
-            : this.id === "starwoken_sentinel"
-              ? this.phase === 2
-                ? "Starfall Awakens"
-                : "Sentinel of the Spire"
-          : this.phase === 2
-            ? "Elder Hollow Rises"
-            : "Heartwood Frenzy";
+        this.phase === 2
+          ? this.identity.phaseBanners?.[0] || "The Forest Turns"
+          : this.identity.phaseBanners?.[1] || "The Wilds Break";
       state.encounter.bannerTimer = 1.8;
       state.shake = Math.max(state.shake, 7);
     }

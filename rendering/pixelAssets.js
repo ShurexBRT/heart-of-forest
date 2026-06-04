@@ -513,6 +513,46 @@ function buildProjectileSprite(type) {
     return { canvas, anchorX: 10, anchorY: 10 };
   }
 
+   if (type === "ember") {
+    px(ctx, 2, 9, 10, 2, "#ffaf70");
+    px(ctx, 10, 7, 8, 6, "#ff744f");
+    px(ctx, 12, 5, 4, 10, "#fff0b5");
+    px(ctx, 5, 7, 3, 3, "#a6492f");
+    return { canvas, anchorX: 10, anchorY: 10 };
+  }
+
+  if (type === "frost") {
+    px(ctx, 2, 9, 10, 2, "#c7edff");
+    px(ctx, 10, 7, 8, 6, "#90d3ff");
+    px(ctx, 12, 5, 4, 10, "#f5fdff");
+    px(ctx, 5, 7, 3, 3, "#79aad6");
+    return { canvas, anchorX: 10, anchorY: 10 };
+  }
+
+  if (type === "mire") {
+    px(ctx, 2, 9, 10, 2, "#8de3d4");
+    px(ctx, 10, 7, 8, 6, "#58bda8");
+    px(ctx, 12, 5, 4, 10, "#e8fff8");
+    px(ctx, 5, 7, 3, 3, "#417e6c");
+    return { canvas, anchorX: 10, anchorY: 10 };
+  }
+
+  if (type === "blight") {
+    px(ctx, 2, 9, 10, 2, "#d39bff");
+    px(ctx, 10, 7, 8, 6, "#9c61da");
+    px(ctx, 12, 5, 4, 10, "#f8eaff");
+    px(ctx, 5, 7, 3, 3, "#5f2d7f");
+    return { canvas, anchorX: 10, anchorY: 10 };
+  }
+
+  if (type === "ancient") {
+    px(ctx, 2, 9, 10, 2, "#efdca4");
+    px(ctx, 10, 7, 8, 6, "#be93ef");
+    px(ctx, 12, 5, 4, 10, "#fff8de");
+    px(ctx, 5, 7, 3, 3, "#8a6ca7");
+    return { canvas, anchorX: 10, anchorY: 10 };
+  }
+
   px(ctx, 2, 9, 10, 2, "#93ef8d");
   px(ctx, 10, 7, 8, 6, "#58d4ff");
   px(ctx, 12, 5, 4, 10, "#dffbff");

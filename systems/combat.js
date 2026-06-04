@@ -24,9 +24,21 @@ const PULSE_PROJECTILE_CLEAR_PAD = 18;
 
 const ENEMY_XP = {
   thornling: 16,
+  barkling: 18,
   wisp_archer: 22,
+  mire_spitter: 26,
+  cinder_imp: 28,
+  frost_wisp: 30,
+  starbound_archer: 36,
   mire_brute: 34,
+  bog_lurker: 28,
+  ash_brute: 38,
+  icebound_guardian: 40,
+  blight_hound: 30,
+  relic_sentinel: 42,
   thorn_weaver: 26,
+  root_stalker: 24,
+  rot_weaver: 34,
 };
 
 export function handlePlayerAbilities(state, input) {

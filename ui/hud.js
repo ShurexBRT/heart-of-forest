@@ -837,7 +837,8 @@ function drawServiceTab(ctx, state, x, y, width, height) {
   ctx.fillText(service ? service.title : "Services", bodyX, bodyY - 18);
   ctx.font = "11px Segoe UI, Arial";
   ctx.fillStyle = "#d7e4cf";
-  ctx.fillText(service ? service.subtitle : "Visit a service NPC or village object.", bodyX + 132, bodyY - 18);
+  const subtitleX = bodyX + Math.max(132, Math.ceil(ctx.measureText(service ? service.title : "Services").width) + 18);
+  ctx.fillText(service ? service.subtitle : "Visit a service NPC or village object.", subtitleX, bodyY - 18);
 
   if (!service) {
     ctx.fillStyle = "#d7e4cf";
@@ -935,22 +936,24 @@ function drawServiceTab(ctx, state, x, y, width, height) {
   }
 
   if (service.kind === "altar") {
-    let rowY = bodyY + 34;
-    panel.rows.forEach(({ entry, index }) => {
+    panel.rows.forEach(({ entry, index, rect: rowRect }) => {
       const selected = index === state.ui.selectedServiceIndex;
+      ctx.font = "11px Segoe UI, Arial";
+      const descriptionLines = toWrappedLines(ctx, entry.description, rowRect.width - 24).slice(0, 2);
       ctx.fillStyle = selected ? "rgba(121, 184, 255, 0.16)" : "rgba(0, 0, 0, 0.26)";
-      ctx.fillRect(bodyX, rowY - 16, width - 280, 46);
+      ctx.fillRect(rowRect.x, rowRect.y, rowRect.width, rowRect.height);
       ctx.strokeStyle = selected ? "#79b8ff" : "#263142";
-      ctx.strokeRect(bodyX, rowY - 16, width - 280, 46);
+      ctx.strokeRect(rowRect.x, rowRect.y, rowRect.width, rowRect.height);
       ctx.fillStyle = "#fff6d8";
       ctx.font = "700 12px Segoe UI, Arial";
-      ctx.fillText(entry.title, bodyX + 12, rowY + 1);
+      ctx.fillText(entry.title, rowRect.x + 12, rowRect.y + 16);
       ctx.fillStyle = "#d7e4cf";
       ctx.font = "11px Segoe UI, Arial";
-      ctx.fillText(entry.description, bodyX + 12, rowY + 17);
+      descriptionLines.forEach((line, lineIndex) => {
+        ctx.fillText(line, rowRect.x + 12, rowRect.y + 32 + lineIndex * 13);
+      });
       ctx.fillStyle = entry.affordable ? "#f1d786" : "#c67d72";
-      ctx.fillText(formatActionCost(entry), bodyX + 12, rowY + 33);
-      rowY += 54;
+      ctx.fillText(formatActionCost(entry), rowRect.x + 12, rowRect.y + rowRect.height - 8);
     });
     if (panel.actionButton) {
       drawActionButton(ctx, panel.actionButton, state.ui.hoverTarget, "#182117", "#fff6dd");
@@ -1527,7 +1530,7 @@ function getServicePanelData(state, frame) {
     const rows = entries.map((entry, index) => ({
       entry,
       index,
-      rect: rect(bodyX, bodyY + 50 + index * 54, frame.width - 280, 46),
+      rect: rect(bodyX, bodyY + 44 + index * 72, frame.width - 280, 64),
     }));
     const selected = entries[state.ui.selectedServiceIndex] || null;
     const actionButton = selected

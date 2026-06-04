@@ -9,6 +9,7 @@ Trenutni fokus je na malom, povezanom ARPG vertical slice-u:
 - hub services i economy osnova
 - multi-step quest chains sa vise mini-dungeon boss zavrsnica
 - loot, affix, buyback i local save loop
+- Enemy & Biome Identity pass za jaci encounter identitet po zoni
 
 ## Controls
 
@@ -55,11 +56,24 @@ Trenutni fokus je na malom, povezanom ARPG vertical slice-u:
   - Verdant Pulse (talent-locked AoE burst that detonates bloom and clears nearby projectiles)
 - out-of-combat health regeneration
 - enemy waves, boss encounters, and elite affixes
+- biome-specific wave templates umesto generickog recikliranja istog rostera po svim mapama
 - enemy roster:
   - `Thornling`
+  - `Barkling`
+  - `Root Stalker`
   - `Mire Brute`
+  - `Mire Spitter`
+  - `Bog Lurker`
   - `Wisp Archer`
+  - `Cinder Imp`
+  - `Ash Brute`
+  - `Frost Wisp`
+  - `Icebound Guardian`
+  - `Blight Hound`
   - `Thorn Weaver`
+  - `Rot Weaver`
+  - `Relic Sentinel`
+  - `Starbound Archer`
 - inventory with stackable consumables
 - gear progression with:
   - named drops
@@ -117,9 +131,9 @@ http://localhost:4177/
 - `entities/player.js`
   - Ayla movement, buffs, vitals, cooldown model, and active ability data
 - `entities/enemy.js`
-  - enemy roles and elite affix setup
+  - enemy roles, biome-specific variants, and elite affix setup
 - `entities/boss.js`
-  - boss behavior and summon logic
+  - boss behavior, summon logic, and identity config
 - `world/arena.js`
   - handcrafted zone layouts, exits, NPCs, quest objects
 - `rendering/renderer.js`
@@ -149,7 +163,7 @@ http://localhost:4177/
 
 ## Next Logical Step
 
-- stronger enemy/NPC sprite identity pass
+- stronger enemy/NPC silhouette polish beyond the current tint-and-telegraph identity pass
 - one more handcrafted dungeon branch in the mid-game path
 - more world-state reactions after late-game clears
 - richer vendor compare UX and clickable drag-and-drop slot assignment

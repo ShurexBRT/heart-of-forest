@@ -12,6 +12,25 @@ import { QUEST_DEFS } from "../data/storyData.js";
 
 const ACTION_SLOT_COUNT = 3;
 
+const ENEMY_LOOT_RULES = {
+  thornling: { lootIndex: 0, silver: 5, bonusChance: 0.12, bonusItem: "health_potion" },
+  barkling: { primaryItemId: "ironbark", silver: 6, bonusChance: 0.14, bonusItem: "health_potion" },
+  blight_hound: { primaryItemId: "cinder_resin", silver: 9, bonusChance: 0.16, bonusItem: "health_potion" },
+  wisp_archer: { lootIndex: 1, silver: 7, bonusChance: 0.18, bonusItem: "spirit_tonic" },
+  mire_spitter: { primaryItemId: "bog_amber", silver: 8, bonusChance: 0.18, bonusItem: "spirit_tonic" },
+  cinder_imp: { primaryItemId: "cinder_resin", silver: 9, bonusChance: 0.18, bonusItem: "health_potion" },
+  frost_wisp: { primaryItemId: "stonebloom", silver: 10, bonusChance: 0.18, bonusItem: "spirit_tonic" },
+  starbound_archer: { primaryItemId: "relic_shard", silver: 12, bonusChance: 0.22, bonusItem: "spirit_tonic" },
+  thorn_weaver: { lootIndex: 3, silver: 9, bonusChance: 0.22, bonusItem: "ward_elixir" },
+  root_stalker: { primaryItemId: "moonleaf", silver: 8, bonusChance: 0.18, bonusItem: "health_potion" },
+  rot_weaver: { primaryItemId: "heartseed", silver: 11, bonusChance: 0.22, bonusItem: "ward_elixir" },
+  mire_brute: { lootIndex: 2, silver: 11, bonusChance: 0.28, bonusItem: "health_potion" },
+  bog_lurker: { primaryItemId: "bog_amber", silver: 10, bonusChance: 0.2, bonusItem: "spirit_tonic" },
+  ash_brute: { primaryItemId: "relic_shard", silver: 13, bonusChance: 0.3, bonusItem: "greater_health_potion" },
+  icebound_guardian: { primaryItemId: "relic_shard", silver: 14, bonusChance: 0.24, bonusItem: "spirit_tonic" },
+  relic_sentinel: { primaryItemId: "relic_shard", silver: 15, bonusChance: 0.28, bonusItem: "ward_elixir" },
+};
+
 function createQuestCounterDefaults() {
   const keys = new Set();
 
@@ -600,53 +619,22 @@ export function awardEnemyLoot(progression, enemyType, biomeId, source = {}) {
     return { items: grants, silver };
   }
 
-  if (enemyType === "thornling") {
-    const itemId = lootTable[0] || "spirit_bloom";
-    addItem(progression, itemId, 1);
-    grants.push({ itemId, amount: 1 });
-    silver = 5;
-    if (Math.random() < 0.12) {
-      addItem(progression, "health_potion", 1);
-      grants.push({ itemId: "health_potion", amount: 1 });
-    }
-    addCurrency(progression, silver);
-    return { items: grants, silver };
+  const rule = ENEMY_LOOT_RULES[enemyType] || ENEMY_LOOT_RULES.thornling;
+  const primaryItemId =
+    rule.primaryItemId ||
+    lootTable[rule.lootIndex ?? 0] ||
+    lootTable[0] ||
+    "spirit_bloom";
+
+  addItem(progression, primaryItemId, 1);
+  grants.push({ itemId: primaryItemId, amount: 1 });
+  silver = rule.silver || 5;
+
+  if (rule.bonusItem && Math.random() < (rule.bonusChance || 0)) {
+    addItem(progression, rule.bonusItem, 1);
+    grants.push({ itemId: rule.bonusItem, amount: 1 });
   }
 
-  if (enemyType === "wisp_archer") {
-    const itemId = lootTable[1] || "moonleaf";
-    addItem(progression, itemId, 1);
-    grants.push({ itemId, amount: 1 });
-    silver = 7;
-    if (Math.random() < 0.18) {
-      addItem(progression, "spirit_tonic", 1);
-      grants.push({ itemId: "spirit_tonic", amount: 1 });
-    }
-    addCurrency(progression, silver);
-    return { items: grants, silver };
-  }
-
-  if (enemyType === "thorn_weaver") {
-    const itemId = lootTable[3] || "spirit_tonic";
-    addItem(progression, itemId, 1);
-    grants.push({ itemId, amount: 1 });
-    silver = 9;
-    if (Math.random() < 0.22) {
-      addItem(progression, "ward_elixir", 1);
-      grants.push({ itemId: "ward_elixir", amount: 1 });
-    }
-    addCurrency(progression, silver);
-    return { items: grants, silver };
-  }
-
-  const heavyDrop = lootTable[2] || lootTable[0] || "ironbark";
-  addItem(progression, heavyDrop, 1);
-  grants.push({ itemId: heavyDrop, amount: 1 });
-  silver = 11;
-  if (Math.random() < 0.28) {
-    addItem(progression, "health_potion", 1);
-    grants.push({ itemId: "health_potion", amount: 1 });
-  }
   addCurrency(progression, silver);
   return { items: grants, silver };
 }

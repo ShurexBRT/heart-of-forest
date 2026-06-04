@@ -373,7 +373,7 @@ function drawGroundEffects(ctx, state, origin) {
       hazard.y,
       hazard.radius + (hazard.warning > 0 ? 0 : 4),
       12,
-      hazard.warning > 0 ? "#f2c26a" : "#9bef75"
+      hazard.warning > 0 ? getHazardWarningColor(hazard.type, hazard.harmless) : getHazardActiveColor(hazard.type, hazard.harmless)
     );
     ctx.restore();
   }
@@ -425,6 +425,8 @@ function drawExitArrow(ctx, x, y, direction, color = "#fff0ad") {
 function drawBossTelegraphs(ctx, state, origin) {
   const boss = state.boss;
   if (!boss || boss.dead || !boss.currentAttack) return;
+  const slamColor = boss.identity?.slamTelegraphColor || "#ffbb72";
+  const volleyColor = boss.identity?.volleyTelegraphColor || "#f1cf77";
 
   if (boss.currentAttack.type === "slam") {
     ctx.save();
@@ -436,7 +438,7 @@ function drawBossTelegraphs(ctx, state, origin) {
       boss.currentAttack.targetY,
       boss.currentAttack.radius + Math.sin(state.time * 14) * 3,
       14,
-      "#ffbb72"
+      slamColor
     );
     ctx.restore();
   }
@@ -454,7 +456,7 @@ function drawBossTelegraphs(ctx, state, origin) {
         boss.x + Math.cos(angle) * 84,
         boss.y + Math.sin(angle) * 84,
         4,
-        "#f1cf77"
+        volleyColor
       );
     }
     ctx.restore();
@@ -475,8 +477,28 @@ function drawSpiritBolt(ctx, x, y) {
 function drawHostileProjectiles(ctx, state, origin) {
   for (const projectile of state.hostileProjectiles) {
     const point = toScreen(origin, projectile.x, projectile.y, 18);
-    drawPixelSprite(ctx, getProjectileSprite(projectile.type === "wisp" ? "wisp" : "spirit"), point.x, point.y);
+    drawPixelSprite(ctx, getProjectileSprite(projectile.type || "spirit"), point.x, point.y);
   }
+}
+
+function getHazardWarningColor(type = "thorn", harmless = false) {
+  if (harmless) return "#b7edd9";
+  if (type === "ember") return "#ffb16d";
+  if (type === "mire") return "#93dcde";
+  if (type === "frost") return "#d9efff";
+  if (type === "blight") return "#db9fff";
+  if (type === "ancient") return "#f2dfa1";
+  return "#f2c26a";
+}
+
+function getHazardActiveColor(type = "thorn", harmless = false) {
+  if (harmless) return "#8fdfc5";
+  if (type === "ember") return "#ff8b52";
+  if (type === "mire") return "#72c1c5";
+  if (type === "frost") return "#a8e1ff";
+  if (type === "blight") return "#c587ff";
+  if (type === "ancient") return "#ddc489";
+  return "#9bef75";
 }
 
 function drawSortedWorld(ctx, state, origin) {
@@ -892,9 +914,9 @@ function drawPlayer(ctx, player, origin) {
 function drawEnemy(ctx, enemy, state, origin) {
   const point = toScreen(origin, enemy.x, enemy.y, 16);
   const frame = Math.floor(enemy.animTime) % 4;
-  drawPixelSprite(ctx, getEnemySprite(enemy.type, resolveFacing(enemy.facing), frame, enemy.pose), point.x, point.y, {
-    tint: enemy.hitFlash > 0 ? "#ffe0c9" : null,
-    tintAlpha: 0.82,
+  drawPixelSprite(ctx, getEnemySprite(enemy.config.sprite || enemy.type, resolveFacing(enemy.facing), frame, enemy.pose), point.x, point.y, {
+    tint: enemy.hitFlash > 0 ? "#ffe0c9" : enemy.config.spriteTint || null,
+    tintAlpha: enemy.hitFlash > 0 ? 0.82 : enemy.config.spriteTintAlpha || 0.22,
   });
 
   drawEnemyStatus(ctx, enemy, state, origin);
@@ -944,7 +966,7 @@ function drawEnemyStatus(ctx, enemy, state, origin) {
       enemy.y,
       enemy.radius + 12,
       8,
-      enemy.type === "mire_brute" ? "#ffb45d" : enemy.type === "thorn_weaver" ? "#b29aff" : "#ffd27a"
+      enemy.config.windupColor || "#ffd27a"
     );
     ctx.restore();
   }
@@ -967,7 +989,7 @@ function drawBossStatus(ctx, boss, state, origin) {
 }
 
 function drawEnemyHealth(ctx, enemy, x, y) {
-  const width = enemy.type === "mire_brute" ? 44 : 36;
+  const width = Math.max(36, enemy.radius >= 22 ? 44 : Math.round(enemy.radius * 1.9));
   const ratio = Math.max(0, enemy.hp / enemy.maxHp);
   pixelRect(ctx, x - width / 2, y - 42, width, 6, "#1b1412");
   pixelRect(
@@ -976,13 +998,7 @@ function drawEnemyHealth(ctx, enemy, x, y) {
     y - 41,
     Math.round((width - 2) * ratio),
     4,
-    enemy.type === "mire_brute"
-      ? "#ef7b58"
-      : enemy.type === "wisp_archer"
-        ? "#8fd9ff"
-        : enemy.type === "thorn_weaver"
-          ? "#c2a2ff"
-          : "#e05256"
+    enemy.config.healthColor || "#e05256"
   );
   if (enemy.elite) {
     ctx.fillStyle = enemy.eliteColor || "#e8d07d";

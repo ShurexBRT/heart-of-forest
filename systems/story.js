@@ -10,6 +10,9 @@ import {
 import { queueAudio } from "./audio.js";
 import { openServiceUi } from "./services.js";
 
+const THORNLING_QUEST_TYPES = new Set(["thornling", "barkling", "blight_hound"]);
+const WISP_QUEST_TYPES = new Set(["wisp_archer", "mire_spitter", "cinder_imp", "frost_wisp", "starbound_archer"]);
+
 const INTERACTION_RADIUS = 60;
 
 export function createStoryState() {
@@ -62,11 +65,11 @@ export function consumeStoryEvents(state) {
     }
 
     if (event.type === "enemyDefeated") {
-      if (event.enemyType === "thornling") {
+      if (THORNLING_QUEST_TYPES.has(event.enemyType)) {
         incrementQuestCounter(state.progression, "thornlingsDefeated", 1);
       }
 
-      if (event.enemyType === "wisp_archer") {
+      if (WISP_QUEST_TYPES.has(event.enemyType)) {
         incrementQuestCounter(state.progression, "wispsDefeated", 1);
       }
     }
