@@ -401,6 +401,7 @@ function createBaseArena(context, tiles, props) {
 }
 
 function buildWhisperingWoods(context, rng) {
+  const flags = context.worldFlags || {};
   const tiles = createTiles(rng);
   stampRect(tiles, 8, 8, 18, 10, "soil", 0);
   stampRect(tiles, 8, 18, 12, 8, "path", 0);
@@ -418,6 +419,12 @@ function buildWhisperingWoods(context, rng) {
     npc("lysa", 468, 610),
     npc("tamsin", 246, 560),
   ];
+  if (flags.village_patrols_returned) {
+    npcs.push(npc("halen", 702, 430));
+  }
+  if (flags.apothecary_resupplied || flags.marsh_route_lit) {
+    npcs.push(npc("mara", 582, 324));
+  }
 
   const interactables = [
     interactable("spirit-flower-1", "flower", 854, 334, {
@@ -520,6 +527,8 @@ function buildWhisperingWoods(context, rng) {
       lantern(664, 278),
       lantern(292, 302),
       lantern(610, 278),
+      ...(flags.village_patrols_returned ? [lantern(840, 278), fenceH(874, 286, 122)] : []),
+      ...(flags.apothecary_resupplied ? [lantern(194, 280, "cool"), signpost(242, 336)] : []),
       bush(232, 676, 88, 54),
       bush(636, 726, 92, 56),
       tree(804, 168, 108, "forest"),
@@ -541,6 +550,7 @@ function buildWhisperingWoods(context, rng) {
 }
 
 function buildMossrootMarsh(context, rng) {
+  const flags = context.worldFlags || {};
   const tiles = createTiles(rng);
   stampRect(tiles, 0, 0, COLS, ROWS, "grass", 0);
   stampEllipse(tiles, 24, 25, 14, 9, "water", 0);
@@ -593,6 +603,14 @@ function buildMossrootMarsh(context, rng) {
       requiresCleared: true,
       sortY: 256,
     }),
+    interactable("tide-seal-1", "seal", 1404, 350, {
+      name: "Tide Seal",
+      promptLabel: "Recover Tide Seal",
+      collectKey: "tideSealsRecovered",
+      toastText: "Tide seal recovered",
+      requiresCleared: true,
+      sortY: 362,
+    }),
   ];
 
   return createBaseArena(context, tiles, {
@@ -621,6 +639,7 @@ function buildMossrootMarsh(context, rng) {
       makeExit("westGate", 24, 394, 72, 160, "left", context.connections.westGate),
       makeExit("northGate", 708, 24, 196, 64, "up", context.connections.northGate),
       makeExit("eastCauseway", 1490, 362, 58, 176, "right", context.connections.eastCauseway),
+      makeExit("chapelSteps", 1222, 844, 194, 76, "down", context.connections.chapelSteps),
     ],
     obstacles: [
       water(176, 226, 284, 170, "marsh"),
@@ -638,15 +657,21 @@ function buildMossrootMarsh(context, rng) {
       rock(928, 222, 72, 42),
       lantern(508, 430, "cool"),
       lantern(820, 322, "cool"),
+      ...(flags.marsh_route_lit ? [lantern(1234, 370, "cool"), lantern(1338, 818, "cool")] : []),
+      ...(flags.chapel_of_tides_open ? [bridge(1224, 826, 180, 38), signpost(1292, 794)] : []),
       signpost(448, 402),
     ],
-    npcs: [npc("nettle", 236, 462)],
+    npcs: [
+      npc("nettle", 236, 462),
+      ...(flags.marsh_route_lit ? [npc("mara", 486, 420)] : []),
+    ],
     interactables,
     hazards: [],
   });
 }
 
 function buildEmberpineGrove(context, rng) {
+  const flags = context.worldFlags || {};
   const tiles = createTiles(rng);
   stampRect(tiles, 0, 0, COLS, ROWS, "emberGrass", 0);
   stampEllipse(tiles, 50, 30, 14, 10, "ash", 0);
@@ -723,9 +748,13 @@ function buildEmberpineGrove(context, rng) {
       rock(986, 716, 76, 44),
       lantern(720, 386, "ember"),
       lantern(990, 272, "ember"),
+      ...(flags.ember_pass_reopened ? [lantern(1220, 432, "ember"), fenceH(1110, 448, 138)] : []),
       signpost(640, 720),
     ],
-    npcs: [npc("garrick", 188, 454)],
+    npcs: [
+      npc("garrick", 188, 454),
+      ...(flags.ember_pass_reopened ? [npc("halen", 1248, 454)] : []),
+    ],
     interactables,
     hazards: [
       { id: "ember-pool-1", x: 302, y: 220, w: 120, h: 82, damage: 8, interval: 0.72, type: "ember" },
@@ -735,6 +764,7 @@ function buildEmberpineGrove(context, rng) {
 }
 
 function buildFrostveilTundra(context, rng) {
+  const flags = context.worldFlags || {};
   const tiles = createTiles(rng);
   stampRect(tiles, 0, 0, COLS, ROWS, "snow", 0);
   stampEllipse(tiles, 36, 28, 12, 8, "ice", 0);
@@ -800,9 +830,13 @@ function buildFrostveilTundra(context, rng) {
       rock(1144, 556, 80, 46, "iceRock"),
       bush(522, 748, 86, 52, "frost"),
       lantern(982, 286, "frost"),
+      ...(flags.ridge_signal_recovered ? [lantern(1120, 248, "frost"), signpost(1030, 250)] : []),
       signpost(848, 258),
     ],
-    npcs: [npc("vesper", 226, 430)],
+    npcs: [
+      npc("vesper", 226, 430),
+      ...(flags.ridge_signal_recovered ? [npc("halen", 1088, 304)] : []),
+    ],
     interactables,
     hazards: [],
   });
@@ -869,6 +903,7 @@ function buildHollowheartRuins(context, rng) {
 }
 
 function buildMossyRuins(context, rng) {
+  const flags = context.worldFlags || {};
   const tiles = createTiles(rng);
   stampRect(tiles, 0, 0, COLS, ROWS, "grass", 0);
   stampEllipse(tiles, 46, 28, 18, 12, "ruinStone", 0);
@@ -896,6 +931,14 @@ function buildMossyRuins(context, rng) {
       toastText: "Relic cache secured",
       requiresCleared: true,
       sortY: 560,
+    }),
+    interactable("tide-seal-2", "seal", 1226, 328, {
+      name: "Tide Seal",
+      promptLabel: "Recover Tide Seal",
+      collectKey: "tideSealsRecovered",
+      toastText: "Tide seal recovered",
+      requiresCleared: true,
+      sortY: 342,
     }),
   ];
 
@@ -943,9 +986,14 @@ function buildMossyRuins(context, rng) {
       bush(310, 700, 88, 54, "forest"),
       lantern(690, 334),
       lantern(1090, 470),
+      ...(flags.ruins_listening_post ? [lantern(888, 186, "cool"), signpost(1092, 308)] : []),
+      ...(flags.sunken_reliquary_open ? [lantern(900, 146, "warm")] : []),
       signpost(900, 760),
     ],
-    npcs: [npc("orras", 250, 666)],
+    npcs: [
+      npc("orras", 250, 666),
+      ...(flags.ruins_listening_post ? [npc("halen", 1038, 348)] : []),
+    ],
     interactables,
     hazards: [],
   });
@@ -1028,7 +1076,95 @@ function buildSunkenReliquary(context, rng) {
   });
 }
 
+function buildChapelOfTides(context, rng) {
+  const flags = context.worldFlags || {};
+  const tiles = createTiles(rng);
+  stampRect(tiles, 0, 0, COLS, ROWS, "ruinStone", 0);
+  stampEllipse(tiles, 52, 30, 20, 14, "water", 0);
+  stampEllipse(tiles, 52, 30, 10, 7, "path", 0);
+  stampRect(tiles, 22, 18, 60, 24, "path", 1);
+  paintPath(tiles, 52, 56, 52, 32, 2, "path", 0);
+  paintPath(tiles, 52, 32, 20, 20, 2, "path", 0);
+  paintPath(tiles, 52, 32, 84, 20, 2, "path", 0);
+  clearOverlayRect(tiles, 16, 10, 68, 40);
+  scatterOverlay(tiles, rng, 18, 14, 62, 28, 22, "flowersCool");
+  scatterOverlay(tiles, rng, 16, 14, 18, 22, 14, "reeds");
+  scatterOverlay(tiles, rng, 70, 16, 14, 20, 12, "reeds");
+
+  const interactables = [
+    interactable("tide-brazier-1", "totem", 704, 324, {
+      name: "Tide Brazier",
+      promptLabel: "Relight Brazier",
+      collectKey: "tideBraziersLit",
+      toastText: "Tide brazier rekindled",
+      requiresCleared: true,
+      sortY: 338,
+    }),
+    interactable("tide-brazier-2", "totem", 1148, 324, {
+      name: "Tide Brazier",
+      promptLabel: "Relight Brazier",
+      collectKey: "tideBraziersLit",
+      toastText: "Tide brazier rekindled",
+      requiresCleared: true,
+      sortY: 338,
+    }),
+  ];
+
+  return createBaseArena(context, tiles, {
+    playerSpawn: { x: 804, y: 842 },
+    entrySpawns: {
+      default: { x: 804, y: 842 },
+      southSteps: { x: 804, y: 842 },
+    },
+    spawnPoints: [
+      { x: 238, y: 214 },
+      { x: 532, y: 186 },
+      { x: 1326, y: 214 },
+      { x: 1306, y: 712 },
+      { x: 312, y: 734 },
+    ],
+    bossZone: { x: 934, y: 438, radius: 190 },
+    bossAddSpawns: [
+      { x: 760, y: 438 },
+      { x: 934, y: 286 },
+      { x: 1108, y: 438 },
+      { x: 934, y: 590 },
+    ],
+    exits: [makeExit("southSteps", 708, 884, 196, 52, "down", context.connections.southSteps)],
+    obstacles: [
+      ruin(752, 178, 236, 136, "altar"),
+      ruin(528, 316, 128, 96, "pillar"),
+      ruin(1212, 316, 128, 96, "pillar"),
+      ruin(500, 622, 142, 102, "pillar"),
+      ruin(1220, 620, 142, 102, "pillar"),
+      water(790, 366, 282, 144, "marsh"),
+      water(260, 196, 186, 130, "marsh"),
+      water(1144, 188, 176, 124, "marsh"),
+      bridge(802, 514, 248, 40),
+      tree(204, 198, 112, "swamp"),
+      tree(1272, 198, 114, "swamp"),
+      tree(224, 706, 110, "swamp"),
+      tree(1270, 704, 110, "swamp"),
+      bush(382, 752, 90, 54, "marsh"),
+      bush(1122, 752, 90, 54, "marsh"),
+      rock(646, 548, 78, 46),
+      rock(1132, 548, 78, 46),
+      lantern(774, 332, "cool"),
+      lantern(1080, 332, "cool"),
+      ...(flags.chapel_of_tides_cleansed ? [lantern(932, 230, "warm"), signpost(904, 776)] : []),
+    ],
+    npcs: [],
+    interactables,
+    hazards: [
+      { id: "chapel-pool-1", x: 824, y: 378, w: 88, h: 62, damage: 8, interval: 0.74, type: "blight" },
+      { id: "chapel-pool-2", x: 960, y: 440, w: 92, h: 66, damage: 8, interval: 0.74, type: "blight" },
+      { id: "chapel-pool-3", x: 300, y: 214, w: 100, h: 76, damage: 7, interval: 0.8, type: "blight" },
+    ],
+  });
+}
+
 function buildBlightedWoods(context, rng) {
+  const flags = context.worldFlags || {};
   const tiles = createTiles(rng);
   stampRect(tiles, 0, 0, COLS, ROWS, "blight", 0);
   stampEllipse(tiles, 52, 30, 16, 11, "ash", 0);
@@ -1097,9 +1233,13 @@ function buildBlightedWoods(context, rng) {
       rock(590, 430, 74, 44),
       lantern(754, 392, "ember"),
       lantern(1020, 312, "ember"),
+      ...(flags.court_approach_secured ? [lantern(1228, 448, "ember"), signpost(1268, 416)] : []),
       signpost(904, 762),
     ],
-    npcs: [npc("bram", 238, 666)],
+    npcs: [
+      npc("bram", 238, 666),
+      ...(flags.court_approach_secured ? [npc("halen", 1224, 472)] : []),
+    ],
     interactables,
     hazards: [
       { id: "blight-pool-a", x: 286, y: 248, w: 122, h: 84, damage: 10, interval: 0.68, type: "blight" },
@@ -1109,6 +1249,7 @@ function buildBlightedWoods(context, rng) {
 }
 
 function buildAncientHeart(context, rng) {
+  const flags = context.worldFlags || {};
   const tiles = createTiles(rng);
   stampRect(tiles, 0, 0, COLS, ROWS, "ruinStone", 0);
   stampEllipse(tiles, 52, 30, 18, 12, "path", 0);
@@ -1171,7 +1312,10 @@ function buildAncientHeart(context, rng) {
       lantern(892, 338, "frost"),
       lantern(1034, 338, "warm"),
     ],
-    npcs: [npc("selka", 254, 670)],
+    npcs: [
+      npc("selka", 254, 670),
+      ...(flags.elder_hollow_broken ? [npc("mara", 1088, 372)] : []),
+    ],
     interactables,
     hazards: [],
   });
@@ -1210,6 +1354,10 @@ export function createArena(context = {}) {
 
   if (context.sceneStyle === "sunkenReliquary") {
     return buildSunkenReliquary(context, rng);
+  }
+
+  if (context.sceneStyle === "chapelOfTides") {
+    return buildChapelOfTides(context, rng);
   }
 
   return buildWhisperingWoods(context, rng);

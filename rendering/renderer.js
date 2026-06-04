@@ -259,8 +259,12 @@ function drawBackdropGlow(ctx, arena, offsetX, offsetY) {
       ? "rgba(255, 153, 97, 0.12)"
       : arena.sceneStyle === "frostveilTundra"
         ? "rgba(170, 220, 255, 0.12)"
+        : arena.sceneStyle === "chapelOfTides"
+          ? "rgba(134, 206, 224, 0.12)"
         : arena.sceneStyle === "hollowheartRuins"
           ? "rgba(176, 83, 74, 0.12)"
+          : arena.sceneStyle === "ancientHeart" || arena.sceneStyle === "sunkenReliquary"
+            ? "rgba(198, 174, 255, 0.11)"
           : "rgba(207, 235, 163, 0.08)";
 
   ctx.save();
@@ -282,7 +286,12 @@ function drawSceneHazards(ctx, state, origin) {
 
     ctx.save();
     ctx.globalAlpha = 0.28;
-    ctx.fillStyle = hazard.type === "ember" ? "#ff9a52" : "#a54b42";
+    ctx.fillStyle =
+      hazard.type === "ember"
+        ? "#ff9a52"
+        : hazard.type === "mire"
+          ? "#5fa8b1"
+          : "#a54b42";
     ctx.beginPath();
     ctx.moveTo(corners[0].x, corners[0].y);
     for (let i = 1; i < corners.length; i += 1) {
@@ -907,7 +916,7 @@ function drawEnemyStatus(ctx, enemy, state, origin) {
       enemy.y,
       enemy.radius + 12,
       8,
-      enemy.type === "mire_brute" ? "#ffb45d" : "#ffd27a"
+      enemy.type === "mire_brute" ? "#ffb45d" : enemy.type === "thorn_weaver" ? "#b29aff" : "#ffd27a"
     );
     ctx.restore();
   }
@@ -939,7 +948,13 @@ function drawEnemyHealth(ctx, enemy, x, y) {
     y - 41,
     Math.round((width - 2) * ratio),
     4,
-    enemy.type === "mire_brute" ? "#ef7b58" : enemy.type === "wisp_archer" ? "#8fd9ff" : "#e05256"
+    enemy.type === "mire_brute"
+      ? "#ef7b58"
+      : enemy.type === "wisp_archer"
+        ? "#8fd9ff"
+        : enemy.type === "thorn_weaver"
+          ? "#c2a2ff"
+          : "#e05256"
   );
   if (enemy.elite) {
     ctx.fillStyle = enemy.eliteColor || "#e8d07d";
@@ -996,6 +1011,7 @@ function drawSceneAtmosphere(ctx, state) {
   if (style === "emberpineGrove") overlay = "rgba(58, 22, 14, 0.09)";
   if (style === "frostveilTundra") overlay = "rgba(16, 28, 40, 0.08)";
   if (style === "blightedWoods" || style === "hollowheartRuins") overlay = "rgba(34, 14, 18, 0.1)";
+  if (style === "chapelOfTides") overlay = "rgba(12, 26, 30, 0.1)";
   if (style === "ancientHeart" || style === "sunkenReliquary") overlay = "rgba(24, 18, 36, 0.08)";
 
   ctx.save();
@@ -1013,6 +1029,8 @@ function drawSceneAtmosphere(ctx, state) {
         ? "#d6f5ff"
         : style === "emberpineGrove"
           ? "#ffbb7f"
+          : style === "chapelOfTides"
+            ? "#94e7ff"
           : style === "blightedWoods" || style === "hollowheartRuins"
             ? "#cc8b82"
             : "#dff4b2";

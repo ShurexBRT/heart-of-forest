@@ -25,6 +25,8 @@ export function updateEnvironment(state, dt) {
         colors:
           hazard.type === "ember"
             ? ["#ffca7c", "#ef7d53", "#fff1bf"]
+            : hazard.type === "mire"
+              ? ["#97e5f1", "#56aeb7", "#d7fbff"]
             : ["#a2eb8b", "#d56e58", "#fff0c1"],
         speed: 160,
         size: [2, 4],

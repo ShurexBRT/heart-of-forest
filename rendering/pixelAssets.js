@@ -371,6 +371,7 @@ function buildActorSprite(palette, facing, frame, style, pose) {
 function buildEnemySprite(type, facing, frame, pose) {
   if (type === "mire_brute") return buildMireBruteSprite(facing, frame, pose);
   if (type === "wisp_archer") return buildWispArcherSprite(facing, frame, pose);
+  if (type === "thorn_weaver") return buildThornWeaverSprite(facing, frame, pose);
   return buildThornlingSprite(facing, frame, pose);
 }
 
@@ -448,6 +449,31 @@ function buildWispArcherSprite(facing, frame, pose) {
   px(ctx, 36 + lean, 31 + bob + bowLift, 5, 2, "#c5dfff");
   px(ctx, 38 + lean, 20 + bob + bowLift, 2, 10, "#89a7cf");
   return { canvas, anchorX: 24, anchorY: 39 };
+}
+
+function buildThornWeaverSprite(facing, frame, pose) {
+  const canvas = createCanvas(48, 46);
+  const ctx = canvas.getContext("2d");
+  const bob = [0, 1, 0, -1][frame % 4];
+  const lean = facing === "left" ? -1 : facing === "right" ? 1 : 0;
+  const outline = "#17151f";
+  const castLift = pose === "windup" ? -2 : 0;
+
+  px(ctx, 14 + lean, 8 + bob, 20, 10, outline);
+  px(ctx, 12 + lean, 18 + bob, 24, 14, outline);
+  px(ctx, 16 + lean, 10 + bob, 16, 8, "#4f395d");
+  px(ctx, 18 + lean, 11 + bob, 12, 6, "#e9e8ef");
+  px(ctx, facing === "left" ? 18 + lean : 24 + lean, 14 + bob, 4, 3, "#13131a");
+  px(ctx, 14 + lean, 19 + bob, 20, 12, pose === "rooted" ? "#a7dd84" : "#7d5d92");
+  px(ctx, 18 + lean, 21 + bob, 12, 10, "#c1a3d5");
+  px(ctx, 22 + lean, 31 + Math.max(0, bob), 4, 6, "#f0e8ff");
+  px(ctx, 34 + lean, 16 + bob + castLift, 3, 18, "#705139");
+  px(ctx, 36 + lean, 14 + bob + castLift, 6, 4, "#705139");
+  px(ctx, 38 + lean, 12 + bob + castLift, 4, 2, "#82d174");
+  px(ctx, 39 + lean, 20 + bob + castLift, 3, 3, "#82d174");
+  px(ctx, 8 + lean, 21 + bob + castLift, 4, 12, "#e9e8ef");
+  px(ctx, 10 + lean, 23 + bob + castLift, 2, 10, "#c1a3d5");
+  return { canvas, anchorX: 24, anchorY: 41 };
 }
 
 function buildBossSprite(frame, pose) {

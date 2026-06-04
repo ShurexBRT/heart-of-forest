@@ -7,6 +7,7 @@ import {
   incrementQuestCounter,
   setWorldFlag,
 } from "./progression.js";
+import { queueAudio } from "./audio.js";
 import { openServiceUi } from "./services.js";
 
 const INTERACTION_RADIUS = 60;
@@ -39,12 +40,14 @@ export function updateQuestAvailability(state) {
     if (quest.giverId && state.currentSceneId === quest.sceneId) {
       progression.questStates[quest.id] = "available";
       setToast(state, `Quest Available: ${quest.title}`, 2.1);
+      queueAudio(state, "quest");
       continue;
     }
 
     if (quest.autoActivateSceneId && state.currentSceneId === quest.autoActivateSceneId) {
       progression.questStates[quest.id] = "active";
       setToast(state, `Quest Started: ${quest.title}`, 2.4);
+      queueAudio(state, "quest");
     }
   }
 }
@@ -74,6 +77,10 @@ export function consumeStoryEvents(state) {
 
     if (event.type === "bossDefeated" && event.bossId === "rootbound_custodian") {
       incrementQuestCounter(state.progression, "reliquaryKeeperDefeated", 1);
+    }
+
+    if (event.type === "bossDefeated" && event.bossId === "bog_matron") {
+      incrementQuestCounter(state.progression, "bogMatronDefeated", 1);
     }
   }
 
@@ -213,6 +220,7 @@ function openNpcDialogue(state, npc) {
       onClose = () => {
         progression.questStates[handledQuest.id] = "active";
         setToast(state, `Quest Started: ${handledQuest.title}`, 2.4);
+        queueAudio(state, "quest");
         maybeOpenNpcService(state, npcDef);
       };
     } else if (status === "active") {
@@ -231,6 +239,7 @@ function openNpcDialogue(state, npc) {
             : `Rewards Received: ${handledQuest.title}`,
           2.4
         );
+        queueAudio(state, "quest");
         maybeOpenNpcService(state, npcDef);
       };
     } else {
@@ -297,6 +306,7 @@ function useInteractable(state, interactable) {
   }
 
   setToast(state, interactable.toastText || `${interactable.name} secured`, 2);
+  queueAudio(state, "use-item");
 }
 
 function markSceneObjectState(state, objectId) {
@@ -322,6 +332,7 @@ function finalizeQuest(state, quest) {
     setWorldFlag(progression, flag, true);
   }
   state.player.refreshFromModifiers(getPlayerBonuses(progression));
+  queueAudio(state, rewardSummary.levelsGained > 0 ? "level-up" : "quest");
   return rewardSummary;
 }
 

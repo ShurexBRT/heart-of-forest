@@ -7,7 +7,8 @@ Trenutni fokus je na malom, povezanom ARPG vertical slice-u:
 - quest i NPC loop
 - inventory, equipment, talents i levelovanje
 - hub services i economy osnova
-- multi-step quest chain sa mini-dungeon boss zavrsnicom
+- multi-step quest chains sa vise mini-dungeon boss zavrsnica
+- loot, affix, buyback i local save loop
 
 ## Controls
 
@@ -41,6 +42,7 @@ Trenutni fokus je na malom, povezanom ARPG vertical slice-u:
   - `Blighted Woods`
   - `Hollowheart Ruins`
   - `Sunken Reliquary`
+  - `Chapel of Tides`
 - hub-style village presentation with NPC interactions
 - combat kit:
   - Staff Strike
@@ -49,7 +51,17 @@ Trenutni fokus je na malom, povezanom ARPG vertical slice-u:
   - Root Snare
 - out-of-combat health regeneration
 - enemy waves, boss encounters, and elite affixes
+- enemy roster:
+  - `Thornling`
+  - `Mire Brute`
+  - `Wisp Archer`
+  - `Thorn Weaver`
 - inventory with stackable consumables
+- gear progression with:
+  - named drops
+  - rolled affix items
+  - shop buyback
+  - sort/filter inventory and vendor views
 - equipment slots:
   - trinket
   - amulet
@@ -64,8 +76,12 @@ Trenutni fokus je na malom, povezanom ARPG vertical slice-u:
   - apothecary shop
   - waystone altar
   - village stash
+- ambient WebAudio layer with combat, UI, loot, quest, and travel feedback
 - item rewards, silver currency, usable potions, and buff consumables
-- multi-step relic quest chain that opens the `Sunken Reliquary`
+- quest consequence flags that visibly change roads, lanterns, NPC placement, and dungeon access
+- multi-step relic / marsh quest chains that open:
+  - `Sunken Reliquary`
+  - `Chapel of Tides`
 
 ## Running Locally
 
@@ -113,6 +129,8 @@ http://localhost:4177/
   - shop, altar, and stash behavior
 - `systems/story.js`
   - quest progression, interactions, dialogue, rewards
+- `systems/audio.js`
+  - lightweight WebAudio ambience and gameplay feedback
 - `systems/save.js`
   - local snapshot persistence
 
@@ -124,8 +142,8 @@ http://localhost:4177/
 
 ## Next Logical Step
 
-- clickable inventory and service interactions
-- stronger enemy/NPC sprite presentation
-- vendor compare tooltips and broader itemization
-- tighter quest scripting with more world-state feedback
-- more handcrafted dungeon and boss phase polish
+- richer biome-specific drops and more unique vendor stock
+- another handcrafted dungeon branch with its own miniboss
+- stronger enemy/NPC sprite identity pass
+- more world-state reactions after late-game clears
+- optional audio asset swap from synth feedback to authored SFX

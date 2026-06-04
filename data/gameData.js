@@ -170,6 +170,7 @@ export const BIOMES = {
 };
 
 export const EQUIPMENT_SLOTS = ["trinket", "amulet", "talisman", "relic"];
+export const ITEM_RARITY_ORDER = ["common", "uncommon", "rare", "epic", "legendary"];
 
 export const ITEM_DEFS = {
   spirit_bloom: {
@@ -280,6 +281,18 @@ export const ITEM_DEFS = {
     description: "Restores 40 Spirit.",
     effect: { spirit: 40 },
   },
+  greater_spirit_tonic: {
+    id: "greater_spirit_tonic",
+    name: "Greater Spirit Tonic",
+    category: "consumable",
+    usable: true,
+    maxStack: 20,
+    rarity: "uncommon",
+    value: 36,
+    color: "#67d5ff",
+    description: "Restores 70 Spirit.",
+    effect: { spirit: 70 },
+  },
   ward_elixir: {
     id: "ward_elixir",
     name: "Ward Elixir",
@@ -303,6 +316,30 @@ export const ITEM_DEFS = {
     color: "#8ae7cc",
     description: "Boosts speed and Spirit regen for 10 seconds.",
     effect: { speedDuration: 10, speedBonus: 0.18, spiritRegenBonus: 4 },
+  },
+  rejuvenation_draught: {
+    id: "rejuvenation_draught",
+    name: "Rejuvenation Draught",
+    category: "consumable",
+    usable: true,
+    maxStack: 20,
+    rarity: "rare",
+    value: 54,
+    color: "#9eeea2",
+    description: "Restores 24 HP and empowers regeneration for 12 seconds.",
+    effect: { heal: 24, wardDuration: 12, damageReduction: 0.12 },
+  },
+  clarity_phial: {
+    id: "clarity_phial",
+    name: "Clarity Phial",
+    category: "consumable",
+    usable: true,
+    maxStack: 20,
+    rarity: "rare",
+    value: 52,
+    color: "#b4d8ff",
+    description: "Restores 28 Spirit and accelerates movement for 8 seconds.",
+    effect: { spirit: 28, speedDuration: 8, speedBonus: 0.15, spiritRegenBonus: 6 },
   },
   warden_brooch: {
     id: "warden_brooch",
@@ -414,7 +451,392 @@ export const ITEM_DEFS = {
     description: "A ring of old warding metal humming with stored memory.",
     bonuses: { boltDamageBonus: 7, bloomBonus: 6, maxSpiritBonus: 10 },
   },
+  barkbound_torque: {
+    id: "barkbound_torque",
+    name: "Barkbound Torque",
+    category: "equipment",
+    slot: "amulet",
+    rarity: "uncommon",
+    value: 94,
+    color: "#c6cf84",
+    description: "A wide torque carved with patient root patterns.",
+    bonuses: { maxHpBonus: 18, rootDurationBonus: 0.2 },
+  },
+  gladehunter_charm: {
+    id: "gladehunter_charm",
+    name: "Gladehunter Charm",
+    category: "equipment",
+    slot: "trinket",
+    rarity: "uncommon",
+    value: 96,
+    color: "#88df9c",
+    description: "A hunter's charm that rewards clean movement through the brush.",
+    bonuses: { moveSpeedBonus: 12, dashCooldownBonus: 0.06 },
+  },
+  duskreed_talisman: {
+    id: "duskreed_talisman",
+    name: "Duskreed Talisman",
+    category: "equipment",
+    slot: "talisman",
+    rarity: "rare",
+    value: 132,
+    color: "#8fd9dc",
+    description: "Braided reed work that steadies both aim and breath.",
+    bonuses: { boltDamageBonus: 4, spiritRegenBonus: 3, maxSpiritBonus: 10 },
+  },
+  chapelglass_relic: {
+    id: "chapelglass_relic",
+    name: "Chapelglass Relic",
+    category: "equipment",
+    slot: "relic",
+    rarity: "rare",
+    value: 146,
+    color: "#dbc18a",
+    description: "A foggy shard that catches lost rites and returns them brighter.",
+    bonuses: { bloomBonus: 5, rootDurationBonus: 0.18, maxSpiritBonus: 8 },
+  },
+  rowans_oath_brooch: {
+    id: "rowans_oath_brooch",
+    name: "Rowan's Oath Brooch",
+    category: "equipment",
+    slot: "trinket",
+    rarity: "epic",
+    value: 184,
+    color: "#f0d48e",
+    description: "A keeper's brooch warmed by years of patient vows.",
+    bonuses: { maxHpBonus: 20, healthRegenBonus: 2.2, staffSpiritBonus: 2 },
+    named: true,
+  },
+  marshwarden_idol: {
+    id: "marshwarden_idol",
+    name: "Marshwarden Idol",
+    category: "equipment",
+    slot: "relic",
+    rarity: "epic",
+    value: 188,
+    color: "#9cdce2",
+    description: "An idol of pale stone that keeps the marsh from swallowing resolve.",
+    bonuses: { spiritRegenBonus: 5, rootDurationBonus: 0.4, incomingDamageReductionBonus: 0.05 },
+    named: true,
+  },
+  emberwake_seal: {
+    id: "emberwake_seal",
+    name: "Emberwake Seal",
+    category: "equipment",
+    slot: "amulet",
+    rarity: "epic",
+    value: 192,
+    color: "#f39f6a",
+    description: "Still warm with the memory of firewatch vows.",
+    bonuses: { boltDamageBonus: 8, maxHpBonus: 14, moveSpeedBonus: 10 },
+    named: true,
+  },
+  tundra_signet: {
+    id: "tundra_signet",
+    name: "Tundra Signet",
+    category: "equipment",
+    slot: "talisman",
+    rarity: "epic",
+    value: 194,
+    color: "#c6e8ff",
+    description: "A bright signet worn by scouts who never lost the line home.",
+    bonuses: { maxSpiritBonus: 16, dashCooldownBonus: 0.14, spiritRegenBonus: 3 },
+    named: true,
+  },
+  hollowcourt_pendant: {
+    id: "hollowcourt_pendant",
+    name: "Hollowcourt Pendant",
+    category: "equipment",
+    slot: "amulet",
+    rarity: "legendary",
+    value: 264,
+    color: "#e2bd8e",
+    description: "Taken from the court where the roots learned to remember pain.",
+    bonuses: { maxHpBonus: 24, maxSpiritBonus: 14, bloomBonus: 12, incomingDamageReductionBonus: 0.06 },
+    named: true,
+  },
+  custodian_spindle: {
+    id: "custodian_spindle",
+    name: "Custodian Spindle",
+    category: "equipment",
+    slot: "relic",
+    rarity: "legendary",
+    value: 252,
+    color: "#d1c4ff",
+    description: "A reliquary spindle humming with layered ward-songs.",
+    bonuses: { boltDamageBonus: 9, rootDurationBonus: 0.42, spiritRegenBonus: 5, bloomBonus: 8 },
+    named: true,
+  },
+  wayfarers_lantern: {
+    id: "wayfarers_lantern",
+    name: "Wayfarer's Lantern",
+    category: "equipment",
+    slot: "trinket",
+    rarity: "epic",
+    value: 182,
+    color: "#f1dc9b",
+    description: "A small lantern that answers by quickening the road beneath you.",
+    bonuses: { moveSpeedBonus: 14, dashCooldownBonus: 0.12, healthRegenBonus: 1.2 },
+    named: true,
+  },
 };
+
+export const ITEM_AFFIX_DEFS = {
+  sturdy: {
+    id: "sturdy",
+    kind: "prefix",
+    label: "Sturdy",
+    slots: ["trinket", "amulet", "talisman", "relic"],
+    rarity: "uncommon",
+    valueMult: 0.18,
+    bonuses: { maxHpBonus: 10, healthRegenBonus: 0.5 },
+  },
+  lucid: {
+    id: "lucid",
+    kind: "prefix",
+    label: "Lucid",
+    slots: ["amulet", "talisman", "relic"],
+    rarity: "uncommon",
+    valueMult: 0.18,
+    bonuses: { maxSpiritBonus: 10, spiritRegenBonus: 2 },
+  },
+  quickstep: {
+    id: "quickstep",
+    kind: "prefix",
+    label: "Quickstep",
+    slots: ["trinket", "amulet", "talisman"],
+    rarity: "rare",
+    valueMult: 0.28,
+    bonuses: { moveSpeedBonus: 10, dashCooldownBonus: 0.08 },
+  },
+  thornbound: {
+    id: "thornbound",
+    kind: "prefix",
+    label: "Thornbound",
+    slots: ["trinket", "talisman", "relic"],
+    rarity: "rare",
+    valueMult: 0.32,
+    bonuses: { staffDamageBonus: 4, rootDurationBonus: 0.16 },
+  },
+  emberkissed: {
+    id: "emberkissed",
+    kind: "prefix",
+    label: "Emberkissed",
+    slots: ["amulet", "relic"],
+    rarity: "epic",
+    valueMult: 0.42,
+    bonuses: { boltDamageBonus: 6, bloomBonus: 4 },
+  },
+  warded: {
+    id: "warded",
+    kind: "prefix",
+    label: "Warded",
+    slots: ["trinket", "amulet", "talisman", "relic"],
+    rarity: "rare",
+    valueMult: 0.26,
+    bonuses: { incomingDamageReductionBonus: 0.04, maxHpBonus: 8 },
+  },
+  vigor: {
+    id: "vigor",
+    kind: "suffix",
+    label: "Vigor",
+    slots: ["trinket", "amulet", "talisman", "relic"],
+    rarity: "uncommon",
+    valueMult: 0.16,
+    bonuses: { maxHpBonus: 8, healthRegenBonus: 0.6 },
+  },
+  focus: {
+    id: "focus",
+    kind: "suffix",
+    label: "Focus",
+    slots: ["amulet", "talisman", "relic"],
+    rarity: "uncommon",
+    valueMult: 0.16,
+    bonuses: { spiritRegenBonus: 2, maxSpiritBonus: 8 },
+  },
+  roots: {
+    id: "roots",
+    kind: "suffix",
+    label: "Roots",
+    slots: ["amulet", "talisman", "relic"],
+    rarity: "rare",
+    valueMult: 0.24,
+    bonuses: { rootDurationBonus: 0.2, staffSpiritBonus: 2 },
+  },
+  cinders: {
+    id: "cinders",
+    kind: "suffix",
+    label: "Cinders",
+    slots: ["amulet", "relic"],
+    rarity: "rare",
+    valueMult: 0.24,
+    bonuses: { boltDamageBonus: 4, moveSpeedBonus: 6 },
+  },
+  hollow: {
+    id: "hollow",
+    kind: "suffix",
+    label: "the Hollow",
+    slots: ["amulet", "talisman", "relic"],
+    rarity: "epic",
+    valueMult: 0.4,
+    bonuses: { bloomBonus: 5, incomingDamageReductionBonus: 0.03 },
+  },
+  tides: {
+    id: "tides",
+    kind: "suffix",
+    label: "Tides",
+    slots: ["trinket", "amulet", "relic"],
+    rarity: "rare",
+    valueMult: 0.24,
+    bonuses: { spiritRegenBonus: 3, dashCooldownBonus: 0.06 },
+  },
+};
+
+export const BIOME_ITEM_BASES = {
+  forest: ["warden_brooch", "moonthread_amulet", "thornbound_clasp", "gladehunter_charm"],
+  marsh: ["marshlight_amulet", "rootwoven_talisman", "barkbound_torque", "duskreed_talisman"],
+  highlands: ["warden_loop", "barkbound_torque", "gladehunter_charm", "chapelglass_relic"],
+  ember: ["emberglass_relic", "thornbound_clasp", "duskreed_talisman", "chapelglass_relic"],
+  frost: ["frostband_charm", "moonthread_amulet", "gladehunter_charm", "duskreed_talisman"],
+  blight: ["rootwoven_talisman", "marshlight_amulet", "emberglass_relic", "chapelglass_relic"],
+  ancient: ["reliquary_loop", "heartseed_pendant", "chapelglass_relic", "duskreed_talisman"],
+};
+
+export const BIOME_NAMED_DROPS = {
+  forest: ["rowans_oath_brooch", "wayfarers_lantern"],
+  marsh: ["marshwarden_idol", "wayfarers_lantern"],
+  ember: ["emberwake_seal"],
+  frost: ["tundra_signet"],
+  blight: ["hollowcourt_pendant"],
+  ancient: ["custodian_spindle"],
+};
+
+const GENERATED_ITEM_CACHE = new Map();
+const GENERATED_ITEM_SEPARATOR = "__";
+
+function mergeBonuses(...sources) {
+  const merged = {};
+  for (const source of sources) {
+    if (!source) continue;
+    for (const [key, value] of Object.entries(source)) {
+      merged[key] = (merged[key] || 0) + value;
+    }
+  }
+  return merged;
+}
+
+function getRarityRank(rarity) {
+  const index = ITEM_RARITY_ORDER.indexOf(rarity);
+  return index >= 0 ? index : 0;
+}
+
+function getHigherRarity(...rarities) {
+  return rarities
+    .filter(Boolean)
+    .sort((a, b) => getRarityRank(b) - getRarityRank(a))[0] || "common";
+}
+
+export function createAffixedItemId(baseId, prefixId = null, suffixId = null) {
+  if (!prefixId && !suffixId) return baseId;
+  return [baseId, prefixId || "none", suffixId || "none"].join(GENERATED_ITEM_SEPARATOR);
+}
+
+export function parseAffixedItemId(itemId) {
+  const parts = String(itemId || "").split(GENERATED_ITEM_SEPARATOR);
+  if (parts.length !== 3) {
+    return { baseId: itemId, prefixId: null, suffixId: null, generated: false };
+  }
+
+  return {
+    baseId: parts[0],
+    prefixId: parts[1] !== "none" ? parts[1] : null,
+    suffixId: parts[2] !== "none" ? parts[2] : null,
+    generated: true,
+  };
+}
+
+export function isGeneratedItemId(itemId) {
+  return parseAffixedItemId(itemId).generated;
+}
+
+export function getItemDef(itemId) {
+  if (!itemId) return null;
+  if (ITEM_DEFS[itemId]) return ITEM_DEFS[itemId];
+  if (GENERATED_ITEM_CACHE.has(itemId)) return GENERATED_ITEM_CACHE.get(itemId);
+
+  const { baseId, prefixId, suffixId, generated } = parseAffixedItemId(itemId);
+  if (!generated) return null;
+
+  const base = ITEM_DEFS[baseId];
+  if (!base || base.category !== "equipment") return null;
+
+  const prefix = prefixId ? ITEM_AFFIX_DEFS[prefixId] : null;
+  const suffix = suffixId ? ITEM_AFFIX_DEFS[suffixId] : null;
+
+  const bonuses = mergeBonuses(base.bonuses, prefix?.bonuses, suffix?.bonuses);
+  const rarity = getHigherRarity(
+    base.rarity,
+    prefix?.rarity,
+    suffix?.rarity,
+    prefix && suffix ? "rare" : null
+  );
+  const valueMult = 1 + (prefix?.valueMult || 0) + (suffix?.valueMult || 0);
+  const descriptionBits = [base.description];
+  if (prefix) descriptionBits.push(`${prefix.label} craftsmanship reinforces it.`);
+  if (suffix) descriptionBits.push(`It carries the cadence of ${suffix.label}.`);
+
+  const generatedItem = {
+    ...base,
+    id: itemId,
+    generated: true,
+    baseItemId: baseId,
+    prefixId,
+    suffixId,
+    rarity,
+    name: `${prefix ? `${prefix.label} ` : ""}${base.name}${suffix ? ` of ${suffix.label}` : ""}`,
+    description: descriptionBits.join(" "),
+    bonuses,
+    value: Math.max(base.value + 4, Math.round(base.value * valueMult)),
+  };
+
+  GENERATED_ITEM_CACHE.set(itemId, generatedItem);
+  return generatedItem;
+}
+
+export function rollAffixItem(baseId, rng = Math.random, options = {}) {
+  const base = getItemDef(baseId);
+  if (!base || base.category !== "equipment" || base.named) return baseId;
+
+  const slot = base.slot;
+  const prefixPool = Object.values(ITEM_AFFIX_DEFS).filter(
+    (entry) => entry.kind === "prefix" && entry.slots.includes(slot)
+  );
+  const suffixPool = Object.values(ITEM_AFFIX_DEFS).filter(
+    (entry) => entry.kind === "suffix" && entry.slots.includes(slot)
+  );
+
+  const roll = rng();
+  let prefix = null;
+  let suffix = null;
+  if (roll > 0.2) {
+    prefix = prefixPool[Math.floor(rng() * prefixPool.length)] || null;
+  }
+  if (roll > 0.45) {
+    suffix = suffixPool[Math.floor(rng() * suffixPool.length)] || null;
+  }
+  if (options.forceBoth && !prefix) {
+    prefix = prefixPool[Math.floor(rng() * prefixPool.length)] || null;
+  }
+  if (options.forceBoth && !suffix) {
+    suffix = suffixPool[Math.floor(rng() * suffixPool.length)] || null;
+  }
+
+  return createAffixedItemId(baseId, prefix?.id || null, suffix?.id || null);
+}
+
+export function getBiomeNamedDrops(biomeId) {
+  return BIOME_NAMED_DROPS[biomeId] || [];
+}
 
 export const TALENT_DEFS = [
   {
@@ -513,9 +935,15 @@ export const SERVICE_DEFS = {
       { itemId: "health_potion", price: 18 },
       { itemId: "spirit_tonic", price: 20 },
       { itemId: "greater_health_potion", price: 34, requiresQuestDone: "ember_totems" },
+      { itemId: "greater_spirit_tonic", price: 36, requiresQuestDone: "ruins_of_memory" },
       { itemId: "ward_elixir", price: 42, requiresQuestDone: "bogbound_rot" },
       { itemId: "windstep_phial", price: 38, requiresQuestDone: "lost_scout" },
+      { itemId: "rejuvenation_draught", price: 54, requiresQuestDone: "chapel_of_tides" },
+      { itemId: "clarity_phial", price: 52, requiresQuestDone: "blight_watch" },
       { itemId: "marshlight_amulet", price: 118, requiresQuestDone: "apothecarys_route" },
+      { itemId: "gladehunter_charm", price: 104, requiresQuestDone: "whispering_call" },
+      { itemId: "barkbound_torque", price: 118, requiresQuestDone: "bogbound_rot" },
+      { itemId: "duskreed_talisman", price: 148, requiresQuestDone: "chapel_of_tides" },
     ],
   },
   waystone_altar: {

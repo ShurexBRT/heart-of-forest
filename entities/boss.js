@@ -138,6 +138,8 @@ export class Boss {
     const hazards = [];
     const center = { x: state.player.x, y: state.player.y };
     const count = this.phase >= 2 ? 6 : 4;
+    const eruptionDamage = this.id === "bog_matron" ? (this.phase >= 2 ? 20 : 16) : this.phase >= 2 ? 22 : 18;
+    const eruptionType = this.id === "bog_matron" ? "mire" : "thorn";
 
     for (let i = 0; i < count; i += 1) {
       const angle = randomRange(0, TAU);
@@ -148,8 +150,9 @@ export class Boss {
         radius: randomRange(28, this.phase >= 2 ? 48 : 40),
         warning: 0.74 + i * 0.04,
         active: 0.28,
-        damage: this.phase >= 2 ? 22 : 18,
+        damage: eruptionDamage,
         hitPlayer: false,
+        type: eruptionType,
       });
     }
 
@@ -161,7 +164,10 @@ export class Boss {
 
     spawnBurst(state, this.x, this.y, {
       count: 18,
-      colors: ["#8ceb6b", "#5bbd55", "#f0cf77"],
+      colors:
+        this.id === "bog_matron"
+          ? ["#8bd9e6", "#69b8cb", "#d6f3f8"]
+          : ["#8ceb6b", "#5bbd55", "#f0cf77"],
       speed: 170,
       size: [2, 4],
       life: [0.14, 0.34],
@@ -236,15 +242,18 @@ export class Boss {
         vy: Math.sin(angle) * (this.phase >= 2 ? 356 : 320),
         radius: 8,
         life: 2.2,
-        damage: this.phase >= 2 ? 18 : 14,
+        damage: this.id === "bog_matron" ? (this.phase >= 2 ? 16 : 13) : this.phase >= 2 ? 18 : 14,
         knockback: 175,
-        type: "thorn",
+        type: this.id === "bog_matron" ? "spirit" : "thorn",
       });
     }
 
     spawnBurst(state, this.x, this.y, {
       count: 20,
-      colors: ["#d35d48", "#ffb868", "#9cdc79"],
+      colors:
+        this.id === "bog_matron"
+          ? ["#79d9f5", "#c2f1ff", "#6fa995"]
+          : ["#d35d48", "#ffb868", "#9cdc79"],
       speed: 180,
       size: [2, 4],
       life: [0.14, 0.32],
@@ -268,6 +277,14 @@ export class Boss {
         ? this.phase >= 3
           ? [{ type: "mire_brute", elite: true, affixes: ["bulwark"] }, "thornling"]
           : ["thornling", { type: "wisp_archer", elite: true, affixes: ["swift"] }]
+        : this.id === "bog_matron"
+          ? this.phase >= 3
+            ? [
+                { type: "thorn_weaver", elite: true, affixes: ["spiteful"] },
+                "wisp_archer",
+                "mire_brute",
+              ]
+            : ["thornling", "thorn_weaver", "wisp_archer"]
         : this.phase >= 3
           ? ["wisp_archer", "mire_brute", "thornling"]
           : ["thornling", "wisp_archer"];
@@ -290,7 +307,12 @@ export class Boss {
       });
     });
 
-    state.encounter.bannerText = this.id === "rootbound_custodian" ? "Vault Echoes Stir" : "The Hollow Calls";
+    state.encounter.bannerText =
+      this.id === "rootbound_custodian"
+        ? "Vault Echoes Stir"
+        : this.id === "bog_matron"
+          ? "The Tides Answer"
+          : "The Hollow Calls";
     state.encounter.bannerTimer = 1.5;
   }
 
@@ -306,6 +328,10 @@ export class Boss {
           ? this.phase === 2
             ? "Reliquary Stirs"
             : "Rootbound Fury"
+          : this.id === "bog_matron"
+            ? this.phase === 2
+              ? "Floodwake Rising"
+              : "Matron of the Mire"
           : this.phase === 2
             ? "Elder Hollow Rises"
             : "Heartwood Frenzy";

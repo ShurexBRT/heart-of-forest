@@ -12,6 +12,7 @@ import { TALENT_DEFS } from "./data/gameData.js";
 import { Player } from "./entities/player.js";
 import { renderGame } from "./rendering/renderer.js";
 import { getUiHoverTarget } from "./ui/hud.js";
+import { createAudioState, queueAudio, updateAudio } from "./systems/audio.js";
 import {
   handlePlayerAbilities,
   markCombat,
@@ -62,6 +63,10 @@ import { createArena } from "./world/arena.js";
 const TRANSITION_DURATION = 0.34;
 const EXIT_HOLD_TIME = 0.22;
 const AUTO_SAVE_INTERVAL = 6;
+const INVENTORY_FILTER_ORDER = ["all", "equipment", "consumable", "material", "usable"];
+const INVENTORY_SORT_ORDER = ["name", "rarity", "value", "slot"];
+const SHOP_FILTER_ORDER = ["all", "equipment", "consumable", "rare", "epic"];
+const SHOP_SORT_ORDER = ["name", "rarity", "price", "recent"];
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d", { alpha: false });
@@ -108,6 +113,7 @@ function createState(currentProgression, saveData = null) {
     combatTimer: 0,
     saveTimer: AUTO_SAVE_INTERVAL,
     ui: createUiState(saveData?.ui),
+    audio: createAudioState(),
   };
 }
 
@@ -125,6 +131,10 @@ function createUiState(saved = null) {
     selectedServiceIndex: saved?.selectedServiceIndex || 0,
     selectedStashIndex: saved?.selectedStashIndex || 0,
     serviceSubpanel: saved?.serviceSubpanel || "stock",
+    inventoryFilter: saved?.inventoryFilter || "all",
+    inventorySort: saved?.inventorySort || "name",
+    shopFilter: saved?.shopFilter || "all",
+    shopSort: saved?.shopSort || "name",
     hoverTarget: null,
   };
 }
@@ -143,7 +153,11 @@ function createTransitionState() {
 
 function buildSceneState(sceneId, entryId, currentProgression, sceneProgress, vitals = null) {
   const scene = SCENES[sceneId];
-  const arena = createArena(scene);
+  const arena = createArena({
+    ...scene,
+    worldFlags: currentProgression.worldFlags,
+    questStates: currentProgression.questStates,
+  });
   const savedSceneState = sceneProgress[sceneId];
 
   if (savedSceneState?.objectStates) {
@@ -323,6 +337,7 @@ function isExitUnlocked(exit) {
 }
 
 function startTransition(exit) {
+  queueAudio(state, "travel");
   state.transition.active = true;
   state.transition.phase = "out";
   state.transition.timer = 0;
@@ -451,12 +466,14 @@ function closePanels() {
 }
 
 function openMenu(tab) {
+  queueAudio(state, "ui");
   state.ui.menuOpen = true;
   state.ui.questLogOpen = false;
   state.ui.activeTab = tab;
 }
 
 function toggleQuestLog() {
+  queueAudio(state, "ui");
   state.ui.questLogOpen = !state.ui.questLogOpen;
   if (state.ui.questLogOpen) {
     state.ui.menuOpen = false;
@@ -481,6 +498,32 @@ function clampSelection(key, max) {
   state.ui[key] = clamp(state.ui[key] || 0, 0, Math.max(0, max - 1));
 }
 
+function cycleUiOption(key, order, delta = 1) {
+  const current = order.indexOf(state.ui[key]);
+  const safeIndex = current >= 0 ? current : 0;
+  state.ui[key] = order[(safeIndex + delta + order.length) % order.length];
+}
+
+function clampInventorySelection() {
+  clampSelection(
+    "selectedInventoryIndex",
+    getInventoryEntries(state.progression, {
+      filter: state.ui.inventoryFilter,
+      sort: state.ui.inventorySort,
+    }).length
+  );
+}
+
+function clampServiceSelection() {
+  if (state.ui.activeServiceId) {
+    const active = getActiveService(state);
+    if (active?.kind === "shop") {
+      clampSelection("selectedServiceIndex", getServiceEntries(state).length);
+      return;
+    }
+  }
+}
+
 function refreshPlayerFromProgression(preserveVitals = true) {
   state.player.refreshFromModifiers(getPlayerBonuses(state.progression), { preserveVitals });
 }
@@ -501,6 +544,7 @@ function tryUseBoundActionSlot(slotIndex) {
 
 function showUseItemToast(result) {
   if (!result?.used) return;
+  queueAudio(state, "use-item");
   if (result.healed > 0) {
     setToast(`${result.item.name} restored ${result.healed} HP`, 1.8);
     return;
@@ -523,6 +567,7 @@ function activateInventoryEntry(entry) {
     if (equipItem(state.progression, entry.id)) {
       refreshPlayerFromProgression();
       setToast(`Equipped ${entry.name}`, 1.9);
+      queueAudio(state, "equip");
     }
     return true;
   }
@@ -542,7 +587,8 @@ function sellInventoryEntry(entry) {
   const result = sellSelectedInventoryEntry(state, entry);
   if (result.success) {
     setToast(result.text, 1.9);
-    clampSelection("selectedInventoryIndex", getInventoryEntries(state.progression).length);
+    queueAudio(state, "sell");
+    clampInventorySelection();
   } else if (getSellHintVisible(state)) {
     setToast(result.reason || "That item cannot be sold.", 1.8);
   }
@@ -555,6 +601,7 @@ function unequipSelectedEntry() {
   if (slot && unequipItem(state.progression, slot)) {
     refreshPlayerFromProgression();
     setToast(`Unequipped ${slot}`, 1.7);
+    queueAudio(state, "equip");
   }
   return true;
 }
@@ -564,6 +611,7 @@ function unlockSelectedTalent() {
   if (talent && unlockTalent(state.progression, talent.id)) {
     refreshPlayerFromProgression();
     setToast(`Unlocked ${talent.name}`, 2);
+    queueAudio(state, "quest");
   }
   return true;
 }
@@ -573,6 +621,12 @@ function runSelectedServiceAction() {
   if (result.success) {
     refreshPlayerFromProgression();
     setToast(result.text, 2);
+    queueAudio(
+      state,
+      result.text.startsWith("Purchased") || result.text.startsWith("Recovered")
+        ? "buy"
+        : "quest"
+    );
   } else if (result.reason) {
     setToast(result.reason, 1.8);
   }
@@ -583,6 +637,7 @@ function transferSelectedStash() {
   const result = transferSelectedStashEntry(state);
   if (result.success) {
     setToast(result.text, 1.8);
+    queueAudio(state, "stash");
     const refreshed = getStashUiEntries(state);
     clampSelection("selectedServiceIndex", refreshed.pack.length);
     clampSelection("selectedStashIndex", refreshed.stash.length);
@@ -658,6 +713,16 @@ function handleMouseUiInput() {
     case "inventory-bind":
       state.ui.selectedInventoryIndex = target.index;
       return assignInventoryEntryToActionSlot(target.slotIndex, target.entry);
+    case "inventory-filter":
+      state.ui.inventoryFilter = target.value;
+      state.ui.selectedInventoryIndex = 0;
+      clampInventorySelection();
+      return true;
+    case "inventory-sort":
+      state.ui.inventorySort = target.value;
+      state.ui.selectedInventoryIndex = 0;
+      clampInventorySelection();
+      return true;
     case "equipment-select":
       state.ui.selectedEquipmentIndex = target.index;
       return true;
@@ -679,6 +744,21 @@ function handleMouseUiInput() {
       } else {
         state.ui.selectedServiceIndex = target.index;
       }
+      return true;
+    case "service-filter":
+      state.ui.shopFilter = target.value;
+      state.ui.selectedServiceIndex = 0;
+      clampServiceSelection();
+      return true;
+    case "service-sort":
+      state.ui.shopSort = target.value;
+      state.ui.selectedServiceIndex = 0;
+      clampServiceSelection();
+      return true;
+    case "service-subpanel":
+      state.ui.serviceSubpanel = target.value;
+      state.ui.selectedServiceIndex = 0;
+      clampServiceSelection();
       return true;
     case "service-activate":
       if (target.subpanel) {
@@ -710,8 +790,11 @@ function handleMenuNavigation() {
   }
 
   if (state.ui.activeTab === "inventory") {
-    const entries = getInventoryEntries(state.progression);
-    clampSelection("selectedInventoryIndex", entries.length);
+    const entries = getInventoryEntries(state.progression, {
+      filter: state.ui.inventoryFilter,
+      sort: state.ui.inventorySort,
+    });
+    clampInventorySelection();
 
     if (wasPressed(input, "arrowup", "ArrowUp") || wasPressed(input, "w", "KeyW")) {
       moveSelection(-1, "selectedInventoryIndex");
@@ -746,6 +829,18 @@ function handleMenuNavigation() {
     if (wasPressed(input, "x", "KeyX")) {
       const entry = entries[state.ui.selectedInventoryIndex];
       return sellInventoryEntry(entry);
+    }
+
+    if (wasPressed(input, "f", "KeyF")) {
+      cycleUiOption("inventoryFilter", INVENTORY_FILTER_ORDER, 1);
+      clampInventorySelection();
+      return true;
+    }
+
+    if (wasPressed(input, "g", "KeyG")) {
+      cycleUiOption("inventorySort", INVENTORY_SORT_ORDER, 1);
+      clampInventorySelection();
+      return true;
     }
   }
 
@@ -844,7 +939,7 @@ function handleMenuNavigation() {
       }
     } else {
       const entries = getServiceEntries(state);
-      clampSelection("selectedServiceIndex", entries.length);
+      clampServiceSelection();
 
       if (wasPressed(input, "arrowup", "ArrowUp") || wasPressed(input, "w", "KeyW")) {
         moveSelection(-1, "selectedServiceIndex");
@@ -860,6 +955,27 @@ function handleMenuNavigation() {
 
       if (wasPressed(input, "enter", "Enter") || wasPressed(input, " ", "Space")) {
         return runSelectedServiceAction();
+      }
+
+      if (service.kind === "shop") {
+        if (wasPressed(input, "f", "KeyF")) {
+          cycleUiOption("shopFilter", SHOP_FILTER_ORDER, 1);
+          clampServiceSelection();
+          return true;
+        }
+
+        if (wasPressed(input, "g", "KeyG")) {
+          cycleUiOption("shopSort", SHOP_SORT_ORDER, 1);
+          clampServiceSelection();
+          return true;
+        }
+
+        if (wasPressed(input, "b", "KeyB")) {
+          state.ui.serviceSubpanel = state.ui.serviceSubpanel === "buyback" ? "stock" : "buyback";
+          state.ui.selectedServiceIndex = 0;
+          clampServiceSelection();
+          return true;
+        }
       }
     }
 
@@ -990,6 +1106,10 @@ function buildSnapshot() {
       selectedServiceIndex: state.ui.selectedServiceIndex,
       selectedStashIndex: state.ui.selectedStashIndex,
       serviceSubpanel: state.ui.serviceSubpanel,
+      inventoryFilter: state.ui.inventoryFilter,
+      inventorySort: state.ui.inventorySort,
+      shopFilter: state.ui.shopFilter,
+      shopSort: state.ui.shopSort,
     },
   };
 }
@@ -1020,6 +1140,7 @@ function update(dt) {
     state.shake = Math.max(0, state.shake - 30 * dt);
     updateMouseWorld();
     updateStoryRuntime(state, dt);
+    updateAudio(state, input);
     updateInteractionState();
     updateAutosave(dt);
 

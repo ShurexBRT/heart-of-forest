@@ -14,6 +14,34 @@ import {
 import { getAylaPortrait } from "../rendering/atlasAssets.js";
 import { getActiveService, getServiceEntries, getStashUiEntries } from "../systems/services.js";
 
+const INVENTORY_FILTER_BUTTONS = [
+  ["all", "All"],
+  ["equipment", "Gear"],
+  ["consumable", "Use"],
+  ["material", "Mats"],
+  ["usable", "Bind"],
+];
+
+const INVENTORY_SORT_BUTTONS = [
+  ["name", "Name"],
+  ["rarity", "Rare"],
+  ["value", "Value"],
+];
+
+const SHOP_FILTER_BUTTONS = [
+  ["all", "All"],
+  ["equipment", "Gear"],
+  ["consumable", "Tonic"],
+  ["rare", "Rare"],
+];
+
+const SHOP_SORT_BUTTONS = [
+  ["name", "Name"],
+  ["rarity", "Rare"],
+  ["price", "Price"],
+  ["recent", "Recent"],
+];
+
 export function drawHud(ctx, state, abilityInfo) {
   drawSceneInfo(ctx, state);
   drawBossBar(ctx, state);
@@ -581,18 +609,18 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
   const listWidth = 352;
   const detailsX = detailsRect.x;
   const detailsY = detailsRect.y + 18;
-  let rowY = y + 122;
+  let rowY = y + 176;
 
   ctx.fillStyle = "#fff2d5";
   ctx.font = "700 16px Segoe UI, Arial";
   ctx.fillText("Inventory", listX, rowY - 18);
-  ctx.font = "11px Segoe UI, Arial";
-  ctx.fillStyle = "#cfd9d3";
-  const inventoryHelp =
-    service?.kind === "shop"
-      ? "Enter or click buttons  |  2/3/4 bind  |  X sell selected"
-      : "Enter or click buttons  |  2/3/4 binds selected usable";
-  ctx.fillText(inventoryHelp, listX + 18, rowY - 2);
+
+  panel.filterButtons.forEach((button) =>
+    drawActionButton(ctx, button, state.ui.hoverTarget, button.active ? "#173120" : "#11161d", button.active ? "#fff7df" : "#d7e4cf")
+  );
+  panel.sortButtons.forEach((button) =>
+    drawActionButton(ctx, button, state.ui.hoverTarget, button.active ? "#1a2535" : "#11161d", button.active ? "#fff7df" : "#d7e4cf")
+  );
 
   if (entries.length === 0) {
     ctx.fillStyle = "#d7e4cf";
@@ -785,21 +813,33 @@ function drawServiceTab(ctx, state, x, y, width, height) {
   ctx.fillText(`Silver: ${getCurrency(state.progression)}`, bodyX, bodyY + 8);
 
   if (service.kind === "shop") {
-    let rowY = bodyY + 34;
+    panel.subpanelButtons.forEach((button) =>
+      drawActionButton(ctx, button, state.ui.hoverTarget, button.active ? "#2a2115" : "#11161d", button.active ? "#fff7df" : "#d7e4cf")
+    );
+    panel.filterButtons.forEach((button) =>
+      drawActionButton(ctx, button, state.ui.hoverTarget, button.active ? "#173120" : "#11161d", button.active ? "#fff7df" : "#d7e4cf")
+    );
+    panel.sortButtons.forEach((button) =>
+      drawActionButton(ctx, button, state.ui.hoverTarget, button.active ? "#1a2535" : "#11161d", button.active ? "#fff7df" : "#d7e4cf")
+    );
+    ctx.fillStyle = "#cfd9d3";
+
+    let rowY = bodyY + 66;
     panel.rows.forEach(({ entry, index }) => {
+      const serviceItem = entry.item || entry;
       const selected = index === state.ui.selectedServiceIndex;
       ctx.fillStyle = selected ? "rgba(121, 184, 255, 0.16)" : "rgba(0, 0, 0, 0.26)";
       ctx.fillRect(bodyX, rowY - 16, width - 280, 38);
       ctx.strokeStyle = selected ? "#79b8ff" : "#263142";
       ctx.strokeRect(bodyX, rowY - 16, width - 280, 38);
-      ctx.fillStyle = entry.item.color || "#d8e2ec";
+      ctx.fillStyle = serviceItem.color || "#d8e2ec";
       ctx.fillRect(bodyX + 10, rowY - 8, 12, 12);
-      ctx.fillStyle = getRarityAccent(entry.item.rarity, "#fff6d8");
+      ctx.fillStyle = getRarityAccent(serviceItem.rarity, "#fff6d8");
       ctx.font = "700 12px Segoe UI, Arial";
-      ctx.fillText(entry.item.name, bodyX + 30, rowY + 1);
+      ctx.fillText(serviceItem.name, bodyX + 30, rowY + 1);
       ctx.fillStyle = "#d7e4cf";
       ctx.font = "11px Segoe UI, Arial";
-      ctx.fillText(shorten(entry.item.description, 42), bodyX + 30, rowY + 17);
+      ctx.fillText(shorten(serviceItem.description, 42), bodyX + 30, rowY + 17);
       ctx.textAlign = "right";
       ctx.fillStyle = entry.affordable ? "#f1d786" : "#c67d72";
       ctx.font = "700 12px Segoe UI, Arial";
@@ -809,22 +849,23 @@ function drawServiceTab(ctx, state, x, y, width, height) {
     });
 
     if (panel.selected) {
+      const selectedItem = panel.selected.item || panel.selected;
       ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
       ctx.fillRect(panel.detailsRect.x, panel.detailsRect.y, panel.detailsRect.width, panel.detailsRect.height);
       ctx.strokeStyle = "#2d3848";
       ctx.strokeRect(panel.detailsRect.x, panel.detailsRect.y, panel.detailsRect.width, panel.detailsRect.height);
-      ctx.fillStyle = getRarityAccent(panel.selected.item.rarity, "#fff2d5");
+      ctx.fillStyle = getRarityAccent(selectedItem.rarity, "#fff2d5");
       ctx.font = "700 14px Segoe UI, Arial";
-      ctx.fillText(panel.selected.item.name, panel.detailsRect.x + 12, panel.detailsRect.y + 20);
+      ctx.fillText(selectedItem.name, panel.detailsRect.x + 12, panel.detailsRect.y + 20);
       ctx.fillStyle = "#d7e4cf";
       ctx.font = "12px Segoe UI, Arial";
-      wrapText(ctx, panel.selected.item.description, panel.detailsRect.x + 12, panel.detailsRect.y + 42, panel.detailsRect.width - 24, 18);
+      wrapText(ctx, selectedItem.description, panel.detailsRect.x + 12, panel.detailsRect.y + 42, panel.detailsRect.width - 24, 18);
       ctx.fillStyle = "#e9d281";
       ctx.font = "11px Segoe UI, Arial";
       ctx.fillText(`Price ${panel.selected.price} silver`, panel.detailsRect.x + 12, panel.detailsRect.y + 106);
 
-      if (panel.selected.item.category === "equipment" && panel.selected.item.slot) {
-        const equippedItem = getEquippedItems(state.progression).find((entry) => entry.slot === panel.selected.item.slot)?.item;
+      if (selectedItem.category === "equipment" && selectedItem.slot) {
+        const equippedItem = getEquippedItems(state.progression).find((entry) => entry.slot === selectedItem.slot)?.item;
         let compareY = panel.detailsRect.y + 130;
         ctx.fillStyle = "#fff2d5";
         ctx.font = "700 12px Segoe UI, Arial";
@@ -835,7 +876,7 @@ function drawServiceTab(ctx, state, x, y, width, height) {
           ctx.font = "700 11px Segoe UI, Arial";
           ctx.fillText(`Equipped: ${equippedItem.name}`, panel.detailsRect.x + 12, compareY);
           compareY += 16;
-          for (const line of buildComparisonLines(panel.selected.item, equippedItem)) {
+          for (const line of buildComparisonLines(selectedItem, equippedItem)) {
             ctx.fillStyle = line.delta > 0 ? "#9ce1a3" : line.delta < 0 ? "#f0a08d" : "#d7e4cf";
             ctx.font = "11px Segoe UI, Arial";
             ctx.fillText(`${line.label}: ${line.current} (${line.delta > 0 ? "+" : ""}${line.delta})`, panel.detailsRect.x + 12, compareY);
@@ -1155,7 +1196,8 @@ function drawActionButton(ctx, button, hoverTarget, fill, textColor) {
     hoverTarget?.action === button.action &&
     hoverTarget?.index === button.index &&
     hoverTarget?.slotIndex === button.slotIndex &&
-    hoverTarget?.subpanel === button.subpanel;
+    hoverTarget?.subpanel === button.subpanel &&
+    hoverTarget?.value === button.value;
   ctx.fillStyle = hovered ? "rgba(121, 184, 255, 0.18)" : fill;
   ctx.fillRect(button.rect.x, button.rect.y, button.rect.width, button.rect.height);
   ctx.strokeStyle = hovered ? "#d9efff" : button.accent;
@@ -1208,6 +1250,16 @@ function makeButton(x, y, width, height, label, action, accent = "#79b8ff", extr
   };
 }
 
+function makeOptionButtons(x, y, options, currentValue, action, accent = "#79b8ff", extra = {}) {
+  return options.map(([value, label], index) =>
+    makeButton(x + index * 66, y, 60, 22, label, action, currentValue === value ? accent : "#4d5b69", {
+      value,
+      active: currentValue === value,
+      ...extra,
+    })
+  );
+}
+
 function getCharacterOverlayFrame(state) {
   return {
     x: 68,
@@ -1241,15 +1293,18 @@ function getTabTargets(state, frame) {
 }
 
 function getInventoryPanelData(state, frame) {
-  const entries = getInventoryEntries(state.progression);
+  const entries = getInventoryEntries(state.progression, {
+    filter: state.ui.inventoryFilter,
+    sort: state.ui.inventorySort,
+  });
   const listX = frame.x + 220;
   const listWidth = 352;
   const detailsX = frame.x + frame.width - 292;
-  const detailsY = frame.y + 128;
+  const detailsY = frame.y + 170;
   const rows = entries.map((entry, index) => ({
     entry,
     index,
-    rect: rect(listX, frame.y + 106 + index * 40, listWidth, 34),
+    rect: rect(listX, frame.y + 160 + index * 40, listWidth, 34),
   }));
   const selectedEntry = entries[state.ui.selectedInventoryIndex] || null;
   const actionSlots = getActionSlotEntries(state.progression);
@@ -1260,6 +1315,8 @@ function getInventoryPanelData(state, frame) {
     selectedEntry,
     actionSlots,
     service,
+    filterButtons: makeOptionButtons(listX, frame.y + 84, INVENTORY_FILTER_BUTTONS, state.ui.inventoryFilter, "inventory-filter", "#8ecf9a"),
+    sortButtons: makeOptionButtons(listX + 270, frame.y + 84, INVENTORY_SORT_BUTTONS, state.ui.inventorySort, "inventory-sort", "#8fb9ff"),
     detailsRect: rect(detailsX, detailsY - 18, 240, 214),
     primaryButton: null,
     sellButton: null,
@@ -1388,16 +1445,27 @@ function getServicePanelData(state, frame) {
     const rows = entries.map((entry, index) => ({
       entry,
       index,
-      rect: rect(bodyX, bodyY + 18 + index * 46, frame.width - 280, 38),
+      rect: rect(bodyX, bodyY + 50 + index * 46, frame.width - 280, 38),
     }));
     const selected = entries[state.ui.selectedServiceIndex] || null;
     const detailsX = frame.x + frame.width - 292;
-    const detailsY = frame.y + 128;
+    const detailsY = frame.y + 158;
     const buyButton = selected
-      ? makeButton(detailsX + 12, detailsY + 168, 216, 28, selected.affordable ? `Buy for ${selected.price} silver` : "Not enough silver", "service-activate", selected.affordable ? "#d7bb71" : "#8a6e6a", {
+      ? makeButton(
+          detailsX + 12,
+          detailsY + 168,
+          216,
+          28,
+          selected.affordable
+            ? `${selected.mode === "buyback" ? "Recover" : "Buy"} for ${selected.price} silver`
+            : "Not enough silver",
+          "service-activate",
+          selected.affordable ? "#d7bb71" : "#8a6e6a",
+          {
           index: state.ui.selectedServiceIndex,
           entry: selected,
-        })
+          }
+        )
       : null;
     return {
       service,
@@ -1405,6 +1473,12 @@ function getServicePanelData(state, frame) {
       bodyY,
       rows,
       selected,
+      subpanelButtons: [
+        makeButton(bodyX, frame.y + 84, 88, 22, "Stock", "service-subpanel", state.ui.serviceSubpanel === "stock" ? "#d7bb71" : "#4d5b69", { value: "stock" }),
+        makeButton(bodyX + 96, frame.y + 84, 88, 22, "Buyback", "service-subpanel", state.ui.serviceSubpanel === "buyback" ? "#d7bb71" : "#4d5b69", { value: "buyback" }),
+      ],
+      filterButtons: makeOptionButtons(bodyX + 202, frame.y + 84, SHOP_FILTER_BUTTONS, state.ui.shopFilter, "service-filter", "#8ecf9a"),
+      sortButtons: makeOptionButtons(bodyX + 472, frame.y + 84, SHOP_SORT_BUTTONS, state.ui.shopSort, "service-sort", "#8fb9ff"),
       detailsRect: rect(detailsX, detailsY - 18, 240, 214),
       actionButton: buyButton,
     };
@@ -1415,7 +1489,7 @@ function getServicePanelData(state, frame) {
     const rows = entries.map((entry, index) => ({
       entry,
       index,
-      rect: rect(bodyX, bodyY + 18 + index * 54, frame.width - 280, 46),
+      rect: rect(bodyX, bodyY + 50 + index * 54, frame.width - 280, 46),
     }));
     const selected = entries[state.ui.selectedServiceIndex] || null;
     const actionButton = selected
@@ -1439,12 +1513,12 @@ function getServicePanelData(state, frame) {
   const packRows = lists.pack.slice(0, 6).map((entry, index) => ({
     entry,
     index,
-    rect: rect(bodyX + 8, bodyY + 34 + index * 36, panelW - 16, 30),
+    rect: rect(bodyX + 8, bodyY + 48 + index * 36, panelW - 16, 30),
   }));
   const stashRows = lists.stash.slice(0, 6).map((entry, index) => ({
     entry,
     index,
-    rect: rect(bodyX + panelW + 32, bodyY + 34 + index * 36, panelW - 16, 30),
+    rect: rect(bodyX + panelW + 32, bodyY + 48 + index * 36, panelW - 16, 30),
   }));
   return {
     service,
@@ -1520,6 +1594,30 @@ function getMenuHoverTarget(state, mouseX, mouseY) {
 
   if (state.ui.activeTab === "inventory") {
     const panel = getInventoryPanelData(state, frame);
+    for (const button of panel.filterButtons) {
+      if (pointInRect(mouseX, mouseY, button.rect)) {
+        return {
+          ...button,
+          tooltip: {
+            title: `Filter: ${button.label}`,
+            lines: ["Narrow the inventory list."],
+            accent: button.accent,
+          },
+        };
+      }
+    }
+    for (const button of panel.sortButtons) {
+      if (pointInRect(mouseX, mouseY, button.rect)) {
+        return {
+          ...button,
+          tooltip: {
+            title: `Sort: ${button.label}`,
+            lines: ["Reorder the inventory list."],
+            accent: button.accent,
+          },
+        };
+      }
+    }
     if (panel.primaryButton && pointInRect(mouseX, mouseY, panel.primaryButton.rect)) {
       return {
         ...panel.primaryButton,
@@ -1585,19 +1683,59 @@ function getMenuHoverTarget(state, mouseX, mouseY) {
     if (!panel.service) return null;
 
     if (panel.service.kind === "shop" || panel.service.kind === "altar") {
+      if (panel.service.kind === "shop") {
+        for (const button of panel.subpanelButtons || []) {
+          if (pointInRect(mouseX, mouseY, button.rect)) {
+            return {
+              ...button,
+              tooltip: {
+                title: button.label,
+                lines: [button.value === "buyback" ? "Recover recently sold items." : "Browse current stock."],
+                accent: button.accent,
+              },
+            };
+          }
+        }
+        for (const button of panel.filterButtons || []) {
+          if (pointInRect(mouseX, mouseY, button.rect)) {
+            return {
+              ...button,
+              tooltip: {
+                title: `Filter: ${button.label}`,
+                lines: ["Narrow the vendor list."],
+                accent: button.accent,
+              },
+            };
+          }
+        }
+        for (const button of panel.sortButtons || []) {
+          if (pointInRect(mouseX, mouseY, button.rect)) {
+            return {
+              ...button,
+              tooltip: {
+                title: `Sort: ${button.label}`,
+                lines: ["Reorder the vendor list."],
+                accent: button.accent,
+              },
+            };
+          }
+        }
+      }
       if (panel.actionButton && pointInRect(mouseX, mouseY, panel.actionButton.rect)) {
+        const selectedItem = panel.selected.item || panel.selected;
         return {
           ...panel.actionButton,
           tooltip: panel.service.kind === "shop"
-            ? buildItemTooltip(panel.selected.item, [`Price ${panel.selected.price} silver`])
+            ? buildItemTooltip(selectedItem, [panel.selected.mode === "buyback" ? `Recover for ${panel.selected.price} silver` : `Price ${panel.selected.price} silver`])
             : { title: panel.selected.title, lines: [panel.selected.description, formatActionCost(panel.selected)], accent: panel.actionButton.accent },
         };
       }
       for (const row of panel.rows) {
         if (pointInRect(mouseX, mouseY, row.rect)) {
+          const serviceItem = row.entry.item || row.entry;
           const tooltip =
             panel.service.kind === "shop"
-              ? buildItemTooltip(row.entry.item, [`Price ${row.entry.price} silver`])
+              ? buildItemTooltip(serviceItem, [row.entry.mode === "buyback" ? `Recover for ${row.entry.price} silver` : `Price ${row.entry.price} silver`])
               : { title: row.entry.title, lines: [row.entry.description, formatActionCost(row.entry)], accent: row.entry.affordable ? "#a6e28c" : "#c67d72" };
           return {
             action: "service-select",

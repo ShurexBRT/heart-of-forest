@@ -7,8 +7,10 @@ import {
   TAU,
 } from "../core/math.js";
 import { getMovementVector, wasPressed } from "../core/input.js";
+import { getItemDef } from "../data/gameData.js";
 import { getPlayerBonuses, awardEliteBonusLoot, awardEnemyLoot, grantExperience } from "./progression.js";
 import { collidesWithObstacle } from "./collision.js";
+import { queueAudio } from "./audio.js";
 import { spawnBurst } from "./particles.js";
 
 const STAFF_RANGE = 68;
@@ -23,6 +25,7 @@ const ENEMY_XP = {
   thornling: 16,
   wisp_archer: 22,
   mire_brute: 34,
+  thorn_weaver: 26,
 };
 
 export function handlePlayerAbilities(state, input) {
@@ -63,6 +66,7 @@ export function damagePlayer(state, amount, sourceX, sourceY, knockback) {
   player.vy += direction.y * knockback;
   state.shake = Math.max(state.shake, actualDamage >= 20 ? 8 : 5);
   markCombat(state);
+  queueAudio(state, "player-hit");
 
   spawnBurst(state, player.x, player.y, {
     count: 14,
@@ -120,6 +124,7 @@ function castStaffStrike(state) {
   player.cooldowns.staff = info.cooldown;
   player.playPose("attack", 0.16);
   markCombat(state);
+  queueAudio(state, "staff");
   state.swings.push({
     x: player.x,
     y: player.y,
@@ -197,6 +202,7 @@ function castSpiritBolt(state) {
   player.spendSpirit(info.cost);
   player.playPose("cast", 0.2);
   markCombat(state);
+  queueAudio(state, "bolt");
 
   const direction = normalize(state.mouseWorld.x - player.x, state.mouseWorld.y - player.y);
 
@@ -242,6 +248,7 @@ function castDash(state, input) {
   player.invulnerable = 0.22;
   player.playPose("dash", 0.18);
   markCombat(state);
+  queueAudio(state, "dash");
   player.vx = direction.x * 760;
   player.vy = direction.y * 760;
   state.shake = Math.max(state.shake, 2);
@@ -283,6 +290,7 @@ function castRootSnare(state) {
   player.spendSpirit(info.cost);
   player.playPose("cast", 0.26);
   markCombat(state);
+  queueAudio(state, "root");
 
   state.roots.push({
     x,
@@ -520,6 +528,7 @@ function damageHostile(state, target, amount, sourceX, sourceY, knockback, stun)
     size: [2, target.isBoss ? 6 : 5],
     life: [0.16, target.isBoss ? 0.5 : 0.42],
   });
+  queueAudio(state, "enemy-hit");
 
   if (target.hp <= 0) {
     target.dead = true;
@@ -531,8 +540,10 @@ function damageHostile(state, target, amount, sourceX, sourceY, knockback, stun)
 
     if (target.isBoss) {
       state.storyEvents.push({ type: "bossDefeated", bossId: target.id || "elder_hollow" });
+      queueAudio(state, "boss-down");
     } else {
       state.storyEvents.push({ type: "enemyDefeated", enemyType: target.type });
+      queueAudio(state, "enemy-down");
     }
 
     const xpValue = target.isBoss ? 180 : (ENEMY_XP[target.type] || 14) + (target.elite ? 18 : 0);
@@ -542,16 +553,17 @@ function damageHostile(state, target, amount, sourceX, sourceY, knockback, stun)
       state.player.hp = Math.min(state.player.maxHp, state.player.hp + Math.round(state.player.maxHp * 0.34));
       state.player.spirit = Math.min(state.player.maxSpirit, state.player.spirit + Math.round(state.player.maxSpirit * 0.38));
       setToast(state, `Level ${state.progression.level} reached`, 2.6);
+      queueAudio(state, "level-up");
     }
 
     const lootResult = awardEnemyLoot(
       state.progression,
       target.type,
       state.scene.biomeId,
-      Boolean(target.isBoss)
+      target
     );
     const eliteBonus =
-      target.elite && !target.isBoss ? awardEliteBonusLoot(state.progression, state.scene.biomeId) : null;
+      target.elite && !target.isBoss ? awardEliteBonusLoot(state.progression, state.scene.biomeId, target) : null;
     const combinedLoot = [
       ...(lootResult?.items || []),
       ...(eliteBonus?.items || []),
@@ -589,10 +601,7 @@ function damageHostile(state, target, amount, sourceX, sourceY, knockback, stun)
 }
 
 function formatItemName(itemId) {
-  return itemId
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
+  return getItemDef(itemId)?.name || itemId;
 }
 
 function setToast(state, text, duration) {

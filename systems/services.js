@@ -1,7 +1,9 @@
-import { ITEM_DEFS, SERVICE_DEFS } from "../data/gameData.js";
+import { SERVICE_DEFS, getItemDef } from "../data/gameData.js";
 import {
+  buyBackItem,
   buyInventoryItem,
   getCurrency,
+  getBuybackEntries,
   getInventoryEntries,
   getItemCount,
   getStashEntries,
@@ -51,6 +53,16 @@ export function getServiceEntries(state) {
   if (!service) return [];
 
   if (service.kind === "shop") {
+    if (state.ui.serviceSubpanel === "buyback") {
+      return getBuybackEntries(state.progression, state.ui.shopSort || "recent")
+        .filter((entry) => matchesItemFilter(entry, state.ui.shopFilter || "all"))
+        .map((entry) => ({
+          ...entry,
+          mode: "buyback",
+          affordable: getCurrency(state.progression) >= entry.price,
+        }));
+    }
+
     return service.stock
       .filter((entry) => {
         if (entry.requiresQuestDone && !isQuestDone(state.progression, entry.requiresQuestDone)) {
@@ -63,9 +75,24 @@ export function getServiceEntries(state) {
       })
       .map((entry) => ({
         ...entry,
-        item: ITEM_DEFS[entry.itemId],
+        item: getItemDef(entry.itemId),
+        mode: "stock",
         affordable: getCurrency(state.progression) >= entry.price,
-      }));
+      }))
+      .filter((entry) => matchesItemFilter(entry.item, state.ui.shopFilter || "all"))
+      .sort((a, b) => {
+        const sort = state.ui.shopSort || "name";
+        if (sort === "price") {
+          return a.price - b.price || a.item.name.localeCompare(b.item.name);
+        }
+        if (sort === "rarity") {
+          const rarityOrder = ["common", "uncommon", "rare", "epic", "legendary"];
+          const rarityDelta = rarityOrder.indexOf(b.item.rarity) - rarityOrder.indexOf(a.item.rarity);
+          if (rarityDelta !== 0) return rarityDelta;
+          return a.item.name.localeCompare(b.item.name);
+        }
+        return a.item.name.localeCompare(b.item.name);
+      });
   }
 
   if (service.kind === "altar") {
@@ -86,6 +113,12 @@ function canAffordAction(progression, action) {
   return true;
 }
 
+function matchesItemFilter(item, filter) {
+  if (!item || filter === "all") return true;
+  if (filter === "usable") return Boolean(item.usable || item.category === "consumable");
+  return item.category === filter || item.slot === filter || item.rarity === filter;
+}
+
 export function performSelectedServiceAction(state) {
   const service = getActiveService(state);
   if (!service) return { success: false };
@@ -93,6 +126,16 @@ export function performSelectedServiceAction(state) {
   if (service.kind === "shop") {
     const entry = getServiceEntries(state)[state.ui.selectedServiceIndex];
     if (!entry) return { success: false };
+    if (entry.mode === "buyback") {
+      const result = buyBackItem(state.progression, entry.index);
+      if (!result.bought) {
+        return { success: false, reason: result.reason || "Could not recover that item." };
+      }
+      return {
+        success: true,
+        text: `Recovered ${entry.name} for ${entry.price} silver`,
+      };
+    }
     const result = buyInventoryItem(state.progression, entry.itemId, 1, entry.price);
     if (!result.bought) {
       return { success: false, reason: "Not enough silver." };
@@ -162,8 +205,14 @@ export function sellSelectedInventoryEntry(state, entry) {
 
 export function getStashUiEntries(state) {
   return {
-    pack: getInventoryEntries(state.progression),
-    stash: getStashEntries(state.progression),
+    pack: getInventoryEntries(state.progression, {
+      filter: state.ui.inventoryFilter || "all",
+      sort: state.ui.inventorySort || "name",
+    }),
+    stash: getStashEntries(state.progression, {
+      filter: state.ui.inventoryFilter || "all",
+      sort: state.ui.inventorySort || "name",
+    }),
   };
 }
 

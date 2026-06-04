@@ -1,4 +1,13 @@
-import { BIOMES, EQUIPMENT_SLOTS, ITEM_DEFS, TALENT_DEFS } from "../data/gameData.js";
+import {
+  BIOMES,
+  BIOME_ITEM_BASES,
+  EQUIPMENT_SLOTS,
+  ITEM_RARITY_ORDER,
+  TALENT_DEFS,
+  getBiomeNamedDrops,
+  getItemDef,
+  rollAffixItem,
+} from "../data/gameData.js";
 import { QUEST_DEFS } from "../data/storyData.js";
 
 const ACTION_SLOT_COUNT = 3;
@@ -23,11 +32,16 @@ function deepClone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function rarityRank(rarity) {
+  const index = ITEM_RARITY_ORDER.indexOf(rarity);
+  return index >= 0 ? index : 0;
+}
+
 function normalizeInventory(rawInventory = {}) {
   const normalized = {};
 
   for (const [itemId, amount] of Object.entries(rawInventory)) {
-    if (!ITEM_DEFS[itemId]) continue;
+    if (!getItemDef(itemId)) continue;
     const safeAmount = Math.max(0, Math.floor(amount || 0));
     if (safeAmount <= 0) continue;
     normalized[itemId] = safeAmount;
@@ -46,7 +60,68 @@ function normalizeFlags(rawFlags = {}) {
 
 function normalizeActionSlots(rawActionSlots = []) {
   const slots = Array.from({ length: ACTION_SLOT_COUNT }, (_, index) => rawActionSlots[index] || null);
-  return slots.map((itemId) => (itemId && ITEM_DEFS[itemId] ? itemId : null));
+  return slots.map((itemId) => (itemId && getItemDef(itemId) ? itemId : null));
+}
+
+function normalizeBuyback(rawBuyback = []) {
+  if (!Array.isArray(rawBuyback)) return [];
+
+  return rawBuyback
+    .map((entry) => ({
+      itemId: entry?.itemId || null,
+      amount: Math.max(1, Math.floor(entry?.amount || 1)),
+      price: Math.max(1, Math.floor(entry?.price || 0)),
+      soldAt: Number(entry?.soldAt || Date.now()),
+    }))
+    .filter((entry) => getItemDef(entry.itemId) && entry.price > 0)
+    .slice(0, 18);
+}
+
+function normalizeFilterOptions(filterOrOptions = null) {
+  if (!filterOrOptions) {
+    return { filter: "all", sort: "name" };
+  }
+
+  if (typeof filterOrOptions === "string") {
+    return { filter: filterOrOptions, sort: "name" };
+  }
+
+  return {
+    filter: filterOrOptions.filter || "all",
+    sort: filterOrOptions.sort || "name",
+  };
+}
+
+function sortEntries(entries, sort) {
+  const ranked = [...entries];
+  ranked.sort((a, b) => {
+    if (sort === "rarity") {
+      const rarityDelta = rarityRank(b.rarity) - rarityRank(a.rarity);
+      if (rarityDelta !== 0) return rarityDelta;
+      const valueDelta = (b.value || 0) - (a.value || 0);
+      if (valueDelta !== 0) return valueDelta;
+      return a.name.localeCompare(b.name);
+    }
+
+    if (sort === "value") {
+      const valueDelta = (b.value || 0) - (a.value || 0);
+      if (valueDelta !== 0) return valueDelta;
+      return a.name.localeCompare(b.name);
+    }
+
+    if (sort === "slot") {
+      const slotDelta = String(a.slot || a.category || "").localeCompare(String(b.slot || b.category || ""));
+      if (slotDelta !== 0) return slotDelta;
+      return a.name.localeCompare(b.name);
+    }
+
+    if (sort === "recent") {
+      return (b.soldAt || 0) - (a.soldAt || 0);
+    }
+
+    return a.name === b.name ? a.stackIndex - b.stackIndex : a.name.localeCompare(b.name);
+  });
+  return ranked;
 }
 
 function canQuickUseItem(item) {
@@ -114,6 +189,7 @@ export function createProgression(snapshot = null) {
     talentPoints: 1,
     talents: {},
     journal: [],
+    buyback: [],
     questStates,
     questCounters: createQuestCounterDefaults(),
     conversationFlags: {},
@@ -136,6 +212,7 @@ export function createProgression(snapshot = null) {
   merged.talentPoints = snapshot.talentPoints ?? merged.talentPoints;
   merged.talents = { ...merged.talents, ...(snapshot.talents || {}) };
   merged.journal = Array.isArray(snapshot.journal) ? [...snapshot.journal] : merged.journal;
+  merged.buyback = normalizeBuyback(snapshot.buyback || merged.buyback);
   merged.questStates = { ...merged.questStates, ...(snapshot.questStates || {}) };
   merged.questCounters = { ...merged.questCounters, ...(snapshot.questCounters || {}) };
   merged.conversationFlags = {
@@ -151,7 +228,7 @@ export function createProgression(snapshot = null) {
 }
 
 export function addItem(progression, itemId, amount = 1) {
-  if (!ITEM_DEFS[itemId] || amount <= 0) return;
+  if (!getItemDef(itemId) || amount <= 0) return;
   progression.inventory[itemId] = (progression.inventory[itemId] || 0) + amount;
 }
 
@@ -238,25 +315,42 @@ export function awardRewards(progression, rewards) {
   return { items: granted, gainedXp, levelsGained, gainedSilver };
 }
 
-export function getInventoryEntries(progression, filter = null) {
-  return Object.entries(progression.inventory)
+export function getInventoryEntries(progression, filterOrOptions = null) {
+  const options = normalizeFilterOptions(filterOrOptions);
+  const entries = Object.entries(progression.inventory)
     .filter(([, amount]) => amount > 0)
-    .flatMap(([id, amount]) => createInventoryEntry(id, ITEM_DEFS[id], amount))
-    .filter((entry) => !filter || entry.category === filter || entry.slot === filter)
-    .sort((a, b) => (a.name === b.name ? a.stackIndex - b.stackIndex : a.name.localeCompare(b.name)));
+    .flatMap(([id, amount]) => {
+      const item = getItemDef(id);
+      return item ? createInventoryEntry(id, item, amount) : [];
+    })
+    .filter((entry) => {
+      if (options.filter === "all") return true;
+      if (options.filter === "usable") return Boolean(entry.usable || entry.category === "consumable");
+      return entry.category === options.filter || entry.slot === options.filter || entry.rarity === options.filter;
+    });
+
+  return sortEntries(entries, options.sort);
 }
 
-export function getStashEntries(progression, filter = null) {
-  return Object.entries(progression.stash)
+export function getStashEntries(progression, filterOrOptions = null) {
+  const options = normalizeFilterOptions(filterOrOptions);
+  const entries = Object.entries(progression.stash)
     .filter(([, amount]) => amount > 0)
-    .flatMap(([id, amount]) => createInventoryEntry(id, ITEM_DEFS[id], amount))
-    .filter((entry) => !filter || entry.category === filter || entry.slot === filter)
-    .sort((a, b) => (a.name === b.name ? a.stackIndex - b.stackIndex : a.name.localeCompare(b.name)));
+    .flatMap(([id, amount]) => {
+      const item = getItemDef(id);
+      return item ? createInventoryEntry(id, item, amount) : [];
+    })
+    .filter((entry) => {
+      if (options.filter === "all") return true;
+      if (options.filter === "usable") return Boolean(entry.usable || entry.category === "consumable");
+      return entry.category === options.filter || entry.slot === options.filter || entry.rarity === options.filter;
+    });
+
+  return sortEntries(entries, options.sort);
 }
 
 export function isActionSlotAssignable(itemId) {
-  const item = ITEM_DEFS[itemId];
-  return canQuickUseItem(item);
+  return canQuickUseItem(getItemDef(itemId));
 }
 
 export function getActionSlotEntries(progression) {
@@ -264,7 +358,7 @@ export function getActionSlotEntries(progression) {
   progression.actionSlots = slots;
 
   return slots.map((itemId, index) => {
-    const item = itemId ? ITEM_DEFS[itemId] : null;
+    const item = itemId ? getItemDef(itemId) : null;
     return {
       index,
       key: String(index + 2),
@@ -281,7 +375,7 @@ export function assignItemToActionSlot(progression, slotIndex, itemId) {
     return { changed: false, cleared: false };
   }
 
-  const item = ITEM_DEFS[itemId];
+  const item = getItemDef(itemId);
   if (!item || !canQuickUseItem(item) || getItemCount(progression, itemId) <= 0) {
     return { changed: false, cleared: false };
   }
@@ -303,7 +397,7 @@ export function useActionSlot(progression, slotIndex, player) {
   const itemId = actionSlots[slotIndex];
   if (!itemId) return { used: false };
 
-  const item = ITEM_DEFS[itemId];
+  const item = getItemDef(itemId);
   if (!item || !canQuickUseItem(item)) {
     return { used: false };
   }
@@ -317,13 +411,13 @@ export function getEquippedItems(progression) {
     return {
       slot,
       itemId,
-      item: itemId ? ITEM_DEFS[itemId] : null,
+      item: itemId ? getItemDef(itemId) : null,
     };
   });
 }
 
 export function equipItem(progression, itemId) {
-  const item = ITEM_DEFS[itemId];
+  const item = getItemDef(itemId);
   if (!item || item.category !== "equipment" || !item.slot) return false;
   if (getItemCount(progression, itemId) <= 0) return false;
 
@@ -348,7 +442,7 @@ export function unequipItem(progression, slot) {
 }
 
 export function useConsumable(progression, itemId, player) {
-  const item = ITEM_DEFS[itemId];
+  const item = getItemDef(itemId);
   if (!item || item.category !== "consumable" || getItemCount(progression, itemId) <= 0) {
     return { used: false };
   }
@@ -361,10 +455,8 @@ export function useConsumable(progression, itemId, player) {
     item.effect?.wardDuration || item.effect?.speedDuration || item.effect?.spiritRegenBonus
   );
 
-  if (healed <= 0 && restored <= 0) {
-    if (!canApplyBuff) {
-      return { used: false };
-    }
+  if (healed <= 0 && restored <= 0 && !canApplyBuff) {
+    return { used: false };
   }
 
   removeItem(progression, itemId, 1);
@@ -444,7 +536,7 @@ export function getPlayerBonuses(progression) {
 
   for (const slot of EQUIPMENT_SLOTS) {
     const itemId = progression.equipment[slot];
-    const item = itemId ? ITEM_DEFS[itemId] : null;
+    const item = itemId ? getItemDef(itemId) : null;
     if (!item?.bonuses) continue;
     for (const [key, value] of Object.entries(item.bonuses)) {
       bonuses[key] = (bonuses[key] || 0) + value;
@@ -463,7 +555,8 @@ export function incrementQuestCounter(progression, key, amount = 1) {
   progression.questCounters[key] = (progression.questCounters[key] || 0) + amount;
 }
 
-export function awardEnemyLoot(progression, enemyType, biomeId, isBoss = false) {
+export function awardEnemyLoot(progression, enemyType, biomeId, source = {}) {
+  const isBoss = source === true || Boolean(source?.isBoss);
   const lootTable = BIOMES[biomeId]?.lootTable || ["spirit_bloom"];
   const grants = [];
   let silver = 0;
@@ -471,14 +564,16 @@ export function awardEnemyLoot(progression, enemyType, biomeId, isBoss = false) 
   if (isBoss) {
     const bossRewards =
       biomeId === "ember"
-        ? { emberglass_relic: 1, greater_health_potion: 2, relic_shard: 2 }
+        ? { emberwake_seal: 1, emberglass_relic: 1, greater_health_potion: 2, relic_shard: 2 }
         : biomeId === "frost"
-          ? { frostband_charm: 1, spirit_tonic: 2, stonebloom: 2 }
+          ? { tundra_signet: 1, frostband_charm: 1, greater_spirit_tonic: 1, stonebloom: 2 }
           : biomeId === "ancient"
-            ? { heartseed_pendant: 1, heartseed: 1, greater_health_potion: 2 }
+            ? source?.id === "rootbound_custodian"
+              ? { custodian_spindle: 1, reliquary_loop: 1, greater_spirit_tonic: 1, ward_elixir: 1 }
+              : { heartseed_pendant: 1, heartseed: 1, greater_health_potion: 2 }
             : biomeId === "blight"
-              ? { heartseed: 1, rootwoven_talisman: 1, greater_health_potion: 1 }
-              : { moonthread_amulet: 1, health_potion: 2, spirit_bloom: 2 };
+              ? { hollowcourt_pendant: 1, heartseed: 1, rootwoven_talisman: 1, greater_health_potion: 1 }
+              : { rowans_oath_brooch: 1, moonthread_amulet: 1, health_potion: 2, spirit_bloom: 2 };
 
     for (const [itemId, amount] of Object.entries(bossRewards)) {
       addItem(progression, itemId, amount);
@@ -516,6 +611,19 @@ export function awardEnemyLoot(progression, enemyType, biomeId, isBoss = false) 
     return { items: grants, silver };
   }
 
+  if (enemyType === "thorn_weaver") {
+    const itemId = lootTable[3] || "spirit_tonic";
+    addItem(progression, itemId, 1);
+    grants.push({ itemId, amount: 1 });
+    silver = 9;
+    if (Math.random() < 0.22) {
+      addItem(progression, "ward_elixir", 1);
+      grants.push({ itemId: "ward_elixir", amount: 1 });
+    }
+    addCurrency(progression, silver);
+    return { items: grants, silver };
+  }
+
   const heavyDrop = lootTable[2] || lootTable[0] || "ironbark";
   addItem(progression, heavyDrop, 1);
   grants.push({ itemId: heavyDrop, amount: 1 });
@@ -528,20 +636,28 @@ export function awardEnemyLoot(progression, enemyType, biomeId, isBoss = false) 
   return { items: grants, silver };
 }
 
-export function awardEliteBonusLoot(progression, biomeId) {
-  const bonusItemsByBiome = {
-    forest: ["thornbound_clasp", "health_potion", "ward_elixir"],
-    marsh: ["marshlight_amulet", "spirit_tonic", "ward_elixir"],
-    highlands: ["warden_loop", "health_potion", "windstep_phial"],
-    ember: ["emberglass_relic", "greater_health_potion", "ward_elixir"],
-    frost: ["frostband_charm", "spirit_tonic", "windstep_phial"],
-    blight: ["rootwoven_talisman", "greater_health_potion", "ward_elixir"],
-    ancient: ["reliquary_loop", "greater_health_potion", "windstep_phial"],
-  };
-
-  const table = bonusItemsByBiome[biomeId] || ["health_potion", "spirit_tonic"];
+export function awardEliteBonusLoot(progression, biomeId, enemy = null) {
+  const table = BIOME_ITEM_BASES[biomeId] || ["health_potion", "spirit_tonic"];
   const guaranteedSilver = 18;
-  const itemId = table[Math.floor(Math.random() * table.length)];
+  const roll = Math.random();
+  let itemId;
+
+  if (roll > 0.92) {
+    const named = getBiomeNamedDrops(biomeId);
+    itemId = named[Math.floor(Math.random() * named.length)] || table[0];
+  } else if (roll > 0.38) {
+    const baseId = table[Math.floor(Math.random() * table.length)];
+    itemId = rollAffixItem(baseId, Math.random, { forceBoth: roll > 0.74 || Boolean(enemy?.elite) });
+  } else {
+    const consumables =
+      biomeId === "ember" || biomeId === "blight"
+        ? ["greater_health_potion", "ward_elixir", "rejuvenation_draught"]
+        : biomeId === "frost"
+          ? ["greater_spirit_tonic", "spirit_tonic", "clarity_phial"]
+          : ["health_potion", "spirit_tonic", "windstep_phial"];
+    itemId = consumables[Math.floor(Math.random() * consumables.length)];
+  }
+
   addItem(progression, itemId, 1);
   addCurrency(progression, guaranteedSilver);
   return {
@@ -560,7 +676,7 @@ export function getXpProgress(progression) {
 }
 
 export function getItemValue(itemId) {
-  return ITEM_DEFS[itemId]?.value || 0;
+  return getItemDef(itemId)?.value || 0;
 }
 
 export function sellInventoryItem(progression, itemId, amount = 1) {
@@ -571,13 +687,51 @@ export function sellInventoryItem(progression, itemId, amount = 1) {
 
   const payout = Math.max(1, Math.floor(value * 0.55)) * amount;
   addCurrency(progression, payout);
+  progression.buyback = normalizeBuyback([
+    {
+      itemId,
+      amount,
+      price: Math.max(1, Math.floor(value * 0.7)) * amount,
+      soldAt: Date.now(),
+    },
+    ...(progression.buyback || []),
+  ]);
   return { sold: true, value: payout };
+}
+
+export function getBuybackEntries(progression, sort = "recent") {
+  const entries = normalizeBuyback(progression.buyback || []).map((entry, index) => {
+    const item = getItemDef(entry.itemId);
+    return {
+      ...item,
+      itemId: entry.itemId,
+      amount: entry.amount,
+      price: entry.price,
+      soldAt: entry.soldAt,
+      index,
+    };
+  });
+
+  return sortEntries(entries, sort);
+}
+
+export function buyBackItem(progression, entryIndex) {
+  const buyback = normalizeBuyback(progression.buyback || []);
+  const entry = buyback[entryIndex];
+  if (!entry) return { bought: false, reason: "That buyback item is gone." };
+  if (!spendCurrency(progression, entry.price)) {
+    return { bought: false, reason: "Not enough silver." };
+  }
+
+  addItem(progression, entry.itemId, entry.amount);
+  progression.buyback = buyback.filter((_, index) => index !== entryIndex);
+  return { bought: true, entry };
 }
 
 export function buyInventoryItem(progression, itemId, amount = 1, price = null) {
   const unitPrice = Math.max(0, Math.floor(price ?? getItemValue(itemId)));
   const total = unitPrice * amount;
-  if (!ITEM_DEFS[itemId] || !spendCurrency(progression, total)) {
+  if (!getItemDef(itemId) || !spendCurrency(progression, total)) {
     return { bought: false, total: 0 };
   }
 

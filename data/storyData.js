@@ -6,6 +6,7 @@ export const QUEST_DEFS = {
     giverId: "elder_rowan",
     sceneId: "whispering_woods",
     startState: "available",
+    completeFlags: ["village_patrols_returned"],
     rewards: { items: { spirit_bloom: 3, health_potion: 2 }, silver: 48, xp: 80 },
     objectives: [
       { key: "spiritFlowers", label: "Spirit Flowers gathered", required: 3 },
@@ -19,6 +20,7 @@ export const QUEST_DEFS = {
     giverId: "tamsin",
     sceneId: "whispering_woods",
     startState: "available",
+    completeFlags: ["apothecary_resupplied", "marsh_route_lit"],
     rewards: { items: { spirit_tonic: 2, moonthread_amulet: 1 }, silver: 44, xp: 70 },
     objectives: [
       { key: "moonleafBundles", label: "Moonleaf bundles gathered", required: 2 },
@@ -32,8 +34,21 @@ export const QUEST_DEFS = {
     giverId: "nettle",
     sceneId: "mossroot_marsh",
     startState: "inactive",
+    completeFlags: ["marsh_rot_purged"],
     rewards: { items: { bog_amber: 2, health_potion: 1, rootwoven_talisman: 1 }, silver: 62, xp: 95 },
     objectives: [{ key: "rootsCleansed", label: "Corrupted roots cleansed", required: 2 }],
+  },
+  tidebound_threshold: {
+    id: "tidebound_threshold",
+    title: "Tidebound Threshold",
+    description: "Nettle found two tide seals tied to the drowned chapel beyond the marsh. Recover them and pry the chapel door back open.",
+    giverId: "nettle",
+    sceneId: "mossroot_marsh",
+    prerequisiteId: "bogbound_rot",
+    startState: "inactive",
+    completeFlags: ["chapel_of_tides_open"],
+    rewards: { items: { ward_elixir: 1, clarity_phial: 1, chapelglass_relic: 1 }, silver: 82, xp: 112 },
+    objectives: [{ key: "tideSealsRecovered", label: "Tide seals recovered", required: 2 }],
   },
   ruins_of_memory: {
     id: "ruins_of_memory",
@@ -43,6 +58,7 @@ export const QUEST_DEFS = {
     sceneId: "mossy_ruins",
     prerequisiteId: "whispering_call",
     startState: "inactive",
+    completeFlags: ["ruins_listening_post"],
     rewards: { items: { relic_shard: 2, spirit_tonic: 1 }, silver: 74, talentPoints: 1, xp: 100 },
     objectives: [{ key: "relicCachesRecovered", label: "Relic caches recovered", required: 2 }],
   },
@@ -82,6 +98,24 @@ export const QUEST_DEFS = {
       { key: "reliquaryKeeperDefeated", label: "Rootbound Custodian defeated", required: 1 },
     ],
   },
+  chapel_of_tides: {
+    id: "chapel_of_tides",
+    title: "Chapel of Tides",
+    description: "Step into the drowned chapel, rekindle its braziers, and break the matron nesting in the flooded crypt.",
+    autoActivateSceneId: "chapel_of_tides",
+    prerequisiteId: "tidebound_threshold",
+    completeFlags: ["chapel_of_tides_cleansed"],
+    rewards: {
+      items: { marshwarden_idol: 1, rejuvenation_draught: 1, greater_spirit_tonic: 1 },
+      silver: 164,
+      talentPoints: 1,
+      xp: 190,
+    },
+    objectives: [
+      { key: "tideBraziersLit", label: "Chapel braziers relit", required: 2 },
+      { key: "bogMatronDefeated", label: "Bog Matron defeated", required: 1 },
+    ],
+  },
   ember_totems: {
     id: "ember_totems",
     title: "Totems in the Ash",
@@ -90,6 +124,7 @@ export const QUEST_DEFS = {
     sceneId: "emberpine_grove",
     prerequisiteId: "ruins_of_memory",
     startState: "inactive",
+    completeFlags: ["ember_pass_reopened"],
     rewards: { items: { cinder_resin: 2, emberglass_relic: 1, greater_health_potion: 1 }, silver: 92, xp: 120 },
     objectives: [{ key: "totemsActivated", label: "Totems rekindled", required: 3 }],
   },
@@ -101,6 +136,7 @@ export const QUEST_DEFS = {
     sceneId: "frostveil_tundra",
     prerequisiteId: "ember_totems",
     startState: "inactive",
+    completeFlags: ["ridge_signal_recovered"],
     rewards: { items: { stonebloom: 2, frostband_charm: 1, spirit_tonic: 1 }, silver: 98, xp: 128 },
     objectives: [{ key: "scoutFound", label: "Lost scout located", required: 1 }],
   },
@@ -112,6 +148,7 @@ export const QUEST_DEFS = {
     sceneId: "blighted_woods",
     prerequisiteId: "lost_scout",
     startState: "inactive",
+    completeFlags: ["court_approach_secured"],
     rewards: { items: { greater_health_potion: 2, heartseed: 1 }, silver: 120, xp: 150 },
     objectives: [
       { key: "blightEffigiesBroken", label: "Blight effigies shattered", required: 2 },
@@ -124,6 +161,7 @@ export const QUEST_DEFS = {
     description: "Push into the ruins, survive the corrupted court, and break Elder Hollow before the forest falls silent.",
     autoActivateSceneId: "hollowheart_ruins",
     prerequisiteId: "blight_watch",
+    completeFlags: ["elder_hollow_broken"],
     rewards: { items: { heartseed_pendant: 1, relic_shard: 2, greater_health_potion: 2 }, silver: 180, talentPoints: 2, xp: 220 },
     objectives: [{ key: "elderHollowDefeated", label: "Elder Hollow defeated", required: 1 }],
   },
@@ -181,6 +219,18 @@ export const NPC_DEFS = {
         "Take this talisman. It was wasted hanging by my stove.",
       ],
       after: ["Marsh work never truly ends, but you bought us time."],
+    },
+  },
+  halen: {
+    id: "halen",
+    name: "Halen",
+    role: "Road Warden",
+    palette: { hood: "#eee9de", cloak: "#6d8359", accent: "#e7cf87" },
+    dialogue: {
+      default: [
+        "Rowan sent us back onto the road after your first sweep.",
+        "The patrol fires are lit again. We'll hold the village while you keep pushing outward.",
+      ],
     },
   },
   tamsin: {
@@ -293,6 +343,18 @@ export const NPC_DEFS = {
       default: [
         "Past the court the forest still keeps one bright chamber.",
         "If you reach the Ancient Heart, walk softly. The place remembers even the roots beneath you.",
+      ],
+    },
+  },
+  mara: {
+    id: "mara",
+    name: "Mara",
+    role: "Lantern Tender",
+    palette: { hood: "#ede6da", cloak: "#4a7d74", accent: "#8de0c8" },
+    dialogue: {
+      default: [
+        "The lantern line only stays bright because you keep giving us breathing room.",
+        "If the marsh goes quiet again, I'll know you've cleared another road ahead.",
       ],
     },
   },

@@ -44,7 +44,7 @@ export const SCENES = {
     introDelay: 0.42,
     waveTemplates: [
       [["thornling", "thornling", "mire_brute"]],
-      [["thornling", "mire_brute", "thornling"]],
+      [["thornling", "mire_brute", "thorn_weaver"]],
     ],
     connections: {
       westGate: {
@@ -62,6 +62,13 @@ export const SCENES = {
         toSceneId: "blighted_woods",
         targetEntryId: "southGate",
       },
+      chapelSteps: {
+        label: "Chapel of Tides",
+        toSceneId: "chapel_of_tides",
+        targetEntryId: "southSteps",
+        requiresFlag: "chapel_of_tides_open",
+        lockedText: "The flooded chapel is sealed. Nettle needs the tide seals restored first.",
+      },
     },
   },
   mossy_ruins: {
@@ -78,7 +85,7 @@ export const SCENES = {
     introDelay: 0.44,
     waveTemplates: [
       [["thornling", "thornling", "wisp_archer"]],
-      [["mire_brute", "thornling", "wisp_archer"]],
+      [["mire_brute", "thorn_weaver", "wisp_archer"]],
     ],
     connections: {
       southGate: {
@@ -113,7 +120,7 @@ export const SCENES = {
     sceneStyle: "emberpineGrove",
     introDelay: 0.38,
     waveTemplates: [
-      [["thornling", "wisp_archer", "thornling"]],
+      [["thornling", "wisp_archer", "thorn_weaver"]],
       [["mire_brute", "thornling", "wisp_archer"]],
     ],
     connections: {
@@ -142,7 +149,7 @@ export const SCENES = {
     sceneStyle: "frostveilTundra",
     introDelay: 0.34,
     waveTemplates: [
-      [["wisp_archer", "thornling", "thornling"]],
+      [["wisp_archer", "thornling", "thorn_weaver"]],
       [["wisp_archer", "mire_brute", "thornling"]],
       [["wisp_archer", "wisp_archer", "thornling"]],
     ],
@@ -178,7 +185,7 @@ export const SCENES = {
     introDelay: 0.33,
     waveTemplates: [
       [["wisp_archer", "thornling", "mire_brute"]],
-      [["wisp_archer", "wisp_archer", "thornling", "mire_brute"]],
+      [["wisp_archer", "wisp_archer", "thorn_weaver", "mire_brute"]],
       [["mire_brute", "wisp_archer", "thornling", "thornling"]],
     ],
     connections: {
@@ -215,7 +222,7 @@ export const SCENES = {
     introDelay: 0.32,
     waveTemplates: [
       [["thornling", "wisp_archer", "mire_brute"]],
-      [["thornling", "thornling", "mire_brute", "wisp_archer"]],
+      [["thornling", "thorn_weaver", "mire_brute", "wisp_archer"]],
       [["mire_brute", "wisp_archer", "thornling", "thornling"]],
     ],
     connections: {
@@ -284,6 +291,33 @@ export const SCENES = {
         label: "Mossy Ruins",
         toSceneId: "mossy_ruins",
         targetEntryId: "northVault",
+      },
+    },
+  },
+  chapel_of_tides: {
+    id: "chapel_of_tides",
+    title: "Chapel of Tides",
+    regionName: "Drowned Chapel",
+    completionText: "Chapel of Tides Quieted",
+    biomeId: "marsh",
+    seed: "chapel-of-tides",
+    poiTypeId: "vault",
+    threatTier: 3,
+    bossEnabled: true,
+    bossId: "bog_matron",
+    bossName: "Bog Matron",
+    bossMaxHp: 680,
+    sceneStyle: "chapelOfTides",
+    introDelay: 0.32,
+    waveTemplates: [
+      [["thornling", "thorn_weaver", "wisp_archer"]],
+      [["mire_brute", "thorn_weaver", "thornling"]],
+    ],
+    connections: {
+      southSteps: {
+        label: "Moonlit Marsh",
+        toSceneId: "mossroot_marsh",
+        targetEntryId: "chapelSteps",
       },
     },
   },
