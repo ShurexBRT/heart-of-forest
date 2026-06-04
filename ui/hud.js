@@ -93,7 +93,9 @@ function drawBottomHud(ctx, state, abilityInfo) {
 
   ctx.fillStyle = "rgba(228, 238, 214, 0.78)";
   ctx.font = "11px Segoe UI, Arial";
-  ctx.fillText(`Lv ${xp.level}  |  Q Quest Log  |  C Character  |  I Inventory  |  T Talents  |  R Pulse  |  2-4 Action`, x + 18, y - 8);
+  ctx.fillText(`Lv ${xp.level}  |  Q Quest Log  |  C Character  |  I Inventory  |  T Talents  |  R Pulse  |  2-4 Action`, x + 18, y - 38);
+
+  drawXpProgressPanel(ctx, x + 154, y - 32, panelW - 308, xp);
 
   ctx.fillStyle = "rgba(5, 8, 12, 0.84)";
   ctx.fillRect(x, y, panelW, panelH);
@@ -116,8 +118,6 @@ function drawBottomHud(ctx, state, abilityInfo) {
   drawQuickCounters(ctx, x + 18, y + 98, healthPotions, spiritTonics, panelW);
   drawBuffChips(ctx, x + 198, y + 98, state.player);
   drawCurrencyChip(ctx, x + panelW - 182, y + 98, state.progression);
-
-  drawXpBar(ctx, x + 136, y + panelH - 12, panelW - 272, xp.ratio, "");
   drawPanelChrome(ctx, x, y, panelW, panelH, "#7f9a74");
 }
 
@@ -320,6 +320,35 @@ function drawXpBar(ctx, x, y, width, ratio, label) {
     ctx.fillText(label, x + width / 2, y - 4);
     ctx.textAlign = "left";
   }
+}
+
+function drawXpProgressPanel(ctx, x, y, width, xp) {
+  const remaining = Math.max(0, xp.nextLevelXp - xp.xp);
+  const barY = y + 14;
+
+  ctx.fillStyle = "rgba(4, 7, 11, 0.78)";
+  ctx.fillRect(x, y, width, 28);
+  ctx.fillStyle = "#11171f";
+  ctx.fillRect(x + 3, y + 3, width - 6, 22);
+  drawPanelChrome(ctx, x, y, width, 28, "#8c79af");
+
+  ctx.fillStyle = "#f0e7ff";
+  ctx.font = "700 11px Segoe UI, Arial";
+  ctx.fillText(`Level ${xp.level}`, x + 10, y + 12);
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#d6caef";
+  ctx.font = "10px Segoe UI, Arial";
+  ctx.fillText(`${xp.xp} / ${xp.nextLevelXp} XP`, x + width / 2, y + 12);
+
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#c8e6a8";
+  ctx.fillText(`${remaining} to next`, x + width - 10, y + 12);
+  ctx.textAlign = "left";
+
+  drawXpBar(ctx, x + 10, barY, width - 20, xp.ratio, "");
+  ctx.fillStyle = "rgba(255,255,255,0.14)";
+  ctx.fillRect(x + 11, barY + 1, (width - 22) * 0.32, 2);
 }
 
 function drawSceneInfo(ctx, state) {
