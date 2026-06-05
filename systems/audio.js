@@ -15,9 +15,32 @@ export function createAudioState() {
     enabled: Boolean(AudioCtx),
     context: null,
     master: null,
+    musicBus: null,
+    sfxBus: null,
     ambience: null,
     queue: [],
+    musicVolume: 0.7,
+    sfxVolume: 0.8,
   };
+}
+
+export function applyAudioSettings(audio, settings) {
+  if (!audio) return;
+  audio.musicVolume = clampUnit(settings?.musicVolume, 0.7);
+  audio.sfxVolume = clampUnit(settings?.sfxVolume, 0.8);
+
+  if (!audio.context) return;
+
+  const now = audio.context.currentTime;
+  if (audio.musicBus) {
+    audio.musicBus.gain.cancelScheduledValues(now);
+    audio.musicBus.gain.linearRampToValueAtTime(audio.musicVolume, now + 0.08);
+  }
+
+  if (audio.sfxBus) {
+    audio.sfxBus.gain.cancelScheduledValues(now);
+    audio.sfxBus.gain.linearRampToValueAtTime(audio.sfxVolume, now + 0.08);
+  }
 }
 
 export function queueAudio(state, cue, options = {}) {
@@ -59,12 +82,20 @@ function initializeAudio(audio) {
   try {
     const context = new AudioCtx();
     const master = context.createGain();
-    master.gain.value = 0.22;
+    master.gain.value = 0.24;
+    const musicBus = context.createGain();
+    const sfxBus = context.createGain();
+    musicBus.gain.value = audio.musicVolume;
+    sfxBus.gain.value = audio.sfxVolume;
+    musicBus.connect(master);
+    sfxBus.connect(master);
     master.connect(context.destination);
 
     audio.context = context;
     audio.master = master;
-    audio.ambience = createAmbienceBus(context, master);
+    audio.musicBus = musicBus;
+    audio.sfxBus = sfxBus;
+    audio.ambience = createAmbienceBus(context, musicBus);
   } catch {
     audio.enabled = false;
   }
@@ -230,7 +261,8 @@ function playCue(audio, event) {
 }
 
 function toneSweep(audio, from, to, duration, gainAmount, type = "triangle") {
-  const { context, master } = audio;
+  const { context } = audio;
+  const output = audio.sfxBus || audio.master;
   const now = context.currentTime;
   const osc = context.createOscillator();
   const gain = context.createGain();
@@ -241,7 +273,7 @@ function toneSweep(audio, from, to, duration, gainAmount, type = "triangle") {
   gain.gain.exponentialRampToValueAtTime(gainAmount, now + 0.012);
   gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
   osc.connect(gain);
-  gain.connect(master);
+  gain.connect(output);
   osc.start(now);
   osc.stop(now + duration + 0.02);
 }
@@ -253,7 +285,8 @@ function chord(audio, notes, duration, gainAmount, type = "triangle") {
 }
 
 function noiseHit(audio, duration, gainAmount, tint) {
-  const { context, master } = audio;
+  const { context } = audio;
+  const output = audio.sfxBus || audio.master;
   const now = context.currentTime;
   const source = context.createBufferSource();
   source.buffer = createNoiseBuffer(context, duration + 0.04);
@@ -267,7 +300,13 @@ function noiseHit(audio, duration, gainAmount, tint) {
   gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
   source.connect(filter);
   filter.connect(gain);
-  gain.connect(master);
+  gain.connect(output);
   source.start(now);
   source.stop(now + duration + 0.02);
+}
+
+function clampUnit(value, fallback) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.max(0, Math.min(1, number));
 }

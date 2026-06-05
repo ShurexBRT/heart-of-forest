@@ -1,4 +1,5 @@
 import { startGameLoop } from "./core/gameLoop.js";
+import { GAME_MODES, isFrontendMode } from "./core/gameMode.js";
 import { createInput, wasPressed } from "./core/input.js";
 import { clamp, distance } from "./core/math.js";
 import {
@@ -12,7 +13,12 @@ import { TALENT_DEFS } from "./data/gameData.js";
 import { Player } from "./entities/player.js";
 import { renderGame } from "./rendering/renderer.js";
 import { getUiHoverTarget } from "./ui/hud.js";
-import { createAudioState, queueAudio, updateAudio } from "./systems/audio.js";
+import {
+  applyAudioSettings,
+  createAudioState,
+  queueAudio,
+  updateAudio,
+} from "./systems/audio.js";
 import {
   handlePlayerAbilities,
   markCombat,
@@ -36,7 +42,7 @@ import {
   useActionSlot,
   useConsumable,
 } from "./systems/progression.js";
-import { loadSnapshot, saveSnapshot } from "./systems/save.js";
+import { deleteSave, loadSave, loadSettings, saveGame, saveSettings } from "./systems/save.js";
 import {
   clearActiveService,
   getActiveService,
@@ -58,11 +64,19 @@ import {
   updateQuestAvailability,
   updateStoryRuntime,
 } from "./systems/story.js";
+import {
+  createFrontendState,
+  getFrontendEntries,
+  getFrontendHoverTarget,
+  getSelectedFrontendAction,
+  moveFrontendSelection,
+  renderFrontendScreen,
+  syncFrontendSaveState,
+} from "./ui/startScreen.js";
 import { createArena } from "./world/arena.js";
 
 const TRANSITION_DURATION = 0.34;
 const EXIT_HOLD_TIME = 0.22;
-const AUTO_SAVE_INTERVAL = 6;
 const INVENTORY_FILTER_ORDER = ["all", "equipment", "consumable", "material", "usable"];
 const INVENTORY_SORT_ORDER = ["name", "rarity", "value", "slot"];
 const SHOP_FILTER_ORDER = ["all", "equipment", "consumable", "rare", "epic"];
@@ -71,19 +85,28 @@ const SHOP_SORT_ORDER = ["name", "rarity", "price", "recent"];
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d", { alpha: false });
 const input = createInput(canvas);
-const snapshot = loadSnapshot();
+const saveRecord = loadSave();
+const snapshot = saveRecord?.runtimeSnapshot || null;
+const settings = loadSettings();
 const progression = createProgression(snapshot?.progression);
-const state = createState(progression, snapshot);
+let state = createState(progression, snapshot, {
+  mode: GAME_MODES.START_MENU,
+  settings,
+});
+syncFrontendSaveState(state.frontend, saveRecord);
+applyAudioSettings(state.audio, state.settings);
 let fatalError = null;
 
-function createState(currentProgression, saveData = null) {
+function createState(currentProgression, saveData = null, runtime = {}) {
   const currentSceneId =
     saveData?.currentSceneId && SCENES[saveData.currentSceneId]
       ? saveData.currentSceneId
       : INITIAL_SCENE_ID;
   const currentEntryId = saveData?.currentEntryId || "default";
   const sceneProgress = saveData?.sceneProgress || {};
-  const viewport = { width: window.innerWidth, height: window.innerHeight, dpr: 1 };
+  const viewport = runtime.viewport
+    ? { ...runtime.viewport }
+    : { width: window.innerWidth, height: window.innerHeight, dpr: 1 };
   const sceneState = buildSceneState(
     currentSceneId,
     currentEntryId,
@@ -111,9 +134,11 @@ function createState(currentProgression, saveData = null) {
     camera: { x: 0, y: 0 },
     mouseWorld: { x: 0, y: 0 },
     combatTimer: 0,
-    saveTimer: AUTO_SAVE_INTERVAL,
     ui: createUiState(saveData?.ui),
-    audio: createAudioState(),
+    audio: runtime.audio || createAudioState(),
+    settings: runtime.settings || settings,
+    mode: runtime.mode || GAME_MODES.PLAYING,
+    frontend: runtime.frontend || createFrontendState(),
   };
 }
 
@@ -151,6 +176,190 @@ function createTransitionState() {
   };
 }
 
+function createRuntimeState(mode = GAME_MODES.PLAYING) {
+  return {
+    viewport: state?.viewport ? { ...state.viewport } : { width: window.innerWidth, height: window.innerHeight, dpr: 1 },
+    audio: state?.audio || createAudioState(),
+    settings: state?.settings || settings,
+    mode,
+    frontend: state?.frontend || createFrontendState(),
+  };
+}
+
+function replaceGameState(nextState, saveData = null) {
+  state = nextState;
+  syncFrontendSaveState(state.frontend, saveData);
+  applyAudioSettings(state.audio, state.settings);
+  resizeCanvas();
+  updateQuestAvailability(state);
+  refreshQuestStates(state);
+  updateMouseWorld();
+}
+
+function loadStateFromSave(saveData) {
+  if (!saveData?.runtimeSnapshot) return false;
+
+  const restoredProgression = createProgression(saveData.runtimeSnapshot.progression);
+  const restoredState = createState(
+    restoredProgression,
+    saveData.runtimeSnapshot,
+    createRuntimeState(GAME_MODES.PLAYING)
+  );
+
+  replaceGameState(restoredState, saveData);
+  return true;
+}
+
+function startNewGame() {
+  deleteSave();
+  const freshProgression = createProgression();
+  const freshState = createState(freshProgression, null, createRuntimeState(GAME_MODES.PLAYING));
+  replaceGameState(freshState, null);
+  saveCurrentGame("new-game");
+}
+
+function syncContinueAvailability() {
+  syncFrontendSaveState(state.frontend, loadSave());
+}
+
+function buildRuntimeSnapshot() {
+  return {
+    progression: state.progression,
+    sceneProgress: state.sceneProgress,
+    currentSceneId: state.currentSceneId,
+    currentEntryId: state.currentEntryId,
+    playerVitals: capturePlayerVitals(state.player),
+    ui: {
+      questLogOpen: false,
+      menuOpen: false,
+      activeTab: state.ui.activeTab,
+      selectedInventoryIndex: state.ui.selectedInventoryIndex,
+      selectedEquipmentIndex: state.ui.selectedEquipmentIndex,
+      selectedTalentIndex: state.ui.selectedTalentIndex,
+      selectedQuestIndex: state.ui.selectedQuestIndex,
+      selectedServiceIndex: state.ui.selectedServiceIndex,
+      selectedStashIndex: state.ui.selectedStashIndex,
+      serviceSubpanel: state.ui.serviceSubpanel,
+      inventoryFilter: state.ui.inventoryFilter,
+      inventorySort: state.ui.inventorySort,
+      shopFilter: state.ui.shopFilter,
+      shopSort: state.ui.shopSort,
+    },
+  };
+}
+
+function collectUnlockedMaps() {
+  const unlocked = new Set([INITIAL_SCENE_ID, state.currentSceneId]);
+  for (const sceneId of Object.keys(state.sceneProgress || {})) {
+    if (SCENES[sceneId]) unlocked.add(sceneId);
+  }
+  return [...unlocked];
+}
+
+function collectDefeatedBosses() {
+  return Object.entries(state.sceneProgress || {})
+    .filter(([sceneId, progress]) => SCENES[sceneId]?.bossEnabled && progress?.cleared)
+    .map(([sceneId]) => sceneId);
+}
+
+function collectCompletedEvents() {
+  const completed = [];
+
+  for (const [sceneId, progress] of Object.entries(state.sceneProgress || {})) {
+    if (progress?.cleared) {
+      completed.push(`${sceneId}:cleared`);
+    }
+
+    for (const objectId of Object.keys(progress?.objectStates || {})) {
+      completed.push(`${sceneId}:${objectId}`);
+    }
+  }
+
+  for (const [flag, enabled] of Object.entries(state.progression.worldFlags || {})) {
+    if (enabled) completed.push(`flag:${flag}`);
+  }
+
+  return completed;
+}
+
+function buildSaveData() {
+  const runtimeSnapshot = buildRuntimeSnapshot();
+
+  return {
+    version: "0.1.0",
+    player: {
+      ...runtimeSnapshot.playerVitals,
+      level: state.progression.level,
+      xp: state.progression.xp,
+    },
+    world: {
+      currentMap: state.currentSceneId,
+      currentEntryId: state.currentEntryId,
+      unlockedMaps: collectUnlockedMaps(),
+      defeatedBosses: collectDefeatedBosses(),
+      completedEvents: collectCompletedEvents(),
+      sceneProgress: state.sceneProgress,
+    },
+    inventory: {
+      potions: {
+        health_potion: state.progression.inventory.health_potion || 0,
+        spirit_tonic: state.progression.inventory.spirit_tonic || 0,
+        greater_health_potion: state.progression.inventory.greater_health_potion || 0,
+        ward_elixir: state.progression.inventory.ward_elixir || 0,
+      },
+      items: state.progression.inventory,
+      stash: state.progression.stash,
+      equipment: state.progression.equipment,
+      actionSlots: state.progression.actionSlots,
+      silver: getCurrency(state.progression),
+    },
+    progression: state.progression,
+    ui: runtimeSnapshot.ui,
+    runtimeSnapshot,
+    savedAt: Date.now(),
+  };
+}
+
+function saveCurrentGame() {
+  if (state.mode !== GAME_MODES.PLAYING || fatalError) {
+    return false;
+  }
+
+  const saved = saveGame(buildSaveData());
+  if (saved) {
+    syncContinueAvailability();
+  }
+  return saved;
+}
+
+function updateSettings(nextSettings) {
+  state.settings = {
+    ...state.settings,
+    musicVolume: clamp(nextSettings.musicVolume ?? state.settings.musicVolume, 0, 1),
+    sfxVolume: clamp(nextSettings.sfxVolume ?? state.settings.sfxVolume, 0, 1),
+    fullscreen: nextSettings.fullscreen ?? state.settings.fullscreen,
+  };
+  saveSettings(state.settings);
+  applyAudioSettings(state.audio, state.settings);
+}
+
+async function setFullscreenPreference(enabled) {
+  const target = Boolean(enabled);
+  try {
+    if (target) {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen?.();
+      }
+    } else if (document.fullscreenElement) {
+      await document.exitFullscreen?.();
+    }
+  } catch (error) {
+    console.warn("[Heart of Forest] Fullscreen toggle failed.", error);
+  }
+
+  updateSettings({ fullscreen: Boolean(document.fullscreenElement) });
+}
+
 function buildSceneState(sceneId, entryId, currentProgression, sceneProgress, vitals = null) {
   const scene = SCENES[sceneId];
   const arena = createArena({
@@ -176,7 +385,7 @@ function buildSceneState(sceneId, entryId, currentProgression, sceneProgress, vi
   }
 
   const player = new Player(spawn, getPlayerBonuses(currentProgression));
-  restorePlayerVitals(player, vitals);
+  restorePlayerVitals(player, vitals, arena);
 
   return {
     scene,
@@ -196,16 +405,24 @@ function buildSceneState(sceneId, entryId, currentProgression, sceneProgress, vi
   };
 }
 
-function restorePlayerVitals(player, vitals) {
+function restorePlayerVitals(player, vitals, arena) {
   if (!vitals) return;
+  if (arena) {
+    player.x = clamp(vitals.x ?? player.x, player.radius, arena.width - player.radius);
+    player.y = clamp(vitals.y ?? player.y, player.radius, arena.height - player.radius);
+  }
   player.hp = clamp(vitals.hp ?? player.maxHp, 1, player.maxHp);
   player.spirit = clamp(vitals.spirit ?? player.maxSpirit, 0, player.maxSpirit);
 }
 
 function capturePlayerVitals(player) {
   return {
+    x: player.x,
+    y: player.y,
     hp: player.hp,
+    maxHp: player.maxHp,
     spirit: player.spirit,
+    maxSpirit: player.maxSpirit,
   };
 }
 
@@ -255,6 +472,7 @@ function applySceneState(sceneId, entryId, options = {}) {
   state.shake = 0;
   state.gameOver = false;
   state.areaCleared = false;
+  state.mode = GAME_MODES.PLAYING;
   state.story.focus = null;
   state.story.prompt = "";
   state.story.dialogue = null;
@@ -357,6 +575,7 @@ function updateTransition(dt) {
     transition.timer += dt;
     if (transition.timer >= transition.duration) {
       applySceneState(transition.targetSceneId, transition.targetEntryId);
+      saveCurrentGame();
       transition.phase = "in";
       transition.timer = transition.duration;
     }
@@ -387,6 +606,7 @@ function handleSceneCleared() {
   deactivateEncounter(state.encounter);
   state.encounter.bannerText = state.scene.completionText;
   state.encounter.bannerTimer = 2;
+  saveCurrentGame();
 }
 
 function updateExitCharge(dt) {
@@ -451,6 +671,138 @@ function handleInteractionInput() {
   if (wasPressed(input, "e", "KeyE") && state.story.focus) {
     beginInteraction(state, state.story.focus);
     return true;
+  }
+
+  return false;
+}
+
+function setFrontendSelectionByAction(action) {
+  if (state.mode === GAME_MODES.START_MENU) {
+    const entries = getFrontendEntries(state);
+    const index = entries.findIndex((entry) => entry.action === action);
+    if (index >= 0) state.frontend.menuSelection = index;
+    return;
+  }
+
+  const entries = getFrontendEntries(state);
+  const index = entries.findIndex((entry) => entry.action === action);
+  if (index >= 0) state.frontend.optionsSelection = index;
+}
+
+function applySliderClick(action, target) {
+  const sliderX = target.bounds.x + 18;
+  const sliderWidth = target.bounds.w - 150;
+  const ratio = clamp((input.mouse.x - sliderX) / sliderWidth, 0, 1);
+
+  if (action === "music-volume") {
+    updateSettings({ musicVolume: ratio });
+    return true;
+  }
+
+  if (action === "sfx-volume") {
+    updateSettings({ sfxVolume: ratio });
+    return true;
+  }
+
+  return false;
+}
+
+function activateFrontendAction(action) {
+  switch (action) {
+    case "new-game":
+      if (state.settings.fullscreen) setFullscreenPreference(true);
+      startNewGame();
+      return true;
+    case "continue": {
+      const saveData = loadSave();
+      if (!saveData) {
+        syncContinueAvailability();
+        return true;
+      }
+      if (state.settings.fullscreen) setFullscreenPreference(true);
+      return loadStateFromSave(saveData);
+    }
+    case "options":
+      state.mode = GAME_MODES.OPTIONS;
+      return true;
+    case "fullscreen":
+      setFullscreenPreference(!state.settings.fullscreen);
+      return true;
+    case "reset-save":
+      deleteSave();
+      syncContinueAvailability();
+      return true;
+    case "back":
+      state.mode = GAME_MODES.START_MENU;
+      return true;
+    default:
+      return false;
+  }
+}
+
+function adjustFrontendOption(delta) {
+  const action = getSelectedFrontendAction(state);
+
+  if (action === "music-volume") {
+    updateSettings({ musicVolume: clamp(state.settings.musicVolume + delta * 0.05, 0, 1) });
+    return true;
+  }
+
+  if (action === "sfx-volume") {
+    updateSettings({ sfxVolume: clamp(state.settings.sfxVolume + delta * 0.05, 0, 1) });
+    return true;
+  }
+
+  if (action === "fullscreen") {
+    setFullscreenPreference(!state.settings.fullscreen);
+    return true;
+  }
+
+  return false;
+}
+
+function handleFrontendInput() {
+  const target = getFrontendHoverTarget(state, input.mouse.x, input.mouse.y);
+
+  if (input.mouse.leftPressed && target && !target.disabled) {
+    setFrontendSelectionByAction(target.action);
+    if (target.action === "music-volume" || target.action === "sfx-volume") {
+      return applySliderClick(target.action, target);
+    }
+    return activateFrontendAction(target.action);
+  }
+
+  if (wasPressed(input, "arrowup", "ArrowUp") || wasPressed(input, "w", "KeyW")) {
+    moveFrontendSelection(state, -1);
+    return true;
+  }
+
+  if (wasPressed(input, "arrowdown", "ArrowDown") || wasPressed(input, "s", "KeyS")) {
+    moveFrontendSelection(state, 1);
+    return true;
+  }
+
+  if (state.mode === GAME_MODES.OPTIONS) {
+    if (wasPressed(input, "arrowleft", "ArrowLeft") || wasPressed(input, "a", "KeyA")) {
+      return adjustFrontendOption(-1);
+    }
+
+    if (wasPressed(input, "arrowright", "ArrowRight") || wasPressed(input, "d", "KeyD")) {
+      return adjustFrontendOption(1);
+    }
+
+    if (wasPressed(input, "escape", "Escape")) {
+      state.mode = GAME_MODES.START_MENU;
+      return true;
+    }
+  }
+
+  if (wasPressed(input, "enter", "Enter") || wasPressed(input, " ", "Space")) {
+    const action = getSelectedFrontendAction(state);
+    const entries = getFrontendEntries(state);
+    const entry = entries.find((candidate) => candidate.action === action);
+    if (entry?.disabled) return true;
+    return activateFrontendAction(action);
   }
 
   return false;
@@ -1089,43 +1441,6 @@ function updateCombatPresence(dt) {
   }
 }
 
-function buildSnapshot() {
-  return {
-    progression: state.progression,
-    sceneProgress: state.sceneProgress,
-    currentSceneId: state.currentSceneId,
-    currentEntryId: state.currentEntryId,
-    playerVitals: capturePlayerVitals(state.player),
-    ui: {
-      questLogOpen: false,
-      menuOpen: false,
-      activeTab: state.ui.activeTab,
-      selectedInventoryIndex: state.ui.selectedInventoryIndex,
-      selectedEquipmentIndex: state.ui.selectedEquipmentIndex,
-      selectedTalentIndex: state.ui.selectedTalentIndex,
-      selectedQuestIndex: state.ui.selectedQuestIndex,
-      selectedServiceIndex: state.ui.selectedServiceIndex,
-      selectedStashIndex: state.ui.selectedStashIndex,
-      serviceSubpanel: state.ui.serviceSubpanel,
-      inventoryFilter: state.ui.inventoryFilter,
-      inventorySort: state.ui.inventorySort,
-      shopFilter: state.ui.shopFilter,
-      shopSort: state.ui.shopSort,
-    },
-  };
-}
-
-function persistState() {
-  saveSnapshot(buildSnapshot());
-}
-
-function updateAutosave(dt) {
-  state.saveTimer -= dt;
-  if (state.saveTimer > 0) return;
-  persistState();
-  state.saveTimer = AUTO_SAVE_INTERVAL;
-}
-
 function setToast(text, duration = 2) {
   state.story.toastText = text;
   state.story.toastTimer = duration;
@@ -1140,10 +1455,22 @@ function update(dt) {
     state.time += dt;
     state.shake = Math.max(0, state.shake - 30 * dt);
     updateMouseWorld();
-    updateStoryRuntime(state, dt);
     updateAudio(state, input);
+
+    if (isFrontendMode(state.mode)) {
+      handleFrontendInput();
+      updateCamera(dt);
+      return;
+    }
+
+    updateStoryRuntime(state, dt);
     updateInteractionState();
-    updateAutosave(dt);
+
+    if (state.gameOver) {
+      state.mode = GAME_MODES.GAME_OVER;
+    } else if (state.mode !== GAME_MODES.PLAYING) {
+      state.mode = GAME_MODES.PLAYING;
+    }
 
     if (state.gameOver && (wasPressed(input, "r", "KeyR") || wasPressed(input, "enter", "Enter"))) {
       reloadCurrentScene();
@@ -1202,6 +1529,12 @@ function render() {
 
   try {
     state.activeQuests = getActiveQuestEntries(state.progression);
+    if (isFrontendMode(state.mode)) {
+      renderGame(ctx, state, { showHud: false });
+      renderFrontendScreen(ctx, state);
+      return;
+    }
+
     state.ui.hoverTarget = getUiHoverTarget(state, input.mouse.x, input.mouse.y);
     renderGame(ctx, state);
   } catch (error) {
@@ -1236,7 +1569,12 @@ window.addEventListener("error", (event) => {
 });
 
 window.addEventListener("resize", resizeCanvas);
-window.addEventListener("beforeunload", persistState);
+window.addEventListener("beforeunload", () => {
+  saveCurrentGame();
+});
+document.addEventListener("fullscreenchange", () => {
+  updateSettings({ fullscreen: Boolean(document.fullscreenElement) });
+});
 
 resizeCanvas();
 updateQuestAvailability(state);
@@ -1250,7 +1588,9 @@ window.__heartOfForestDebug = {
     applySceneState(sceneId, entryId);
     return true;
   },
-  save: persistState,
+  newGame: startNewGame,
+  continueGame: () => loadStateFromSave(loadSave()),
+  save: saveCurrentGame,
   reloadCurrentScene,
 };
 

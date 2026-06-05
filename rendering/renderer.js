@@ -26,7 +26,7 @@ import { drawHud } from "../ui/hud.js";
 let backgroundCache = null;
 let backgroundCacheKey = "";
 
-export function renderGame(ctx, state) {
+export function renderGame(ctx, state, options = {}) {
   const { viewport, arena, player } = state;
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -52,7 +52,9 @@ export function renderGame(ctx, state) {
   drawParticles(ctx, state, origin);
   drawSceneAtmosphere(ctx, state);
 
-  drawHud(ctx, state, player.abilityInfo);
+  if (options.showHud !== false) {
+    drawHud(ctx, state, player.abilityInfo);
+  }
 }
 
 function getWorldOrigin(state) {
