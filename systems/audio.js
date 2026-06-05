@@ -1,13 +1,13 @@
 const AudioCtx = typeof window !== "undefined" ? window.AudioContext || window.webkitAudioContext : null;
 
 const BIOME_AMBIENCE = {
-  forest: { freqs: [184, 276], gain: 0.024, noise: 0.007, tint: 620 },
-  marsh: { freqs: [146, 218], gain: 0.025, noise: 0.011, tint: 480 },
-  highlands: { freqs: [172, 258], gain: 0.02, noise: 0.006, tint: 700 },
-  ember: { freqs: [132, 198], gain: 0.022, noise: 0.01, tint: 420 },
-  frost: { freqs: [220, 330], gain: 0.018, noise: 0.005, tint: 920 },
-  blight: { freqs: [124, 186], gain: 0.022, noise: 0.012, tint: 340 },
-  ancient: { freqs: [196, 294], gain: 0.02, noise: 0.006, tint: 760 },
+  forest: { freqs: [184, 276], gain: 0.038, noise: 0.011, tint: 620 },
+  marsh: { freqs: [146, 218], gain: 0.04, noise: 0.016, tint: 480 },
+  highlands: { freqs: [172, 258], gain: 0.032, noise: 0.009, tint: 700 },
+  ember: { freqs: [132, 198], gain: 0.036, noise: 0.014, tint: 420 },
+  frost: { freqs: [220, 330], gain: 0.029, noise: 0.008, tint: 920 },
+  blight: { freqs: [124, 186], gain: 0.037, noise: 0.017, tint: 340 },
+  ancient: { freqs: [196, 294], gain: 0.032, noise: 0.009, tint: 760 },
 };
 
 export function createAudioState() {
@@ -21,6 +21,9 @@ export function createAudioState() {
     queue: [],
     musicVolume: 0.7,
     sfxVolume: 0.8,
+    lastCue: null,
+    playedCount: 0,
+    unlockedAt: 0,
   };
 }
 
@@ -48,13 +51,29 @@ export function queueAudio(state, cue, options = {}) {
   state.audio.queue.push({ cue, ...options });
 }
 
+export function ensureAudioStarted(audio) {
+  if (!audio?.enabled) return false;
+
+  if (!audio.context) {
+    initializeAudio(audio);
+  }
+
+  if (!audio.context) return false;
+
+  if (audio.context.state === "suspended") {
+    audio.context.resume().catch(() => {});
+  }
+
+  return true;
+}
+
 export function updateAudio(state, input) {
   const audio = state.audio;
   if (!audio?.enabled) return;
 
   if (!audio.context) {
     if (!hasUnlockGesture(input)) return;
-    initializeAudio(audio);
+    ensureAudioStarted(audio);
   }
 
   if (!audio.context) return;
@@ -82,7 +101,7 @@ function initializeAudio(audio) {
   try {
     const context = new AudioCtx();
     const master = context.createGain();
-    master.gain.value = 0.24;
+    master.gain.value = 0.42;
     const musicBus = context.createGain();
     const sfxBus = context.createGain();
     musicBus.gain.value = audio.musicVolume;
@@ -96,6 +115,8 @@ function initializeAudio(audio) {
     audio.musicBus = musicBus;
     audio.sfxBus = sfxBus;
     audio.ambience = createAmbienceBus(context, musicBus);
+    audio.unlockedAt = Date.now();
+    context.resume().catch(() => {});
   } catch {
     audio.enabled = false;
   }
@@ -118,9 +139,9 @@ function createAmbienceBus(context, master) {
   oscB.frequency.value = 276;
 
   const oscAGain = context.createGain();
-  oscAGain.gain.value = 0.18;
+  oscAGain.gain.value = 0.24;
   const oscBGain = context.createGain();
-  oscBGain.gain.value = 0.11;
+  oscBGain.gain.value = 0.16;
 
   const noiseSource = context.createBufferSource();
   noiseSource.buffer = createNoiseBuffer(context, 1.8);
@@ -130,7 +151,7 @@ function createAmbienceBus(context, master) {
   noiseFilter.frequency.value = 620;
   noiseFilter.Q.value = 0.7;
   const noiseGain = context.createGain();
-  noiseGain.gain.value = 0.006;
+  noiseGain.gain.value = 0.01;
 
   oscA.connect(oscAGain);
   oscB.connect(oscBGain);
@@ -258,6 +279,8 @@ function playCue(audio, event) {
     default:
       break;
   }
+  audio.lastCue = event.cue;
+  audio.playedCount += 1;
 }
 
 function toneSweep(audio, from, to, duration, gainAmount, type = "triangle") {

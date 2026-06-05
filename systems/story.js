@@ -107,7 +107,8 @@ export function refreshQuestStates(state) {
     if (complete) {
       progression.questStates[quest.id] = "complete";
       if (quest.giverId) {
-        setToast(state, `Quest Complete: ${quest.title}`, 2.6);
+        const giverName = NPC_DEFS[quest.giverId]?.name || "your quest giver";
+        setToast(state, `Quest Complete: ${quest.title}. Return to ${giverName}.`, 3);
       } else {
         const rewardSummary = finalizeQuest(state, quest);
         setToast(

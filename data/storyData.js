@@ -7,7 +7,7 @@ export const QUEST_DEFS = {
     sceneId: "whispering_woods",
     startState: "available",
     completeFlags: ["village_patrols_returned"],
-    rewards: { items: { spirit_bloom: 3, health_potion: 2 }, silver: 48, xp: 80 },
+    rewards: { items: { spirit_bloom: 2, health_potion: 2, windstep_phial: 1 }, silver: 52, xp: 84 },
     objectives: [
       { key: "spiritFlowers", label: "Spirit Flowers gathered", required: 3 },
       { key: "thornlingsDefeated", label: "Thornlings defeated", required: 3 },
@@ -21,7 +21,7 @@ export const QUEST_DEFS = {
     sceneId: "whispering_woods",
     startState: "available",
     completeFlags: ["apothecary_resupplied", "marsh_route_lit"],
-    rewards: { items: { spirit_tonic: 2, moonthread_amulet: 1 }, silver: 44, xp: 70 },
+    rewards: { items: { spirit_tonic: 2, moonthread_amulet: 1, groveguard_phial: 1 }, silver: 52, xp: 78 },
     objectives: [
       { key: "moonleafBundles", label: "Moonleaf bundles gathered", required: 2 },
       { key: "marshLanternsLit", label: "Marsh lanterns relit", required: 2 },
@@ -218,6 +218,7 @@ export const NPC_DEFS = {
       complete: [
         "Good. The grove can breathe again.",
         "Tamsin and the others can move again now that the first trail is clear.",
+        "Take this windstep phial and catch your breath before you press deeper.",
       ],
       after: ["The forest remembers what you restored here. Keep moving."],
     },
@@ -282,7 +283,7 @@ export const NPC_DEFS = {
       ],
       complete: [
         "Perfect. This is enough to stock the satchels and prime the spirit flasks.",
-        "Take the amulet. It keeps the pulse steady under pressure.",
+        "Take the amulet and a groveguard phial. Both will hold you steadier when the road bites back.",
       ],
       after: ["If the herbs keep flowing, I can keep the village standing."],
     },

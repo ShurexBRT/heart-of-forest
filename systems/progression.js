@@ -194,8 +194,6 @@ export function createProgression(snapshot = null) {
       moonleaf: 1,
       health_potion: 3,
       spirit_tonic: 1,
-      moonthread_amulet: 1,
-      rootwoven_talisman: 1,
     },
     stash: {},
     equipment: {

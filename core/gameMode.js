@@ -7,5 +7,10 @@ export const GAME_MODES = {
 };
 
 export function isFrontendMode(mode) {
-  return mode === GAME_MODES.START_MENU || mode === GAME_MODES.OPTIONS;
+  return (
+    mode === GAME_MODES.START_MENU ||
+    mode === GAME_MODES.OPTIONS ||
+    mode === GAME_MODES.PAUSED ||
+    mode === GAME_MODES.GAME_OVER
+  );
 }

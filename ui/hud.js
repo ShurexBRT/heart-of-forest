@@ -1,4 +1,5 @@
-import { EQUIPMENT_SLOTS, TALENT_DEFS } from "../data/gameData.js";
+import { EQUIPMENT_SLOTS, ITEM_DEFS, TALENT_DEFS } from "../data/gameData.js";
+import { SCENES, WORLD_MAP_LAYOUT } from "../data/sceneNetwork.js";
 import {
   getCurrency,
   getActionSlotEntries,
@@ -13,6 +14,11 @@ import {
 } from "../systems/progression.js";
 import { getAylaPortrait } from "../rendering/atlasAssets.js";
 import { getActiveService, getServiceEntries, getStashUiEntries } from "../systems/services.js";
+import { NPC_DEFS } from "../data/storyData.js";
+
+const TEXT_MEASURE_CANVAS =
+  typeof document !== "undefined" ? document.createElement("canvas") : null;
+const TEXT_MEASURE_CTX = TEXT_MEASURE_CANVAS ? TEXT_MEASURE_CANVAS.getContext("2d") : null;
 
 const INVENTORY_FILTER_BUTTONS = [
   ["all", "All"],
@@ -63,6 +69,7 @@ export function drawHud(ctx, state, abilityInfo) {
   drawToast(ctx, state);
   if (state.ui.questLogOpen) drawQuestLogOverlay(ctx, state);
   if (state.ui.menuOpen) drawCharacterOverlay(ctx, state);
+  if (state.ui.worldMapOpen) drawWorldMapOverlay(ctx, state);
   drawHoverTooltip(ctx, state);
   drawDialogue(ctx, state);
   drawTransitionOverlay(ctx, state);
@@ -70,6 +77,10 @@ export function drawHud(ctx, state, abilityInfo) {
 }
 
 export function getUiHoverTarget(state, mouseX, mouseY) {
+  if (state.ui.worldMapOpen) {
+    return null;
+  }
+
   if (state.ui.menuOpen) {
     return getMenuHoverTarget(state, mouseX, mouseY);
   }
@@ -173,25 +184,48 @@ function drawAbilitySlots(ctx, startX, y, player, abilityInfo) {
     ctx.lineWidth = 2;
     ctx.strokeRect(x + 3, y + 3, slotW - 6, slotH - 6);
 
-    if (ratio > 0) {
-      ctx.fillStyle = "rgba(0, 0, 0, 0.58)";
-      ctx.fillRect(x + 3, y + 3, slotW - 6, (slotH - 6) * ratio);
-    }
+    const innerX = x + 3;
+    const innerY = y + 3;
+    const innerW = slotW - 6;
+    const innerH = slotH - 6;
 
     if (!unlocked) {
       ctx.fillStyle = "rgba(9, 12, 18, 0.72)";
-      ctx.fillRect(x + 3, y + 3, slotW - 6, slotH - 6);
+      ctx.fillRect(innerX, innerY, innerW, innerH);
     } else if (info.cost > 0 && player.spirit < info.cost) {
       ctx.fillStyle = "rgba(27, 51, 68, 0.46)";
-      ctx.fillRect(x + 3, y + 3, slotW - 6, slotH - 6);
+      ctx.fillRect(innerX, innerY, innerW, innerH);
     }
 
-    ctx.fillStyle = unlocked ? "#f7fff1" : "#88939f";
-    ctx.font = "700 16px Segoe UI, Arial";
-    ctx.fillText(info.key, x + 10, y + 22);
-    ctx.font = "12px Segoe UI, Arial";
-    ctx.fillStyle = unlocked ? "#d7e4cf" : "#97a2ae";
-    ctx.fillText(unlocked ? info.shortLabel || info.label : "Locked", x + 10, y + 40);
+    if (ratio > 0 && unlocked) {
+      ctx.fillStyle = "rgba(4, 7, 11, 0.78)";
+      ctx.fillRect(innerX, innerY, innerW, innerH);
+
+      const cooldownText = cooldown >= 1 ? cooldown.toFixed(1) : cooldown.toFixed(2);
+      ctx.fillStyle = "#dce6ee";
+      ctx.font = "700 12px Segoe UI, Arial";
+      ctx.fillText(info.key, x + 10, y + 15);
+      ctx.fillStyle = "#f6f0d8";
+      ctx.font = "700 20px Segoe UI, Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(cooldownText, x + slotW / 2, y + 31);
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#d7e4cf";
+      ctx.font = "11px Segoe UI, Arial";
+      ctx.fillText(info.shortLabel || info.label, x + 10, y + 44);
+
+      ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
+      ctx.fillRect(innerX + 6, y + slotH - 12, innerW - 12, 5);
+      ctx.fillStyle = color;
+      ctx.fillRect(innerX + 6, y + slotH - 12, (innerW - 12) * (1 - ratio), 5);
+    } else {
+      ctx.fillStyle = unlocked ? "#f7fff1" : "#88939f";
+      ctx.font = "700 16px Segoe UI, Arial";
+      ctx.fillText(info.key, x + 10, y + 22);
+      ctx.font = "12px Segoe UI, Arial";
+      ctx.fillStyle = unlocked ? "#d7e4cf" : "#97a2ae";
+      ctx.fillText(unlocked ? info.shortLabel || info.label : "Locked", x + 10, y + 40);
+    }
   }
 }
 
@@ -439,7 +473,19 @@ function drawQuestTracker(ctx, state) {
   const x = 20;
   const y = 98;
   const width = 320;
-  const height = Math.min(quests.length, 3) * 60 + 18;
+  const rows = quests.slice(0, 3).map((quest) => {
+    const note =
+      quest.status === "complete"
+        ? getQuestTurnInLabel(quest)
+        : getQuestObjectiveLabel(quest);
+    const noteLines = toWrappedLines(ctx, note, width - 24).slice(0, 3);
+    return {
+      quest,
+      noteLines,
+      height: 34 + noteLines.length * 14,
+    };
+  });
+  const height = 28 + rows.reduce((sum, row) => sum + row.height, 0);
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.58)";
   ctx.fillRect(x, y, width, height);
@@ -450,27 +496,25 @@ function drawQuestTracker(ctx, state) {
   ctx.fillText("Active Quests", x + 12, y + 18);
 
   let cursorY = y + 38;
-  for (const quest of quests.slice(0, 3)) {
-    const objective = quest.objectives.find((entry) => entry.current < entry.required) || quest.objectives[0];
+  for (const row of rows) {
+    const quest = row.quest;
     ctx.fillStyle = "#fff1c6";
     ctx.font = "700 12px Segoe UI, Arial";
     ctx.fillText(quest.title, x + 12, cursorY);
     cursorY += 15;
-    ctx.fillStyle = "rgba(246,255,241,0.78)";
+    ctx.fillStyle = quest.status === "complete" ? "#ffe4a8" : "rgba(246,255,241,0.78)";
     ctx.font = "11px Segoe UI, Arial";
-    ctx.fillText(
-      objective
-        ? `${objective.label}: ${Math.min(objective.current, objective.required)}/${objective.required}`
-        : quest.description,
-      x + 12,
-      cursorY
-    );
-    cursorY += 24;
+    row.noteLines.forEach((line) => {
+      ctx.fillText(line, x + 12, cursorY);
+      cursorY += 14;
+    });
+    cursorY += 8;
   }
 }
 
 function drawQuestLogOverlay(ctx, state) {
-  const quests = state.activeQuests || [];
+  const panel = getQuestLogPanelData(state);
+  const { quests } = panel;
   const x = 56;
   const y = 84;
   const width = state.viewport.width - 112;
@@ -485,7 +529,9 @@ function drawQuestLogOverlay(ctx, state) {
   ctx.fillText("Quest Log", x + 18, y + 28);
   ctx.font = "12px Segoe UI, Arial";
   ctx.fillStyle = "#d3e1cf";
-  ctx.fillText("Q / Esc to close", x + width - 112, y + 28);
+  ctx.textAlign = "right";
+  ctx.fillText("Q / Esc to close", x + width - 18, y + 28);
+  ctx.textAlign = "left";
 
   if (quests.length === 0) {
     ctx.fillStyle = "#d7e4cf";
@@ -496,39 +542,62 @@ function drawQuestLogOverlay(ctx, state) {
 
   drawPanelChrome(ctx, x, y, width, height, "#7ca57b");
 
-  let cursorY = y + 66;
-  quests.forEach((quest, index) => {
-    const selected = index === state.ui.selectedQuestIndex;
+  panel.rows.forEach((row) => {
+    const selected = row.index === state.ui.selectedQuestIndex;
     ctx.fillStyle = selected ? "rgba(116, 191, 255, 0.16)" : "rgba(0, 0, 0, 0.28)";
-    ctx.fillRect(x + 14, cursorY - 18, width - 28, 72);
-    ctx.fillStyle = quest.status === "done" ? "#9de1a3" : quest.status === "complete" ? "#ffdc9c" : "#fff1c6";
+    ctx.fillRect(row.rect.x, row.rect.y, row.rect.width, row.rect.height);
+    ctx.fillStyle =
+      row.quest.status === "done"
+        ? "#9de1a3"
+        : row.quest.status === "complete"
+          ? "#ffdc9c"
+          : "#fff1c6";
     ctx.font = "700 14px Segoe UI, Arial";
-    ctx.fillText(quest.title, x + 26, cursorY);
+    ctx.fillText(row.quest.title, row.rect.x + 12, row.rect.y + 18);
     ctx.fillStyle = "#d8e6d4";
     ctx.font = "12px Segoe UI, Arial";
-    wrapText(ctx, quest.description, x + 26, cursorY + 18, width - 60, 16);
+    row.descriptionLines.forEach((line, index) => {
+      ctx.fillText(line, row.rect.x + 12, row.rect.y + 38 + index * 16);
+    });
 
-    let objectiveY = cursorY + 42;
-    for (const objective of quest.objectives) {
+    let objectiveY = row.rect.y + 38 + row.descriptionLines.length * 16 + 8;
+    if (row.turnInLines.length > 0) {
+      ctx.fillStyle = "#ffd7a3";
+      row.turnInLines.forEach((line) => {
+        ctx.fillText(line, row.rect.x + 12, objectiveY);
+        objectiveY += 14;
+      });
+      objectiveY += 2;
+    }
+
+    for (const objective of row.quest.objectives) {
       ctx.fillStyle = "rgba(255,255,255,0.8)";
       ctx.fillText(
         `${objective.label}: ${Math.min(objective.current, objective.required)}/${objective.required}`,
-        x + 26,
+        row.rect.x + 12,
         objectiveY
       );
       objectiveY += 14;
     }
-    cursorY += 92;
+
+    if (row.rewardLines.length > 0) {
+      objectiveY += 4;
+      ctx.fillStyle = "#b7dcae";
+      row.rewardLines.forEach((line) => {
+        ctx.fillText(line, row.rect.x + 12, objectiveY);
+        objectiveY += 14;
+      });
+    }
   });
 }
 
 function drawCharacterOverlay(ctx, state) {
-  const x = 68;
-  const y = 70;
-  const width = state.viewport.width - 136;
-  const height = state.viewport.height - 150;
+  const frame = getCharacterOverlayFrame(state);
+  const { x, y, width, height } = frame;
   const portrait = getAylaPortrait();
   const bonuses = getPlayerBonuses(state.progression);
+  const helpWidth = Math.min(280, Math.max(180, width * 0.32));
+  const helpX = x + width - helpWidth - 18;
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.86)";
   ctx.fillRect(x, y, width, height);
@@ -539,7 +608,15 @@ function drawCharacterOverlay(ctx, state) {
   ctx.fillText("Ayla", x + 18, y + 30);
   ctx.font = "12px Segoe UI, Arial";
   ctx.fillStyle = "#d7e4cf";
-  ctx.fillText("C / I / T / Tab switch views  |  Esc closes", x + width - 272, y + 28);
+  drawWrappedText(
+    ctx,
+    "C / I / T / Tab switch views  |  Esc closes",
+    helpX,
+    y + 18,
+    helpWidth,
+    14,
+    2
+  );
 
   drawTabs(ctx, state, x + 18, y + 48);
 
@@ -838,18 +915,20 @@ function drawServiceTab(ctx, state, x, y, width, height) {
   ctx.font = "11px Segoe UI, Arial";
   ctx.fillStyle = "#d7e4cf";
   const subtitleX = bodyX + Math.max(132, Math.ceil(ctx.measureText(service ? service.title : "Services").width) + 18);
-  ctx.fillText(service ? service.subtitle : "Visit a service NPC or village object.", subtitleX, bodyY - 18);
+  panel.subtitleLines.forEach((line, index) => {
+    ctx.fillText(line, subtitleX, bodyY - 18 + index * 14);
+  });
 
   if (!service) {
     ctx.fillStyle = "#d7e4cf";
     ctx.font = "13px Segoe UI, Arial";
-    ctx.fillText("No service is currently open.", bodyX, bodyY + 10);
+    ctx.fillText("No service is currently open.", bodyX, panel.contentTop + 10);
     return;
   }
 
   ctx.fillStyle = "#e7d081";
   ctx.font = "700 12px Segoe UI, Arial";
-  ctx.fillText(`Silver: ${getCurrency(state.progression)}`, bodyX, bodyY + 8);
+  ctx.fillText(`Silver: ${getCurrency(state.progression)}`, bodyX, panel.contentTop + 8);
 
   if (service.kind === "shop") {
     panel.subpanelButtons.forEach((button) =>
@@ -863,29 +942,27 @@ function drawServiceTab(ctx, state, x, y, width, height) {
     );
     ctx.fillStyle = "#cfd9d3";
 
-    let rowY = bodyY + 66;
-    panel.rows.forEach(({ entry, index }) => {
-      const serviceItem = entry.item || entry;
-      const selected = index === state.ui.selectedServiceIndex;
-      ctx.fillStyle = selected ? "rgba(121, 184, 255, 0.16)" : "rgba(0, 0, 0, 0.26)";
-      ctx.fillRect(bodyX, rowY - 16, width - 280, 38);
-      ctx.strokeStyle = selected ? "#79b8ff" : "#263142";
-      ctx.strokeRect(bodyX, rowY - 16, width - 280, 38);
-      ctx.fillStyle = serviceItem.color || "#d8e2ec";
-      ctx.fillRect(bodyX + 10, rowY - 8, 12, 12);
-      ctx.fillStyle = getRarityAccent(serviceItem.rarity, "#fff6d8");
-      ctx.font = "700 12px Segoe UI, Arial";
-      ctx.fillText(serviceItem.name, bodyX + 30, rowY + 1);
-      ctx.fillStyle = "#d7e4cf";
-      ctx.font = "11px Segoe UI, Arial";
-      ctx.fillText(shorten(serviceItem.description, 42), bodyX + 30, rowY + 17);
-      ctx.textAlign = "right";
-      ctx.fillStyle = entry.affordable ? "#f1d786" : "#c67d72";
-      ctx.font = "700 12px Segoe UI, Arial";
-      ctx.fillText(`${entry.price} s`, bodyX + width - 304, rowY + 1);
-      ctx.textAlign = "left";
-      rowY += 46;
-    });
+      panel.rows.forEach(({ entry, index, rect: rowRect }) => {
+        const serviceItem = entry.item || entry;
+        const selected = index === state.ui.selectedServiceIndex;
+        ctx.fillStyle = selected ? "rgba(121, 184, 255, 0.16)" : "rgba(0, 0, 0, 0.26)";
+        ctx.fillRect(rowRect.x, rowRect.y, rowRect.width, rowRect.height);
+        ctx.strokeStyle = selected ? "#79b8ff" : "#263142";
+        ctx.strokeRect(rowRect.x, rowRect.y, rowRect.width, rowRect.height);
+        ctx.fillStyle = serviceItem.color || "#d8e2ec";
+        ctx.fillRect(rowRect.x + 10, rowRect.y + 10, 12, 12);
+        ctx.fillStyle = getRarityAccent(serviceItem.rarity, "#fff6d8");
+        ctx.font = "700 12px Segoe UI, Arial";
+        ctx.fillText(serviceItem.name, rowRect.x + 30, rowRect.y + 18);
+        ctx.fillStyle = "#d7e4cf";
+        ctx.font = "11px Segoe UI, Arial";
+        drawWrappedText(ctx, serviceItem.description, rowRect.x + 30, rowRect.y + 34, rowRect.width - 130, 12, 2);
+        ctx.textAlign = "right";
+        ctx.fillStyle = entry.affordable ? "#f1d786" : "#c67d72";
+        ctx.font = "700 12px Segoe UI, Arial";
+        ctx.fillText(`${entry.price} s`, rowRect.x + rowRect.width - 12, rowRect.y + 18);
+        ctx.textAlign = "left";
+      });
 
     if (panel.selected) {
       const selectedItem = panel.selected.item || panel.selected;
@@ -936,21 +1013,19 @@ function drawServiceTab(ctx, state, x, y, width, height) {
   }
 
   if (service.kind === "altar") {
-    panel.rows.forEach(({ entry, index, rect: rowRect }) => {
+    panel.rows.forEach(({ entry, index, rect: rowRect, descriptionLines }) => {
       const selected = index === state.ui.selectedServiceIndex;
-      ctx.font = "11px Segoe UI, Arial";
-      const descriptionLines = toWrappedLines(ctx, entry.description, rowRect.width - 24).slice(0, 2);
       ctx.fillStyle = selected ? "rgba(121, 184, 255, 0.16)" : "rgba(0, 0, 0, 0.26)";
       ctx.fillRect(rowRect.x, rowRect.y, rowRect.width, rowRect.height);
       ctx.strokeStyle = selected ? "#79b8ff" : "#263142";
       ctx.strokeRect(rowRect.x, rowRect.y, rowRect.width, rowRect.height);
       ctx.fillStyle = "#fff6d8";
       ctx.font = "700 12px Segoe UI, Arial";
-      ctx.fillText(entry.title, rowRect.x + 12, rowRect.y + 16);
+      ctx.fillText(entry.title, rowRect.x + 12, rowRect.y + 18);
       ctx.fillStyle = "#d7e4cf";
       ctx.font = "11px Segoe UI, Arial";
       descriptionLines.forEach((line, lineIndex) => {
-        ctx.fillText(line, rowRect.x + 12, rowRect.y + 32 + lineIndex * 13);
+        ctx.fillText(line, rowRect.x + 12, rowRect.y + 36 + lineIndex * 13);
       });
       ctx.fillStyle = entry.affordable ? "#f1d786" : "#c67d72";
       ctx.fillText(formatActionCost(entry), rowRect.x + 12, rowRect.y + rowRect.height - 8);
@@ -1037,12 +1112,17 @@ function drawBanner(ctx, state) {
 }
 
 function drawInteractionPrompt(ctx, state) {
-  if (!state.story.focus || state.story.dialogue || state.gameOver || state.ui.menuOpen || state.ui.questLogOpen) return;
+  if (!state.story.focus || state.story.dialogue || state.gameOver || state.ui.menuOpen || state.ui.questLogOpen || state.ui.worldMapOpen) return;
 
-  const panelW = 260;
-  const panelH = 42;
+  ctx.font = "700 14px Segoe UI, Arial";
+  const promptLines = toWrappedLines(ctx, `E  ${state.story.prompt}`, Math.min(320, state.viewport.width - 72));
+  const panelW = Math.min(
+    state.viewport.width - 56,
+    Math.max(260, Math.ceil(Math.max(...promptLines.map((line) => ctx.measureText(line).width), 220)) + 32)
+  );
+  const panelH = 24 + promptLines.length * 16;
   const x = state.viewport.width / 2 - panelW / 2;
-  const y = state.viewport.height - 176;
+  const y = state.viewport.height - panelH - 128;
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.68)";
   ctx.fillRect(x, y, panelW, panelH);
@@ -1050,17 +1130,35 @@ function drawInteractionPrompt(ctx, state) {
   ctx.fillRect(x + 4, y + 4, panelW - 8, panelH - 8);
   ctx.font = "700 14px Segoe UI, Arial";
   ctx.fillStyle = "#fff6d0";
-  ctx.fillText(`E  ${state.story.prompt}`, x + 16, y + 24);
+  drawWrappedText(ctx, `E  ${state.story.prompt}`, x + 16, y + 22, panelW - 32, 16, 3);
 }
 
 function drawExitPrompt(ctx, state) {
-  if (!state.nearExit || state.gameOver || state.story.dialogue || state.ui.menuOpen || state.ui.questLogOpen) return;
+  if (!state.nearExit || state.gameOver || state.story.dialogue || state.ui.menuOpen || state.ui.questLogOpen || state.ui.worldMapOpen) return;
 
-  const panelW = 332;
   const locked = Boolean(state.nearExit.requiresFlag && !state.progression.worldFlags?.[state.nearExit.requiresFlag]);
-  const panelH = locked ? 76 : 60;
+  const leavingCombat =
+    state.combatTimer > 0 ||
+    state.enemies.length > 0 ||
+    (state.boss && !state.boss.dead) ||
+    state.hostileProjectiles.length > 0;
+  const title = locked ? state.nearExit.label : `Travel to ${state.nearExit.label}`;
+  const bodyText = locked
+    ? state.nearExit.lockedText || "The path is sealed."
+    : leavingCombat
+      ? "Hold E to leave this zone. Current local threats will reset."
+      : "Hold E to travel to the next zone.";
+  ctx.font = "700 15px Segoe UI, Arial";
+  const titleWidth = ctx.measureText(title).width;
+  ctx.font = "12px Segoe UI, Arial";
+  const detailLines = toWrappedLines(ctx, bodyText, Math.min(360, state.viewport.width - 96));
+  const panelW = Math.min(
+    state.viewport.width - 48,
+    Math.max(332, Math.ceil(Math.max(titleWidth, ...detailLines.map((line) => ctx.measureText(line).width))) + 40)
+  );
+  const panelH = 34 + detailLines.length * 14 + (locked ? 8 : 22);
   const x = state.viewport.width / 2 - panelW / 2;
-  const y = Math.max(100, state.viewport.height - 166);
+  const y = Math.max(100, state.viewport.height - panelH - 108);
   const progress = Math.max(0, Math.min(1, state.exitCharge));
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.68)";
@@ -1069,35 +1167,202 @@ function drawExitPrompt(ctx, state) {
   ctx.fillRect(x + 4, y + 4, panelW - 8, panelH - 8);
   ctx.font = "700 15px Segoe UI, Arial";
   ctx.fillStyle = locked ? "#ffc1b8" : "#fff6d0";
-  ctx.fillText(locked ? state.nearExit.label : `Travel to ${state.nearExit.label}`, x + 16, y + 22);
+  ctx.fillText(title, x + 16, y + 22);
   ctx.font = "12px Segoe UI, Arial";
   ctx.fillStyle = locked ? "#f0c1bc" : "#d8e8cc";
-  if (locked) {
-    wrapText(ctx, state.nearExit.lockedText || "The path is sealed.", x + 16, y + 40, panelW - 32, 14);
-  } else {
-    ctx.fillText("Stand on the path for a moment", x + 16, y + 40);
-  }
+  drawWrappedText(ctx, bodyText, x + 16, y + 40, panelW - 32, 14, 4);
   if (!locked) {
     ctx.fillStyle = "#1b1412";
-    ctx.fillRect(x + 16, y + 46, panelW - 32, 8);
+    ctx.fillRect(x + 16, y + panelH - 16, panelW - 32, 8);
     ctx.fillStyle = "#fff0ad";
-    ctx.fillRect(x + 18, y + 48, Math.round((panelW - 36) * progress), 4);
+    ctx.fillRect(x + 18, y + panelH - 14, Math.round((panelW - 36) * progress), 4);
   }
+}
+
+function drawWorldMapOverlay(ctx, state) {
+  const viewport = state.viewport;
+  const panelW = Math.min(820, viewport.width - 56);
+  const panelH = Math.min(620, viewport.height - 56);
+  const x = Math.round(viewport.width / 2 - panelW / 2);
+  const y = Math.round(viewport.height / 2 - panelH / 2);
+  const contentX = x + 28;
+  const contentY = y + 88;
+  const graphW = panelW - 56;
+  const graphH = panelH - 144;
+
+  ctx.fillStyle = "rgba(4, 8, 11, 0.84)";
+  ctx.fillRect(0, 0, viewport.width, viewport.height);
+
+  ctx.fillStyle = "rgba(7, 11, 15, 0.95)";
+  ctx.fillRect(x, y, panelW, panelH);
+  ctx.fillStyle = "#111820";
+  ctx.fillRect(x + 4, y + 4, panelW - 8, panelH - 8);
+  ctx.strokeStyle = "#d7c28b";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x + 2, y + 2, panelW - 4, panelH - 4);
+  ctx.strokeStyle = "#31403a";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 12, y + 12, panelW - 24, panelH - 24);
+
+  ctx.fillStyle = "#f4ead3";
+  ctx.font = "700 30px Georgia, serif";
+  ctx.fillText("Travel Map", contentX, y + 40);
+
+  ctx.fillStyle = "#c8d4bd";
+  ctx.font = "14px Segoe UI, Arial";
+  drawWrappedText(
+    ctx,
+    "Trace the roads between restored groves, ruins, dungeons, and boss sites.",
+    contentX,
+    y + 62,
+    panelW - 180,
+    16,
+    2
+  );
+
+  ctx.fillStyle = "#9db09a";
+  ctx.font = "12px Segoe UI, Arial";
+  ctx.textAlign = "right";
+  ctx.fillText("M / Esc close", x + panelW - 26, y + 38);
+  ctx.textAlign = "left";
+
+  ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
+  ctx.fillRect(contentX, contentY, graphW, graphH);
+  ctx.fillStyle = "#0f151c";
+  ctx.fillRect(contentX + 2, contentY + 2, graphW - 4, graphH - 4);
+  ctx.strokeStyle = "#384855";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(contentX + 2, contentY + 2, graphW - 4, graphH - 4);
+
+  const nodePositions = {};
+  for (const [sceneId, point] of Object.entries(WORLD_MAP_LAYOUT)) {
+    nodePositions[sceneId] = {
+      x: contentX + 36 + point.x * Math.max(40, graphW - 72),
+      y: contentY + 34 + point.y * Math.max(40, graphH - 68),
+    };
+  }
+
+  const drawnEdges = new Set();
+  ctx.lineWidth = 3;
+  for (const [sceneId, scene] of Object.entries(SCENES)) {
+    const from = nodePositions[sceneId];
+    if (!from) continue;
+
+    for (const connection of Object.values(scene.connections || {})) {
+      const targetId = connection.toSceneId;
+      const to = nodePositions[targetId];
+      if (!to) continue;
+
+      const edgeKey = [sceneId, targetId].sort().join(":");
+      if (drawnEdges.has(edgeKey)) continue;
+      drawnEdges.add(edgeKey);
+
+      const edgeTouched =
+        sceneId === state.currentSceneId ||
+        targetId === state.currentSceneId ||
+        state.sceneProgress[sceneId]?.cleared ||
+        state.sceneProgress[targetId]?.cleared;
+      ctx.strokeStyle = edgeTouched ? "rgba(132, 202, 166, 0.58)" : "rgba(86, 102, 118, 0.42)";
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.stroke();
+    }
+  }
+
+  for (const [sceneId, scene] of Object.entries(SCENES)) {
+    const point = nodePositions[sceneId];
+    if (!point) continue;
+
+    const current = sceneId === state.currentSceneId;
+    const cleared = Boolean(state.sceneProgress[sceneId]?.cleared);
+    const color = getBiomeMapColor(scene.biomeId);
+    const radius = current ? 14 : 10;
+
+    ctx.fillStyle = current ? "#f4ead3" : "rgba(10, 14, 18, 0.92)";
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, radius + 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = current ? "#fff7d8" : cleared ? "#b8e4b0" : "#243240";
+    ctx.lineWidth = current ? 3 : 2;
+    ctx.stroke();
+
+    if (cleared) {
+      ctx.fillStyle = "#f9efb1";
+      ctx.fillRect(point.x + radius - 1, point.y - radius - 2, 8, 8);
+    }
+
+    ctx.fillStyle = current ? "#fff7d8" : "#e4e8de";
+    ctx.font = current ? "700 13px Segoe UI, Arial" : "600 12px Segoe UI, Arial";
+    ctx.textAlign = "center";
+    const titleLines = toWrappedLines(ctx, scene.title, 110);
+    titleLines.slice(0, 2).forEach((line, index) => {
+      ctx.fillText(line, point.x, point.y + radius + 18 + index * 14);
+    });
+    ctx.fillStyle = current ? "#cfe7c5" : "#8ea1ac";
+    ctx.font = "11px Segoe UI, Arial";
+    ctx.fillText(scene.regionName, point.x, point.y + radius + 48);
+    ctx.textAlign = "left";
+  }
+
+  const footer = state.scene?.title
+    ? `Current zone: ${state.scene.title}. Hold E on a gate to confirm travel.`
+    : "Hold E on a gate to confirm travel.";
+  ctx.fillStyle = "#c8d4bd";
+  ctx.font = "12px Segoe UI, Arial";
+  drawWrappedText(ctx, footer, contentX, y + panelH - 28, panelW - 56, 15, 2);
 }
 
 function drawToast(ctx, state) {
   if (!state.story.toastText || state.story.toastTimer <= 0) return;
 
+  ctx.font = "700 13px Segoe UI, Arial";
+  const lines = toWrappedLines(ctx, state.story.toastText, Math.min(360, state.viewport.width - 96));
+  const boxW = Math.min(
+    state.viewport.width - 48,
+    Math.max(220, Math.ceil(Math.max(...lines.map((line) => ctx.measureText(line).width))) + 44)
+  );
+  const boxH = 20 + lines.length * 16;
+  const boxX = state.viewport.width / 2 - boxW / 2;
+  const boxY = 146;
+
   ctx.save();
   ctx.globalAlpha = Math.min(1, state.story.toastTimer / 0.35);
   ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-  ctx.fillRect(state.viewport.width / 2 - 188, 146, 376, 34);
+  ctx.fillRect(boxX, boxY, boxW, boxH);
   ctx.fillStyle = "#fff1c6";
   ctx.font = "700 13px Segoe UI, Arial";
   ctx.textAlign = "center";
-  ctx.fillText(state.story.toastText, state.viewport.width / 2, 168);
+  lines.forEach((line, index) => {
+    ctx.fillText(line, state.viewport.width / 2, boxY + 18 + index * 16);
+  });
   ctx.restore();
   ctx.textAlign = "left";
+}
+
+function getBiomeMapColor(biomeId) {
+  switch (biomeId) {
+    case "marsh":
+      return "#71c8b8";
+    case "highlands":
+      return "#afd88b";
+    case "ember":
+      return "#d97a54";
+    case "frost":
+      return "#8fc9ef";
+    case "blight":
+      return "#b27ae3";
+    case "ancient":
+      return "#d9bb73";
+    default:
+      return "#84c788";
+  }
 }
 
 function drawDialogue(ctx, state) {
@@ -1105,9 +1370,12 @@ function drawDialogue(ctx, state) {
   if (!dialogue) return;
 
   const x = 56;
-  const y = state.viewport.height - 198;
   const width = state.viewport.width - 112;
-  const height = 122;
+  ctx.font = "14px Segoe UI, Arial";
+  const wrappedLines = toWrappedLines(ctx, dialogue.lines[dialogue.index], width - 36);
+  const bodyHeight = Math.max(36, wrappedLines.length * 20);
+  const height = 84 + bodyHeight;
+  const y = state.viewport.height - height - 40;
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.86)";
   ctx.fillRect(x, y, width, height);
@@ -1118,10 +1386,12 @@ function drawDialogue(ctx, state) {
   ctx.fillText(dialogue.speakerName, x + 18, y + 24);
   ctx.fillStyle = "#eff7e8";
   ctx.font = "14px Segoe UI, Arial";
-  wrapText(ctx, dialogue.lines[dialogue.index], x + 18, y + 48, width - 36, 20);
+  drawWrappedText(ctx, dialogue.lines[dialogue.index], x + 18, y + 48, width - 36, 20, 6);
   ctx.fillStyle = "rgba(255, 246, 208, 0.72)";
   ctx.font = "12px Segoe UI, Arial";
-  ctx.fillText("E / Enter / Space", x + width - 134, y + height - 16);
+  ctx.textAlign = "right";
+  ctx.fillText("E / Enter / Space", x + width - 18, y + height - 16);
+  ctx.textAlign = "left";
 }
 
 function drawTransitionOverlay(ctx, state) {
@@ -1166,15 +1436,22 @@ function drawEndState(ctx, state) {
   ctx.textAlign = "left";
 }
 
-function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
-  const lines = toWrappedLines(ctx, text, maxWidth);
+function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight, maxLines = Infinity) {
+  const lines = toWrappedLines(ctx, text, maxWidth).slice(0, maxLines);
   lines.forEach((line, index) => {
     ctx.fillText(line, x, y + index * lineHeight);
   });
+  return lines;
+}
+
+function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+  drawWrappedText(ctx, text, x, y, maxWidth, lineHeight);
 }
 
 function toWrappedLines(ctx, text, maxWidth) {
-  const words = text.split(" ");
+  const source = String(text || "").trim();
+  if (!source) return [""];
+  const words = source.split(/\s+/);
   let line = "";
   const lines = [];
 
@@ -1190,6 +1467,14 @@ function toWrappedLines(ctx, text, maxWidth) {
 
   if (line) lines.push(line);
   return lines;
+}
+
+function getMeasureContext(font, fallbackCtx = null) {
+  const ctx = TEXT_MEASURE_CTX || fallbackCtx;
+  if (ctx && font) {
+    ctx.font = font;
+  }
+  return ctx;
 }
 
 function buildComparisonLines(current, equipped) {
@@ -1302,11 +1587,14 @@ function makeOptionButtons(x, y, options, currentValue, action, accent = "#79b8f
 }
 
 function getCharacterOverlayFrame(state) {
+  const marginX = Math.max(28, Math.min(68, Math.floor(state.viewport.width * 0.05)));
+  const marginTop = Math.max(24, Math.min(70, Math.floor(state.viewport.height * 0.06)));
+  const marginBottom = Math.max(44, Math.min(150, Math.floor(state.viewport.height * 0.12)));
   return {
-    x: 68,
-    y: 70,
-    width: state.viewport.width - 136,
-    height: state.viewport.height - 150,
+    x: marginX,
+    y: marginTop,
+    width: state.viewport.width - marginX * 2,
+    height: state.viewport.height - marginTop - marginBottom,
   };
 }
 
@@ -1476,9 +1764,15 @@ function getServicePanelData(state, frame) {
   const service = getActiveService(state);
   const bodyX = frame.x + 220;
   const bodyY = frame.y + 122;
+  const subtitle = service ? service.subtitle : "Visit a service NPC or village object.";
+  const subtitleMeasure = getMeasureContext("11px Segoe UI, Arial");
+  const subtitleLines = subtitleMeasure
+    ? toWrappedLines(subtitleMeasure, subtitle, Math.max(180, frame.width - 460))
+    : [subtitle];
+  const contentTop = bodyY + Math.max(0, subtitleLines.length - 1) * 14;
 
   if (!service) {
-    return { service, bodyX, bodyY };
+    return { service, bodyX, bodyY, subtitleLines, contentTop };
   }
 
   if (service.kind === "shop") {
@@ -1486,11 +1780,11 @@ function getServicePanelData(state, frame) {
     const rows = entries.map((entry, index) => ({
       entry,
       index,
-      rect: rect(bodyX, bodyY + 50 + index * 46, frame.width - 280, 38),
+      rect: rect(bodyX, contentTop + 50 + index * 46, frame.width - 280, 38),
     }));
     const selected = entries[state.ui.selectedServiceIndex] || null;
     const detailsX = frame.x + frame.width - 292;
-    const detailsY = frame.y + 158;
+    const detailsY = contentTop + 86;
     const buyButton = selected
       ? makeButton(
           detailsX + 12,
@@ -1512,6 +1806,8 @@ function getServicePanelData(state, frame) {
       service,
       bodyX,
       bodyY,
+      subtitleLines,
+      contentTop,
       rows,
       selected,
       subpanelButtons: [
@@ -1527,11 +1823,24 @@ function getServicePanelData(state, frame) {
 
   if (service.kind === "altar") {
     const entries = getServiceEntries(state);
-    const rows = entries.map((entry, index) => ({
-      entry,
-      index,
-      rect: rect(bodyX, bodyY + 44 + index * 72, frame.width - 280, 64),
-    }));
+    const rowWidth = frame.width - 280;
+    const rows = [];
+    let rowY = contentTop + 44;
+    const measureCtx = getMeasureContext("11px Segoe UI, Arial");
+
+    entries.forEach((entry, index) => {
+      const descriptionLines = measureCtx
+        ? toWrappedLines(measureCtx, entry.description, rowWidth - 24).slice(0, 3)
+        : [entry.description];
+      const rowHeight = Math.max(68, 40 + descriptionLines.length * 13);
+      rows.push({
+        entry,
+        index,
+        descriptionLines,
+        rect: rect(bodyX, rowY, rowWidth, rowHeight),
+      });
+      rowY += rowHeight + 12;
+    });
     const selected = entries[state.ui.selectedServiceIndex] || null;
     const actionButton = selected
       ? makeButton(bodyX, frame.y + frame.height - 86, frame.width - 280, 30, selected.affordable ? "Invoke Rite" : "Requirements Not Met", "service-activate", selected.affordable ? "#b1e29f" : "#8a6e6a", {
@@ -1543,6 +1852,8 @@ function getServicePanelData(state, frame) {
       service,
       bodyX,
       bodyY,
+      subtitleLines,
+      contentTop,
       rows,
       selected,
       actionButton,
@@ -1565,6 +1876,8 @@ function getServicePanelData(state, frame) {
     service,
     bodyX,
     bodyY,
+    subtitleLines,
+    contentTop,
     panelW,
     lists,
     packRows,
@@ -1577,14 +1890,89 @@ function getQuestLogPanelData(state) {
   const x = 56;
   const y = 84;
   const width = state.viewport.width - 112;
+  const measureCtx = getMeasureContext("12px Segoe UI, Arial");
+  const maxWidth = width - 60;
+  let rowY = y + 46;
+
   return {
     quests,
-    rows: quests.map((quest, index) => ({
-      quest,
-      index,
-      rect: rect(x + 18, y + 46 + index * 92, width - 36, 78),
-    })),
+    rows: quests.map((quest, index) => {
+      const descriptionLines = measureCtx
+        ? toWrappedLines(measureCtx, quest.description, maxWidth)
+        : [quest.description];
+      const turnInLines =
+        quest.status === "complete" && measureCtx
+          ? toWrappedLines(measureCtx, getQuestTurnInLabel(quest), maxWidth, 2)
+          : [];
+      const rewardLines = measureCtx
+        ? toWrappedLines(measureCtx, getQuestRewardSummary(quest.rewards), maxWidth, 3)
+        : [];
+      const rowHeight = Math.max(
+        92,
+        38 +
+          descriptionLines.length * 16 +
+          turnInLines.length * 14 +
+          quest.objectives.length * 14 +
+          rewardLines.length * 14 +
+          20
+      );
+      const row = {
+        quest,
+        index,
+        descriptionLines,
+        turnInLines,
+        rewardLines,
+        rect: rect(x + 18, rowY, width - 36, rowHeight),
+      };
+      rowY += rowHeight + 14;
+      return row;
+    }),
   };
+}
+
+function getQuestObjectiveLabel(quest) {
+  const objective = quest.objectives.find((entry) => entry.current < entry.required) || quest.objectives[0];
+  if (!objective) {
+    return quest.description;
+  }
+  return `${objective.label}: ${Math.min(objective.current, objective.required)}/${objective.required}`;
+}
+
+function getQuestTurnInLabel(quest) {
+  if (!quest.giverId) {
+    return "Return to the grove and report the work complete.";
+  }
+
+  const giver = NPC_DEFS[quest.giverId];
+  const scene = SCENES[quest.sceneId];
+  const locationLabel = scene?.regionName || scene?.title || "the village";
+  return `Return to ${giver?.name || "your quest giver"} in ${locationLabel}.`;
+}
+
+function getQuestRewardSummary(rewards) {
+  if (!rewards) return "Rewards: none";
+
+  const parts = [];
+  if (rewards.silver) {
+    parts.push(`${rewards.silver} silver`);
+  }
+  if (rewards.xp) {
+    parts.push(`${rewards.xp} XP`);
+  }
+  if (rewards.talentPoints) {
+    parts.push(`${rewards.talentPoints} Talent Point${rewards.talentPoints > 1 ? "s" : ""}`);
+  }
+
+  const items = rewards.items || null;
+  if (items) {
+    for (const [itemId, amount] of Object.entries(items)) {
+      const item = ITEM_DEFS[itemId];
+      if (!item) continue;
+      parts.push(`${amount}x ${item.name}`);
+    }
+  }
+
+  return parts.length > 0 ? `Rewards: ${parts.join("  |  ")}` : "Rewards: none";
 }
 
 function buildItemTooltip(entry, lines = [], progression = null) {

@@ -16,6 +16,7 @@ import { getUiHoverTarget } from "./ui/hud.js";
 import {
   applyAudioSettings,
   createAudioState,
+  ensureAudioStarted,
   queueAudio,
   updateAudio,
 } from "./systems/audio.js";
@@ -76,7 +77,8 @@ import {
 import { createArena } from "./world/arena.js";
 
 const TRANSITION_DURATION = 0.34;
-const EXIT_HOLD_TIME = 0.22;
+const EXIT_HOLD_TIME = 0.38;
+const EXIT_COMBAT_HOLD_TIME = 0.9;
 const INVENTORY_FILTER_ORDER = ["all", "equipment", "consumable", "material", "usable"];
 const INVENTORY_SORT_ORDER = ["name", "rarity", "value", "slot"];
 const SHOP_FILTER_ORDER = ["all", "equipment", "consumable", "rare", "epic"];
@@ -89,13 +91,18 @@ const saveRecord = loadSave();
 const snapshot = saveRecord?.runtimeSnapshot || null;
 const settings = loadSettings();
 const progression = createProgression(snapshot?.progression);
+const debugBoot = readDebugBootConfig();
 let state = createState(progression, snapshot, {
-  mode: GAME_MODES.START_MENU,
+  mode: debugBoot.mode || GAME_MODES.START_MENU,
   settings,
 });
+applyDebugBootState(state, debugBoot);
 syncFrontendSaveState(state.frontend, saveRecord);
 applyAudioSettings(state.audio, state.settings);
 let fatalError = null;
+const unlockAudioFromGesture = () => ensureAudioStarted(state.audio);
+window.addEventListener("pointerdown", unlockAudioFromGesture);
+window.addEventListener("keydown", unlockAudioFromGesture);
 
 function createState(currentProgression, saveData = null, runtime = {}) {
   const currentSceneId =
@@ -146,6 +153,7 @@ function createUiState(saved = null) {
   return {
     questLogOpen: saved?.questLogOpen || false,
     menuOpen: saved?.menuOpen || false,
+    worldMapOpen: saved?.worldMapOpen || false,
     activeTab: saved?.activeTab || "character",
     selectedInventoryIndex: saved?.selectedInventoryIndex || 0,
     selectedEquipmentIndex: saved?.selectedEquipmentIndex || 0,
@@ -176,13 +184,60 @@ function createTransitionState() {
   };
 }
 
-function createRuntimeState(mode = GAME_MODES.PLAYING) {
+function readDebugBootConfig() {
+  if (typeof window === "undefined") {
+    return { mode: null, forceGameOver: false };
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const modeKey = params.get("debugMenu");
+  const map = {
+    title: GAME_MODES.START_MENU,
+    options: GAME_MODES.OPTIONS,
+    pause: GAME_MODES.PAUSED,
+    paused: GAME_MODES.PAUSED,
+    gameover: GAME_MODES.GAME_OVER,
+  };
+
   return {
-    viewport: state?.viewport ? { ...state.viewport } : { width: window.innerWidth, height: window.innerHeight, dpr: 1 },
+    mode: map[modeKey?.toLowerCase?.()] || null,
+    forceGameOver: modeKey?.toLowerCase?.() === "gameover",
+  };
+}
+
+function applyDebugBootState(nextState, debugConfig) {
+  if (!debugConfig?.mode) return;
+
+  if (debugConfig.mode === GAME_MODES.OPTIONS) {
+    nextState.frontend.optionsReturnMode = GAME_MODES.START_MENU;
+  }
+
+  if (debugConfig.forceGameOver) {
+    nextState.gameOver = true;
+    nextState.mode = GAME_MODES.GAME_OVER;
+    nextState.player.hp = 0;
+  }
+}
+
+function createRuntimeState(mode = GAME_MODES.PLAYING) {
+  const frontend = state?.frontend
+    ? {
+        ...state.frontend,
+        optionsReturnMode: GAME_MODES.START_MENU,
+        statusText: "",
+        statusUntil: 0,
+        resetSaveArmed: false,
+      }
+    : createFrontendState();
+
+  return {
+    viewport: state?.viewport
+      ? { ...state.viewport }
+      : { width: window.innerWidth, height: window.innerHeight, dpr: 1 },
     audio: state?.audio || createAudioState(),
     settings: state?.settings || settings,
     mode,
-    frontend: state?.frontend || createFrontendState(),
+    frontend,
   };
 }
 
@@ -215,11 +270,65 @@ function startNewGame() {
   const freshProgression = createProgression();
   const freshState = createState(freshProgression, null, createRuntimeState(GAME_MODES.PLAYING));
   replaceGameState(freshState, null);
-  saveCurrentGame("new-game");
+  saveCurrentGame();
 }
 
 function syncContinueAvailability() {
   syncFrontendSaveState(state.frontend, loadSave());
+}
+
+function setFrontendStatus(text, duration = 2) {
+  state.frontend.statusText = text;
+  state.frontend.statusUntil = state.time + duration;
+}
+
+function clearResetSaveArm() {
+  state.frontend.resetSaveArmed = false;
+}
+
+function openOptionsScreen(returnMode = GAME_MODES.START_MENU) {
+  state.frontend.optionsReturnMode = returnMode;
+  clearResetSaveArm();
+  state.mode = GAME_MODES.OPTIONS;
+}
+
+function resumeGame() {
+  clearResetSaveArm();
+  state.mode = GAME_MODES.PLAYING;
+}
+
+function pauseGame() {
+  if (state.gameOver || state.transition.active || state.story.dialogue) {
+    return false;
+  }
+
+  closePanels();
+  saveCurrentGame();
+  state.mode = GAME_MODES.PAUSED;
+  return true;
+}
+
+function returnToTitle(options = {}) {
+  closePanels();
+  clearResetSaveArm();
+  state.transition = createTransitionState();
+  state.story.dialogue = null;
+  state.story.focus = null;
+  state.story.prompt = "";
+  state.nearExit = null;
+  state.exitCharge = 0;
+  state.gameOver = false;
+  state.areaCleared = false;
+  state.frontend.optionsReturnMode = GAME_MODES.START_MENU;
+  state.frontend.statusText = "";
+  state.frontend.statusUntil = 0;
+  syncContinueAvailability();
+  state.mode = GAME_MODES.START_MENU;
+  if (options.selectContinue && state.frontend.canContinue) {
+    state.frontend.menuSelection = 1;
+  } else {
+    state.frontend.menuSelection = 0;
+  }
 }
 
 function buildRuntimeSnapshot() {
@@ -232,6 +341,7 @@ function buildRuntimeSnapshot() {
     ui: {
       questLogOpen: false,
       menuOpen: false,
+      worldMapOpen: false,
       activeTab: state.ui.activeTab,
       selectedInventoryIndex: state.ui.selectedInventoryIndex,
       selectedEquipmentIndex: state.ui.selectedEquipmentIndex,
@@ -321,7 +431,13 @@ function buildSaveData() {
 }
 
 function saveCurrentGame() {
-  if (state.mode !== GAME_MODES.PLAYING || fatalError) {
+  if (
+    fatalError ||
+    state.gameOver ||
+    !state.player ||
+    state.mode === GAME_MODES.START_MENU ||
+    state.mode === GAME_MODES.OPTIONS
+  ) {
     return false;
   }
 
@@ -629,7 +745,17 @@ function updateExitCharge(dt) {
     return;
   }
 
-  state.exitCharge = Math.min(1, state.exitCharge + dt / EXIT_HOLD_TIME);
+  const holdingConfirm =
+    input.keys.has("e") ||
+    input.codes.has("KeyE");
+
+  if (!holdingConfirm) {
+    state.exitCharge = 0;
+    return;
+  }
+
+  const holdTime = state.combatTimer > 0 ? EXIT_COMBAT_HOLD_TIME : EXIT_HOLD_TIME;
+  state.exitCharge = Math.min(1, state.exitCharge + dt / holdTime);
   if (state.exitCharge >= 1) {
     startTransition(exit);
     state.exitCharge = 0;
@@ -677,19 +803,33 @@ function handleInteractionInput() {
 }
 
 function setFrontendSelectionByAction(action) {
+  const entries = getFrontendEntries(state);
+  const index = entries.findIndex((entry) => entry.action === action);
+  if (index < 0) return;
+  if (action !== "reset-save") {
+    clearResetSaveArm();
+  }
+
   if (state.mode === GAME_MODES.START_MENU) {
-    const entries = getFrontendEntries(state);
-    const index = entries.findIndex((entry) => entry.action === action);
-    if (index >= 0) state.frontend.menuSelection = index;
+    state.frontend.menuSelection = index;
     return;
   }
 
-  const entries = getFrontendEntries(state);
-  const index = entries.findIndex((entry) => entry.action === action);
-  if (index >= 0) state.frontend.optionsSelection = index;
+  if (state.mode === GAME_MODES.PAUSED) {
+    state.frontend.pauseSelection = index;
+    return;
+  }
+
+  if (state.mode === GAME_MODES.GAME_OVER) {
+    state.frontend.gameOverSelection = index;
+    return;
+  }
+
+  state.frontend.optionsSelection = index;
 }
 
 function applySliderClick(action, target) {
+  clearResetSaveArm();
   const sliderX = target.bounds.x + 18;
   const sliderWidth = target.bounds.w - 150;
   const ratio = clamp((input.mouse.x - sliderX) / sliderWidth, 0, 1);
@@ -710,30 +850,73 @@ function applySliderClick(action, target) {
 function activateFrontendAction(action) {
   switch (action) {
     case "new-game":
+      clearResetSaveArm();
       if (state.settings.fullscreen) setFullscreenPreference(true);
       startNewGame();
       return true;
     case "continue": {
+      clearResetSaveArm();
       const saveData = loadSave();
       if (!saveData) {
         syncContinueAvailability();
+        setFrontendStatus("No valid save could be loaded.", 2.2);
         return true;
       }
       if (state.settings.fullscreen) setFullscreenPreference(true);
       return loadStateFromSave(saveData);
     }
     case "options":
-      state.mode = GAME_MODES.OPTIONS;
+      openOptionsScreen(state.mode === GAME_MODES.PAUSED ? GAME_MODES.PAUSED : GAME_MODES.START_MENU);
+      return true;
+    case "resume":
+      resumeGame();
+      return true;
+    case "save-game":
+      if (saveCurrentGame()) {
+        setFrontendStatus("Adventure saved locally.", 2.2);
+      } else {
+        setFrontendStatus("Save could not be written right now.", 2.2);
+      }
+      return true;
+    case "save-return-title":
+      saveCurrentGame();
+      returnToTitle({ selectContinue: true });
+      return true;
+    case "retry":
+      clearResetSaveArm();
+      reloadCurrentScene();
+      return true;
+    case "load-save": {
+      clearResetSaveArm();
+      const saveData = loadSave();
+      if (!saveData) {
+        syncContinueAvailability();
+        setFrontendStatus("No valid save could be loaded.", 2.2);
+        return true;
+      }
+      return loadStateFromSave(saveData);
+    }
+    case "return-title":
+      returnToTitle({ selectContinue: state.frontend.canContinue });
       return true;
     case "fullscreen":
+      clearResetSaveArm();
       setFullscreenPreference(!state.settings.fullscreen);
       return true;
     case "reset-save":
+      if (!state.frontend.resetSaveArmed) {
+        state.frontend.resetSaveArmed = true;
+        setFrontendStatus("Press Reset Save Data again to confirm.", 3);
+        return true;
+      }
       deleteSave();
+      clearResetSaveArm();
       syncContinueAvailability();
+      setFrontendStatus("Adventure save deleted. Settings were preserved.", 2.6);
       return true;
     case "back":
-      state.mode = GAME_MODES.START_MENU;
+      clearResetSaveArm();
+      state.mode = state.frontend.optionsReturnMode || GAME_MODES.START_MENU;
       return true;
     default:
       return false;
@@ -774,27 +957,53 @@ function handleFrontendInput() {
 
   if (wasPressed(input, "arrowup", "ArrowUp") || wasPressed(input, "w", "KeyW")) {
     moveFrontendSelection(state, -1);
+    queueAudio(state, "ui");
+    if (state.mode === GAME_MODES.OPTIONS && getSelectedFrontendAction(state) !== "reset-save") {
+      clearResetSaveArm();
+    }
     return true;
   }
 
   if (wasPressed(input, "arrowdown", "ArrowDown") || wasPressed(input, "s", "KeyS")) {
     moveFrontendSelection(state, 1);
+    queueAudio(state, "ui");
+    if (state.mode === GAME_MODES.OPTIONS && getSelectedFrontendAction(state) !== "reset-save") {
+      clearResetSaveArm();
+    }
     return true;
   }
 
   if (state.mode === GAME_MODES.OPTIONS) {
     if (wasPressed(input, "arrowleft", "ArrowLeft") || wasPressed(input, "a", "KeyA")) {
+      queueAudio(state, "ui");
       return adjustFrontendOption(-1);
     }
 
     if (wasPressed(input, "arrowright", "ArrowRight") || wasPressed(input, "d", "KeyD")) {
+      queueAudio(state, "ui");
       return adjustFrontendOption(1);
     }
 
     if (wasPressed(input, "escape", "Escape")) {
-      state.mode = GAME_MODES.START_MENU;
+      clearResetSaveArm();
+      state.mode = state.frontend.optionsReturnMode || GAME_MODES.START_MENU;
       return true;
     }
+  }
+
+  if (state.mode === GAME_MODES.PAUSED && wasPressed(input, "escape", "Escape")) {
+    resumeGame();
+    return true;
+  }
+
+  if (state.mode === GAME_MODES.GAME_OVER && wasPressed(input, "escape", "Escape")) {
+    returnToTitle({ selectContinue: state.frontend.canContinue });
+    return true;
+  }
+
+  if (state.mode === GAME_MODES.GAME_OVER && wasPressed(input, "r", "KeyR")) {
+    reloadCurrentScene();
+    return true;
   }
 
   if (wasPressed(input, "enter", "Enter") || wasPressed(input, " ", "Space")) {
@@ -802,6 +1011,7 @@ function handleFrontendInput() {
     const entries = getFrontendEntries(state);
     const entry = entries.find((candidate) => candidate.action === action);
     if (entry?.disabled) return true;
+    queueAudio(state, "ui");
     return activateFrontendAction(action);
   }
 
@@ -809,12 +1019,13 @@ function handleFrontendInput() {
 }
 
 function isUiOpen() {
-  return state.ui.questLogOpen || state.ui.menuOpen;
+  return state.ui.questLogOpen || state.ui.menuOpen || state.ui.worldMapOpen;
 }
 
 function closePanels() {
   state.ui.questLogOpen = false;
   state.ui.menuOpen = false;
+  state.ui.worldMapOpen = false;
   clearActiveService(state);
 }
 
@@ -827,11 +1038,19 @@ function openMenu(tab) {
 
 function toggleQuestLog() {
   queueAudio(state, "ui");
+  state.ui.worldMapOpen = false;
   state.ui.questLogOpen = !state.ui.questLogOpen;
   if (state.ui.questLogOpen) {
     state.ui.menuOpen = false;
     clearActiveService(state);
   }
+}
+
+function toggleWorldMap() {
+  queueAudio(state, "ui");
+  const nextOpen = !state.ui.worldMapOpen;
+  closePanels();
+  state.ui.worldMapOpen = nextOpen;
 }
 
 function cycleMenuTab() {
@@ -1352,6 +1571,8 @@ function handleUiInput() {
       closePanels();
       return true;
     }
+
+    return pauseGame();
   }
 
   if (wasPressed(input, "q", "KeyQ")) {
@@ -1359,17 +1580,29 @@ function handleUiInput() {
     return true;
   }
 
+  if (wasPressed(input, "m", "KeyM")) {
+    toggleWorldMap();
+    return true;
+  }
+
+  if (state.ui.worldMapOpen) {
+    return true;
+  }
+
   if (wasPressed(input, "c", "KeyC")) {
+    state.ui.worldMapOpen = false;
     openMenu(state.ui.menuOpen && state.ui.activeTab === "character" ? "character" : "character");
     return true;
   }
 
   if (wasPressed(input, "i", "KeyI")) {
+    state.ui.worldMapOpen = false;
     openMenu("inventory");
     return true;
   }
 
   if (wasPressed(input, "t", "KeyT")) {
+    state.ui.worldMapOpen = false;
     openMenu("talents");
     return true;
   }
@@ -1472,11 +1705,6 @@ function update(dt) {
       state.mode = GAME_MODES.PLAYING;
     }
 
-    if (state.gameOver && (wasPressed(input, "r", "KeyR") || wasPressed(input, "enter", "Enter"))) {
-      reloadCurrentScene();
-      return;
-    }
-
     if (state.transition.active) {
       updateTransition(dt);
       updateCamera(dt);
@@ -1530,7 +1758,9 @@ function render() {
   try {
     state.activeQuests = getActiveQuestEntries(state.progression);
     if (isFrontendMode(state.mode)) {
-      renderGame(ctx, state, { showHud: false });
+      renderGame(ctx, state, {
+        showHud: state.mode === GAME_MODES.PAUSED || state.mode === GAME_MODES.GAME_OVER,
+      });
       renderFrontendScreen(ctx, state);
       return;
     }
