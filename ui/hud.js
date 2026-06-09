@@ -15,6 +15,7 @@ import {
 import { getAylaPortrait } from "../rendering/atlasAssets.js";
 import { getActiveService, getServiceEntries, getStashUiEntries } from "../systems/services.js";
 import { NPC_DEFS } from "../data/storyData.js";
+import { getQuestPanelHoverTarget, renderQuestPanel } from "./questPanel.js";
 
 const TEXT_MEASURE_CANVAS =
   typeof document !== "undefined" ? document.createElement("canvas") : null;
@@ -67,6 +68,7 @@ export function drawHud(ctx, state, abilityInfo) {
   drawInteractionPrompt(ctx, state);
   drawExitPrompt(ctx, state);
   drawToast(ctx, state);
+  if (state.story.questPanel) renderQuestPanel(ctx, state);
   if (state.ui.questLogOpen) drawQuestLogOverlay(ctx, state);
   if (state.ui.menuOpen) drawCharacterOverlay(ctx, state);
   if (state.ui.worldMapOpen) drawWorldMapOverlay(ctx, state);
@@ -77,6 +79,10 @@ export function drawHud(ctx, state, abilityInfo) {
 }
 
 export function getUiHoverTarget(state, mouseX, mouseY) {
+  if (state.story.questPanel) {
+    return getQuestPanelHoverTarget(state, mouseX, mouseY);
+  }
+
   if (state.ui.worldMapOpen) {
     return null;
   }
@@ -857,52 +863,81 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
 
 function drawTalentTab(ctx, state, x, y, width, height) {
   const panel = getTalentPanelData(state, { x, y, width, height });
-  let rowY = y + 122;
   ctx.fillStyle = "#fff2d5";
   ctx.font = "700 16px Segoe UI, Arial";
-  ctx.fillText("Talents", x + 220, rowY - 18);
+  ctx.fillText("Talents", panel.listX, panel.headerY);
   ctx.font = "11px Segoe UI, Arial";
   ctx.fillStyle = "#d7e4cf";
-  ctx.fillText(`Unspent Points: ${state.progression.talentPoints}`, x + 320, rowY - 18);
+  ctx.fillText(`Unspent Points: ${state.progression.talentPoints}`, panel.listX + 100, panel.headerY);
+  ctx.textAlign = "right";
+  ctx.fillText(`Showing ${panel.rangeLabel}`, panel.listX + panel.listWidth, panel.headerY);
+  ctx.textAlign = "left";
 
-  TALENT_DEFS.forEach((talent, index) => {
-    const unlocked = Boolean(state.progression.talents[talent.id]);
-    const selected = index === state.ui.selectedTalentIndex;
+  panel.rows.forEach((row) => {
+    const unlocked = Boolean(state.progression.talents[row.talent.id]);
+    const selected = row.index === state.ui.selectedTalentIndex;
     ctx.fillStyle = selected ? "rgba(121, 184, 255, 0.16)" : "rgba(0, 0, 0, 0.26)";
-    ctx.fillRect(x + 220, rowY - 16, width - 280, 38);
+    ctx.fillRect(row.rect.x, row.rect.y, row.rect.w, row.rect.h);
     ctx.strokeStyle = selected ? "#79b8ff" : "#263142";
-    ctx.strokeRect(x + 220, rowY - 16, width - 280, 38);
+    ctx.lineWidth = selected ? 2 : 1;
+    ctx.strokeRect(row.rect.x, row.rect.y, row.rect.w, row.rect.h);
     ctx.fillStyle = unlocked ? "#9ce1a3" : "#fff6d8";
     ctx.font = "700 12px Segoe UI, Arial";
-    ctx.fillText(`${talent.tree}  |  ${talent.name}`, x + 232, rowY + 1);
+    ctx.fillText(`${row.talent.tree}  |  ${row.talent.name}`, row.rect.x + 12, row.rect.y + 17);
     ctx.fillStyle = "#cfd9d3";
     ctx.font = "11px Segoe UI, Arial";
-    ctx.fillText(talent.description, x + 232, rowY + 18);
+    ctx.fillText(shorten(row.talent.description, Math.max(26, Math.floor(panel.listWidth / 11))), row.rect.x + 12, row.rect.y + 34);
+    ctx.textAlign = "right";
     ctx.fillStyle = unlocked ? "#9ce1a3" : state.progression.talentPoints > 0 ? "#f1d786" : "#8692a3";
-    ctx.fillText(unlocked ? "Unlocked" : "Choose and unlock", x + width - 238, rowY + 18);
-    rowY += 46;
+    ctx.fillText(unlocked ? "Unlocked" : "Available", row.rect.x + row.rect.w - 12, row.rect.y + 25);
+    ctx.textAlign = "left";
   });
+
+  const detail = panel.selectedTalent;
+  if (!detail) return;
+
+  ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
+  ctx.fillRect(panel.detailRect.x, panel.detailRect.y, panel.detailRect.w, panel.detailRect.h);
+  ctx.strokeStyle = "#2d3848";
+  ctx.strokeRect(panel.detailRect.x, panel.detailRect.y, panel.detailRect.w, panel.detailRect.h);
+  ctx.fillStyle = "#fff2d5";
+  ctx.font = "700 15px Segoe UI, Arial";
+  ctx.fillText(detail.name, panel.detailRect.x + 14, panel.detailRect.y + 22);
+  ctx.fillStyle = "#8fdc8b";
+  ctx.font = "700 11px Segoe UI, Arial";
+  ctx.fillText(detail.tree.toUpperCase(), panel.detailRect.x + 14, panel.detailRect.y + 40);
+  ctx.fillStyle = "#d7e4cf";
+  ctx.font = "12px Segoe UI, Arial";
+  drawWrappedText(ctx, detail.description, panel.detailRect.x + 14, panel.detailRect.y + 62, panel.detailRect.w - 28, 18, 5);
+
+  const detailUnlocked = Boolean(state.progression.talents[detail.id]);
+  ctx.fillStyle = detailUnlocked ? "#9ce1a3" : state.progression.talentPoints > 0 ? "#f1d786" : "#8692a3";
+  ctx.font = "700 12px Segoe UI, Arial";
+  ctx.fillText(
+    detailUnlocked ? "Unlocked" : state.progression.talentPoints > 0 ? "Ready to unlock" : "Need a talent point",
+    panel.detailRect.x + 14,
+    panel.detailRect.y + 164
+  );
+
+  const unlocked = getUnlockedTalentList(state.progression);
+  ctx.fillStyle = "#fff2d5";
+  ctx.font = "700 13px Segoe UI, Arial";
+  ctx.fillText("Unlocked Summary", panel.detailRect.x + 14, panel.detailRect.y + 194);
+  ctx.fillStyle = "#d7e4cf";
+  ctx.font = "11px Segoe UI, Arial";
+  drawWrappedText(
+    ctx,
+    unlocked.length > 0 ? unlocked.map((talent) => talent.name).join(", ") : "No talents unlocked yet.",
+    panel.detailRect.x + 14,
+    panel.detailRect.y + 214,
+    panel.detailRect.w - 28,
+    16,
+    7
+  );
 
   if (panel.unlockButton) {
     drawActionButton(ctx, panel.unlockButton, state.ui.hoverTarget, "#142219", "#f6ead0");
   }
-
-  const unlocked = getUnlockedTalentList(state.progression);
-  ctx.fillStyle = "#fff2d5";
-  ctx.font = "700 14px Segoe UI, Arial";
-  ctx.fillText("Unlocked Summary", x + 220, y + height - 120);
-  ctx.fillStyle = "#d7e4cf";
-  ctx.font = "11px Segoe UI, Arial";
-  wrapText(
-    ctx,
-    unlocked.length > 0
-      ? unlocked.map((talent) => talent.name).join(", ")
-      : "No talents unlocked yet.",
-    x + 220,
-    y + height - 96,
-    width - 280,
-    16
-  );
 }
 
 function drawServiceTab(ctx, state, x, y, width, height) {
@@ -914,9 +949,8 @@ function drawServiceTab(ctx, state, x, y, width, height) {
   ctx.fillText(service ? service.title : "Services", bodyX, bodyY - 18);
   ctx.font = "11px Segoe UI, Arial";
   ctx.fillStyle = "#d7e4cf";
-  const subtitleX = bodyX + Math.max(132, Math.ceil(ctx.measureText(service ? service.title : "Services").width) + 18);
   panel.subtitleLines.forEach((line, index) => {
-    ctx.fillText(line, subtitleX, bodyY - 18 + index * 14);
+    ctx.fillText(line, bodyX, bodyY + index * 14);
   });
 
   if (!service) {
@@ -1112,7 +1146,7 @@ function drawBanner(ctx, state) {
 }
 
 function drawInteractionPrompt(ctx, state) {
-  if (!state.story.focus || state.story.dialogue || state.gameOver || state.ui.menuOpen || state.ui.questLogOpen || state.ui.worldMapOpen) return;
+  if (!state.story.focus || state.story.dialogue || state.story.questPanel || state.gameOver || state.ui.menuOpen || state.ui.questLogOpen || state.ui.worldMapOpen) return;
 
   ctx.font = "700 14px Segoe UI, Arial";
   const promptLines = toWrappedLines(ctx, `E  ${state.story.prompt}`, Math.min(320, state.viewport.width - 72));
@@ -1134,7 +1168,7 @@ function drawInteractionPrompt(ctx, state) {
 }
 
 function drawExitPrompt(ctx, state) {
-  if (!state.nearExit || state.gameOver || state.story.dialogue || state.ui.menuOpen || state.ui.questLogOpen || state.ui.worldMapOpen) return;
+  if (!state.nearExit || state.gameOver || state.story.dialogue || state.story.questPanel || state.ui.menuOpen || state.ui.questLogOpen || state.ui.worldMapOpen) return;
 
   const locked = Boolean(state.nearExit.requiresFlag && !state.progression.worldFlags?.[state.nearExit.requiresFlag]);
   const leavingCombat =
@@ -1734,23 +1768,38 @@ function getCharacterPanelData(state, frame) {
 }
 
 function getTalentPanelData(state, frame) {
-  const rows = TALENT_DEFS.map((talent, index) => ({
+  const listX = frame.x + 220;
+  const headerY = frame.y + 104;
+  const detailW = Math.min(300, Math.max(252, Math.floor(frame.width * 0.28)));
+  const listWidth = Math.max(300, frame.width - 286 - detailW);
+  const rowHeight = 48;
+  const availableHeight = Math.max(220, frame.height - 178);
+  const visibleCount = Math.max(5, Math.floor(availableHeight / rowHeight));
+  const maxStart = Math.max(0, TALENT_DEFS.length - visibleCount);
+  const startIndex = Math.max(0, Math.min(maxStart, state.ui.selectedTalentIndex - Math.floor(visibleCount / 2)));
+  const visibleTalents = TALENT_DEFS.slice(startIndex, startIndex + visibleCount);
+  const rows = visibleTalents.map((talent, offset) => ({
     talent,
-    index,
-    rect: rect(frame.x + 220, frame.y + 106 + index * 46, frame.width - 280, 38),
+    index: startIndex + offset,
+    rect: rect(listX, frame.y + 124 + offset * rowHeight, listWidth, 42),
   }));
   const selectedTalent = TALENT_DEFS[state.ui.selectedTalentIndex] || null;
-  const selectedRow = rows[state.ui.selectedTalentIndex] || null;
+  const detailRect = rect(listX + listWidth + 20, frame.y + 124, detailW, Math.max(252, frame.height - 162));
   return {
     rows,
+    listX,
+    listWidth,
+    headerY,
+    detailRect,
     selectedTalent,
+    rangeLabel: `${startIndex + 1}-${Math.min(TALENT_DEFS.length, startIndex + visibleCount)} / ${TALENT_DEFS.length}`,
     unlockButton:
       selectedTalent && !state.progression.talents[selectedTalent.id]
         ? makeButton(
-            selectedRow.rect.x + selectedRow.rect.width - 122,
-            selectedRow.rect.y + 6,
-            108,
-            24,
+            detailRect.x + 14,
+            detailRect.y + detailRect.h - 40,
+            detailRect.w - 28,
+            28,
             "Unlock",
             "talent-unlock",
             "#9ce1a3",
@@ -1767,9 +1816,9 @@ function getServicePanelData(state, frame) {
   const subtitle = service ? service.subtitle : "Visit a service NPC or village object.";
   const subtitleMeasure = getMeasureContext("11px Segoe UI, Arial");
   const subtitleLines = subtitleMeasure
-    ? toWrappedLines(subtitleMeasure, subtitle, Math.max(180, frame.width - 460))
+    ? toWrappedLines(subtitleMeasure, subtitle, Math.max(220, frame.width - 300), 3)
     : [subtitle];
-  const contentTop = bodyY + Math.max(0, subtitleLines.length - 1) * 14;
+  const contentTop = bodyY + 24 + Math.max(0, subtitleLines.length - 1) * 14;
 
   if (!service) {
     return { service, bodyX, bodyY, subtitleLines, contentTop };

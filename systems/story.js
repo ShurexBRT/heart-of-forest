@@ -20,6 +20,7 @@ export function createStoryState() {
     focus: null,
     prompt: "",
     dialogue: null,
+    questPanel: null,
     toastText: "",
     toastTimer: 0,
   };
@@ -167,7 +168,7 @@ export function beginInteraction(state, target) {
   if (!target) return false;
 
   if (target.kind === "npc") {
-    openNpcDialogue(state, target.data);
+    openNpcInteraction(state, target.data);
     return true;
   }
 
@@ -195,11 +196,144 @@ export function advanceDialogue(state) {
   return true;
 }
 
+export function closeQuestPanel(state) {
+  state.story.questPanel = null;
+}
+
+export function getQuestPanelView(state) {
+  const panel = state.story.questPanel;
+  if (!panel) return null;
+
+  const npcDef = NPC_DEFS[panel.npcId];
+  if (!npcDef) return null;
+
+  const topics = buildNpcTopics(state.progression, npcDef);
+  const selectedTopicIndex = clampIndex(panel.selectedTopicIndex, topics.length);
+  const selectedTopic = topics[selectedTopicIndex] || null;
+  const topicState = resolveQuestPanelTopicState(state, npcDef, selectedTopic);
+  const selectedActionIndex = clampIndex(panel.selectedActionIndex, topicState.actions.length);
+
+  panel.selectedTopicIndex = selectedTopicIndex;
+  panel.selectedActionIndex = selectedActionIndex;
+  if (!topics.length) {
+    panel.focus = "actions";
+  } else if (panel.focus !== "topics" && panel.focus !== "actions") {
+    panel.focus = "topics";
+  }
+
+  return {
+    npcId: npcDef.id,
+    npcName: npcDef.name,
+    npcRole: npcDef.role,
+    palette: npcDef.palette,
+    topics,
+    selectedTopic,
+    selectedTopicIndex,
+    selectedActionIndex,
+    focus: panel.focus,
+    ...topicState,
+  };
+}
+
+export function moveQuestPanelSelection(state, delta) {
+  const view = getQuestPanelView(state);
+  if (!view) return false;
+
+  const panel = state.story.questPanel;
+  if (view.focus === "topics" && view.topics.length > 0) {
+    panel.selectedTopicIndex = wrapIndex(panel.selectedTopicIndex + delta, view.topics.length);
+    panel.selectedActionIndex = 0;
+    return true;
+  }
+
+  if (view.actions.length > 0) {
+    panel.selectedActionIndex = wrapIndex(panel.selectedActionIndex + delta, view.actions.length);
+    return true;
+  }
+
+  return false;
+}
+
+export function shiftQuestPanelFocus(state, direction = 1) {
+  const view = getQuestPanelView(state);
+  if (!view) return false;
+  const panel = state.story.questPanel;
+
+  if (!view.topics.length || !view.actions.length) {
+    panel.focus = view.actions.length ? "actions" : "topics";
+    return true;
+  }
+
+  panel.focus = panel.focus === "topics" ? "actions" : "topics";
+  if (panel.focus === "actions" && direction < 0) {
+    panel.selectedActionIndex = clampIndex(panel.selectedActionIndex, view.actions.length);
+  }
+  return true;
+}
+
+export function activateQuestPanelSelection(state) {
+  const view = getQuestPanelView(state);
+  if (!view) return false;
+
+  const panel = state.story.questPanel;
+  if (panel.focus === "topics" && view.topics.length > 0) {
+    if (view.actions.length > 0) {
+      panel.focus = "actions";
+    }
+    return true;
+  }
+
+  const action = view.actions[view.selectedActionIndex];
+  if (!action || action.disabled) {
+    return true;
+  }
+
+  switch (action.id) {
+    case "accept-quest":
+      if (!view.quest) return true;
+      state.progression.questStates[view.quest.id] = "active";
+      setToast(state, `Quest Started: ${view.quest.title}`, 2.4);
+      queueAudio(state, "quest");
+      updateQuestAvailability(state);
+      refreshQuestStates(state);
+      panel.focus = "actions";
+      panel.selectedActionIndex = 0;
+      return true;
+    case "complete-quest":
+      if (!view.quest) return true;
+      {
+        const rewardSummary = finalizeQuest(state, view.quest);
+        setToast(
+          state,
+          rewardSummary.levelsGained > 0
+            ? `Rewards Received: ${view.quest.title} - Level up`
+            : `Rewards Received: ${view.quest.title}`,
+          2.6
+        );
+        updateQuestAvailability(state);
+        refreshQuestStates(state);
+        panel.focus = "topics";
+        panel.selectedActionIndex = 0;
+      }
+      return true;
+    case "open-service":
+      closeQuestPanel(state);
+      if (action.serviceId) {
+        openServiceUi(state, action.serviceId, view.npcName);
+      }
+      return true;
+    case "close-panel":
+    default:
+      closeQuestPanel(state);
+      return true;
+  }
+}
+
 export function getActiveQuestEntries(progression) {
   return Object.values(QUEST_DEFS)
     .filter((quest) => {
       const status = progression.questStates[quest.id];
-      return status === "available" || status === "active" || status === "complete" || status === "done";
+      return status === "available" || status === "active" || status === "complete";
     })
     .map((quest) => ({
       ...quest,
@@ -211,8 +345,25 @@ export function getActiveQuestEntries(progression) {
     }));
 }
 
-function openNpcDialogue(state, npc) {
+function openNpcInteraction(state, npc) {
   const npcDef = NPC_DEFS[npc.id];
+  if (!npcDef) return;
+
+  if (shouldOpenQuestPanel(state.progression, npcDef)) {
+    state.story.dialogue = null;
+    state.story.questPanel = {
+      npcId: npc.id,
+      selectedTopicIndex: 0,
+      selectedActionIndex: 0,
+      focus: "topics",
+    };
+    return;
+  }
+
+  openNpcDialogue(state, npc, npcDef);
+}
+
+function openNpcDialogue(state, npc, npcDef = NPC_DEFS[npc.id]) {
   if (!npcDef) return;
 
   const progression = state.progression;
@@ -268,6 +419,7 @@ function openNpcDialogue(state, npc) {
     index: 0,
     onClose,
   };
+  state.story.questPanel = null;
 }
 
 function pickNpcQuest(progression, npcId) {
@@ -347,6 +499,186 @@ function finalizeQuest(state, quest) {
 function maybeOpenNpcService(state, npcDef) {
   if (!npcDef.serviceId) return;
   openServiceUi(state, npcDef.serviceId, npcDef.name);
+}
+
+function shouldOpenQuestPanel(progression, npcDef) {
+  if (!npcDef) return false;
+  if (npcDef.serviceId) return true;
+  return getRelevantNpcQuests(progression, npcDef.id).length > 0;
+}
+
+function getRelevantNpcQuests(progression, npcId) {
+  const statuses = new Set(["complete", "available", "active"]);
+  return Object.values(QUEST_DEFS)
+    .filter((quest) => quest.giverId === npcId && statuses.has(progression.questStates[quest.id]))
+    .sort((a, b) => {
+      const aStatus = progression.questStates[a.id];
+      const bStatus = progression.questStates[b.id];
+      const order = { complete: 0, available: 1, active: 2 };
+      return (order[aStatus] ?? 9) - (order[bStatus] ?? 9) || a.title.localeCompare(b.title);
+    });
+}
+
+function buildNpcTopics(progression, npcDef) {
+  const topics = getRelevantNpcQuests(progression, npcDef.id).map((quest) => ({
+    kind: "quest",
+    questId: quest.id,
+    title: quest.title,
+    status: progression.questStates[quest.id],
+  }));
+
+  if (npcDef.serviceId) {
+    topics.push({
+      kind: "service",
+      serviceId: npcDef.serviceId,
+      title: "Services",
+      status: "service",
+    });
+  }
+
+  if (topics.length === 0) {
+    topics.push({
+      kind: "talk",
+      title: "Conversation",
+      status: "talk",
+    });
+  }
+
+  return topics;
+}
+
+function resolveQuestPanelTopicState(state, npcDef, topic) {
+  if (!topic) {
+    return {
+      mode: "after",
+      quest: null,
+      title: npcDef.name,
+      statusLabel: npcDef.role,
+      bodyLines: getDialogueLines(npcDef, "after"),
+      objectives: [],
+      rewardSummary: "",
+      actions: [{ id: "close-panel", label: "Close", accent: "#84c5ff" }],
+    };
+  }
+
+  if (topic.kind === "service") {
+    return {
+      mode: "service",
+      quest: null,
+      title: "Village Services",
+      statusLabel: "Gossip",
+      bodyLines: getDialogueLines(npcDef, "after"),
+      objectives: [],
+      rewardSummary: "",
+      actions: [
+        { id: "open-service", label: "Open Services", accent: "#84c5ff", serviceId: topic.serviceId },
+        { id: "close-panel", label: "Goodbye", accent: "#9bb0be" },
+      ],
+    };
+  }
+
+  if (topic.kind === "talk") {
+    return {
+      mode: "after",
+      quest: null,
+      title: npcDef.name,
+      statusLabel: npcDef.role,
+      bodyLines: getDialogueLines(npcDef, "default"),
+      objectives: [],
+      rewardSummary: "",
+      actions: [{ id: "close-panel", label: "Goodbye", accent: "#84c5ff" }],
+    };
+  }
+
+  const quest = QUEST_DEFS[topic.questId];
+  const status = state.progression.questStates[quest.id];
+  const objectives = quest.objectives.map((objective) => ({
+    ...objective,
+    current: getQuestCounter(state.progression, objective.key),
+  }));
+
+  if (status === "available") {
+    return {
+      mode: "offer",
+      quest,
+      title: quest.title,
+      statusLabel: "Available Quest",
+      bodyLines: [quest.description, ...getDialogueLines(npcDef, "intro")],
+      objectives,
+      rewardSummary: describeRewards(quest.rewards),
+      actions: [
+        { id: "accept-quest", label: "Accept Quest", accent: "#98d18a" },
+        { id: "close-panel", label: "Not Now", accent: "#86b8d8" },
+      ],
+    };
+  }
+
+  if (status === "complete") {
+    return {
+      mode: "turn-in",
+      quest,
+      title: quest.title,
+      statusLabel: "Ready to Turn In",
+      bodyLines: getDialogueLines(npcDef, "complete"),
+      objectives,
+      rewardSummary: describeRewards(quest.rewards),
+      actions: [
+        { id: "complete-quest", label: "Complete Quest", accent: "#e6c57e" },
+        { id: "close-panel", label: "Later", accent: "#86b8d8" },
+      ],
+    };
+  }
+
+  return {
+    mode: "progress",
+    quest,
+    title: quest.title,
+    statusLabel: "In Progress",
+    bodyLines: getDialogueLines(npcDef, "progress"),
+    objectives,
+    rewardSummary: describeRewards(quest.rewards),
+    actions: [{ id: "close-panel", label: "Close", accent: "#86b8d8" }],
+  };
+}
+
+function getDialogueLines(npcDef, key) {
+  const primary = npcDef.dialogue?.[key];
+  if (Array.isArray(primary) && primary.length > 0) {
+    return primary;
+  }
+
+  if (Array.isArray(npcDef.dialogue?.default) && npcDef.dialogue.default.length > 0) {
+    return npcDef.dialogue.default;
+  }
+
+  if (Array.isArray(npcDef.dialogue?.after) && npcDef.dialogue.after.length > 0) {
+    return npcDef.dialogue.after;
+  }
+
+  return [npcDef.name];
+}
+
+function describeRewards(rewards) {
+  if (!rewards) return "No rewards.";
+
+  const parts = [];
+  if (rewards.silver) parts.push(`${rewards.silver} silver`);
+  if (rewards.xp) parts.push(`${rewards.xp} XP`);
+  if (rewards.talentPoints) parts.push(`${rewards.talentPoints} Talent Point${rewards.talentPoints > 1 ? "s" : ""}`);
+  for (const [itemId, amount] of Object.entries(rewards.items || {})) {
+    parts.push(`${amount}x ${itemId}`);
+  }
+  return parts.length > 0 ? parts.join("  |  ") : "No rewards.";
+}
+
+function clampIndex(index, length) {
+  if (length <= 0) return 0;
+  return Math.max(0, Math.min(length - 1, index || 0));
+}
+
+function wrapIndex(index, length) {
+  if (length <= 0) return 0;
+  return (index + length) % length;
 }
 
 function setToast(state, text, duration) {

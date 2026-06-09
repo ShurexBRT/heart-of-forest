@@ -17,12 +17,6 @@ const GAME_OVER_ACTIONS = ["retry", "load-save", "return-title"];
 
 const AYLA_PALETTE = { hood: "#f2eee4", cloak: "#678d5d", accent: "#d8bf7f" };
 
-const TITLE_TAGS = ["White Hood", "Forest Village", "Waystone Rites"];
-const START_FEATURES = [
-  "Guide Ayla through shrines, bogs, ruins, and buried sanctums.",
-  "Build around roots, pulse magic, relic shards, and the old village roads.",
-];
-
 const HELP_SECTIONS = [
   {
     title: "Movement",
@@ -260,7 +254,7 @@ export function getFrontendLayout(viewport, mode = GAME_MODES.START_MENU) {
     actionX,
     actionY:
       mode === GAME_MODES.START_MENU
-        ? contentY + (heroSplit ? 226 : 238)
+        ? contentY + (heroSplit ? 196 : 212)
         : mode === GAME_MODES.PAUSED
           ? contentY + 162
           : mode === GAME_MODES.GAME_OVER
@@ -311,13 +305,15 @@ function getOptionEntries(state, layout) {
 
   return OPTIONS_ACTIONS.map((action) => {
     const description = getOptionDescription(action, state.frontend.resetSaveArmed);
-    const descriptionLines = toWrappedLines(measure, description, splitLayout.leftW - 184, 3);
-    const height = Math.max(68, 30 + descriptionLines.length * 14);
+    const metrics = getOptionControlMetrics(action, splitLayout.leftW);
+    const descriptionLines = toWrappedLines(measure, description, metrics.textWidth, 4);
+    const height = Math.max(metrics.stacked ? 92 : 74, 34 + descriptionLines.length * 14 + (metrics.stacked ? 28 : 0));
     const entry = {
       action,
       label: formatActionLabel(action),
       description,
       descriptionLines,
+      metrics,
       selected: action === selectedAction,
       value: getActionValue(state, action),
       bounds: {
@@ -337,10 +333,9 @@ function drawStartMenu(ctx, state, layout, theme) {
     eyebrow: "Dark-Forest Action RPG",
     title: "Heart of Forest",
     subtitle: "The old roads are waking again. Ayla stands where the roots still remember the village name.",
-    hint: "Arrow Keys or Mouse to choose, Enter to begin",
+    hint: "",
   });
 
-  drawTitleTags(ctx, layout, theme);
   drawStartHero(ctx, layout, theme);
 
   const entries = getFrontendEntries(state);
@@ -355,7 +350,6 @@ function drawStartMenu(ctx, state, layout, theme) {
     });
   }
 
-  drawFeaturePanel(ctx, layout, theme, START_FEATURES);
   drawFooterSummary(
     ctx,
     layout,
@@ -489,36 +483,18 @@ function drawHeader(ctx, layout, theme, copy) {
     4
   );
 
-  ctx.fillStyle = theme.hint;
-  ctx.font = `${hintSize}px Segoe UI, Arial`;
-  drawWrappedText(
-    ctx,
-    copy.hint,
-    layout.contentX,
-    layout.contentY + titleSize + 56 + subtitleLines.length * (subtitleSize + 5),
-    textWidth,
-    hintSize + 4,
-    3
-  );
-}
-
-function drawTitleTags(ctx, layout, theme) {
-  let x = layout.contentX;
-  const y = layout.contentY + 146;
-
-  ctx.font = "11px Segoe UI, Arial";
-  for (const tag of TITLE_TAGS) {
-    const width = Math.ceil(ctx.measureText(tag).width) + 22;
-    ctx.fillStyle = "rgba(0, 0, 0, 0.46)";
-    ctx.fillRect(x, y, width, 24);
-    ctx.fillStyle = "#162029";
-    ctx.fillRect(x + 2, y + 2, width - 4, 20);
-    ctx.strokeStyle = theme.highlight;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x + 2, y + 2, width - 4, 20);
-    ctx.fillStyle = "#edf6e6";
-    ctx.fillText(tag, x + 11, y + 16);
-    x += width + 10;
+  if (copy.hint) {
+    ctx.fillStyle = theme.hint;
+    ctx.font = `${hintSize}px Segoe UI, Arial`;
+    drawWrappedText(
+      ctx,
+      copy.hint,
+      layout.contentX,
+      layout.contentY + titleSize + 56 + subtitleLines.length * (subtitleSize + 5),
+      textWidth,
+      hintSize + 4,
+      3
+    );
   }
 }
 
@@ -599,20 +575,6 @@ function drawStartEnemyAccents(ctx, hero, theme) {
     });
   }
   ctx.restore();
-}
-
-function drawFeaturePanel(ctx, layout, theme, lines) {
-  const x = layout.actionX;
-  const y = layout.panelY + layout.panelH - 126;
-  const w = layout.actionW;
-  const h = 86;
-
-  drawPanelBlock(ctx, x, y, w, h, theme, "The Road Ahead");
-  ctx.fillStyle = "#dce6d5";
-  ctx.font = "11px Segoe UI, Arial";
-  lines.forEach((line, index) => {
-    drawWrappedText(ctx, line, x + 16, y + 34 + index * 18, w - 32, 14, 2);
-  });
 }
 
 function drawSceneStatusCard(ctx, rectData, state, theme) {
@@ -772,6 +734,12 @@ function drawButton(ctx, bounds, label, options) {
 
 function drawOptionRow(ctx, entry, settings, frontend = null, theme) {
   const { bounds } = entry;
+  const metrics = entry.metrics || getOptionControlMetrics(entry.action, bounds.w);
+  const textX = bounds.x + 18;
+  const textY = bounds.y + 24;
+  const descriptionY = bounds.y + 44;
+  const controlX = bounds.x + bounds.w - metrics.controlWidth - 18;
+  const controlY = metrics.stacked ? bounds.y + bounds.h - 32 : Math.round(bounds.y + bounds.h / 2 - 12);
   ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
   ctx.fillRect(bounds.x, bounds.y, bounds.w, bounds.h);
   ctx.fillStyle = entry.selected ? "rgba(34, 50, 58, 0.92)" : "#111820";
@@ -782,37 +750,51 @@ function drawOptionRow(ctx, entry, settings, frontend = null, theme) {
 
   ctx.fillStyle = "#f3ead2";
   ctx.font = "700 17px Segoe UI, Arial";
-  ctx.fillText(entry.label, bounds.x + 18, bounds.y + 22);
+  ctx.fillText(entry.label, textX, textY);
 
   ctx.fillStyle = "#b9c8c0";
   ctx.font = "11px Segoe UI, Arial";
   entry.descriptionLines.forEach((line, index) => {
-    ctx.fillText(line, bounds.x + 18, bounds.y + 40 + index * 14);
+    ctx.fillText(line, textX, descriptionY + index * 14);
   });
 
   if (entry.action === "music-volume" || entry.action === "sfx-volume") {
     const value = entry.action === "music-volume" ? settings.musicVolume : settings.sfxVolume;
-    drawSlider(ctx, bounds.x + bounds.w - 190, bounds.y + bounds.h / 2 - 8, 130, value, entry.selected, theme);
+    const sliderX = controlX;
+    const sliderY = metrics.stacked ? bounds.y + bounds.h - 28 : Math.round(bounds.y + bounds.h / 2 - 6);
+    drawSlider(ctx, sliderX, sliderY, metrics.sliderWidth, value, entry.selected, theme);
     ctx.textAlign = "right";
     ctx.fillStyle = "#e7f2df";
     ctx.font = "700 13px Segoe UI, Arial";
-    ctx.fillText(`${Math.round(value * 100)}%`, bounds.x + bounds.w - 18, bounds.y + bounds.h / 2 + 5);
+    ctx.fillText(
+      `${Math.round(value * 100)}%`,
+      bounds.x + bounds.w - 18,
+      metrics.stacked ? bounds.y + bounds.h - 14 : Math.round(bounds.y + bounds.h / 2 + 5)
+    );
     ctx.textAlign = "left";
     return;
   }
 
   if (entry.action === "fullscreen") {
     const enabled = Boolean(settings.fullscreen);
-    drawStatePill(ctx, bounds.x + bounds.w - 132, bounds.y + bounds.h / 2 - 12, 112, 24, enabled ? "Enabled" : "Windowed", enabled ? theme.accent : "#bda978");
+    drawStatePill(
+      ctx,
+      controlX,
+      controlY,
+      metrics.controlWidth,
+      24,
+      enabled ? "Enabled" : "Windowed",
+      enabled ? theme.accent : "#bda978"
+    );
     return;
   }
 
   if (entry.action === "reset-save") {
     drawStatePill(
       ctx,
-      bounds.x + bounds.w - 170,
-      bounds.y + bounds.h / 2 - 12,
-      150,
+      controlX,
+      controlY,
+      metrics.controlWidth,
       24,
       frontend?.resetSaveArmed ? "Confirm Reset" : "Delete Adventure",
       frontend?.resetSaveArmed ? "#f0b083" : "#cf8578"
@@ -820,7 +802,7 @@ function drawOptionRow(ctx, entry, settings, frontend = null, theme) {
     return;
   }
 
-  drawStatePill(ctx, bounds.x + bounds.w - 108, bounds.y + bounds.h / 2 - 12, 88, 24, "Back", theme.highlight);
+  drawStatePill(ctx, controlX, controlY, metrics.controlWidth, 24, "Back", theme.highlight);
 }
 
 function drawSlider(ctx, x, y, width, value, selected, theme) {
@@ -851,7 +833,7 @@ function drawStatePill(ctx, x, y, w, h, label, color) {
 
 function getOptionsSplitLayout(layout) {
   const compact = layout.compact || layout.panelW < 850;
-  const leftW = compact ? layout.contentW : Math.min(420, layout.contentW * 0.47);
+  const leftW = compact ? layout.contentW : Math.min(452, layout.contentW * 0.49);
   const rightX = compact ? layout.contentX : layout.contentX + leftW + 28;
   const rightW = compact ? layout.contentW : layout.contentW - leftW - 28;
   const leftY = layout.contentY + 148;
@@ -869,6 +851,28 @@ function getOptionsSplitLayout(layout) {
     rightW,
     rightH,
     gap: 14,
+  };
+}
+
+function getOptionControlMetrics(action, rowWidth) {
+  const stacked = rowWidth < 420;
+  if (action === "music-volume" || action === "sfx-volume") {
+    const controlWidth = stacked ? rowWidth - 36 : 204;
+    const sliderWidth = Math.max(88, controlWidth - 72);
+    return {
+      stacked,
+      controlWidth,
+      sliderWidth,
+      textWidth: Math.max(150, rowWidth - 36 - (stacked ? 0 : controlWidth + 18)),
+    };
+  }
+
+  const controlWidth = action === "reset-save" ? 150 : action === "fullscreen" ? 112 : 88;
+  return {
+    stacked,
+    controlWidth,
+    sliderWidth: 0,
+    textWidth: Math.max(150, rowWidth - 36 - (stacked ? 0 : controlWidth + 18)),
   };
 }
 

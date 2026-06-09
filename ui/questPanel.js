@@ -1,0 +1,383 @@
+import { ITEM_DEFS } from "../data/gameData.js";
+import { getQuestPanelView } from "../systems/story.js";
+
+const TEXT_MEASURE_CANVAS =
+  typeof document !== "undefined" ? document.createElement("canvas") : null;
+const TEXT_MEASURE_CTX = TEXT_MEASURE_CANVAS ? TEXT_MEASURE_CANVAS.getContext("2d") : null;
+
+export function renderQuestPanel(ctx, state) {
+  const geometry = getQuestPanelGeometry(state);
+  if (!geometry) return;
+
+  const { panel, view, topics, buttons, layout } = geometry;
+
+  ctx.fillStyle = "rgba(4, 6, 8, 0.72)";
+  ctx.fillRect(0, 0, state.viewport.width, state.viewport.height);
+
+  ctx.fillStyle = "rgba(12, 17, 21, 0.96)";
+  ctx.fillRect(panel.x, panel.y, panel.w, panel.h);
+  ctx.fillStyle = "#10161d";
+  ctx.fillRect(panel.x + 6, panel.y + 6, panel.w - 12, panel.h - 12);
+
+  ctx.strokeStyle = "#d7c28b";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(panel.x + 2, panel.y + 2, panel.w - 4, panel.h - 4);
+  ctx.strokeStyle = "#33443c";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(panel.x + 14, panel.y + 14, panel.w - 28, panel.h - 28);
+
+  ctx.fillStyle = "#f5ead4";
+  ctx.font = "700 16px Georgia, serif";
+  ctx.fillText(view.npcName, panel.x + 28, panel.y + 34);
+  ctx.fillStyle = "#b8c7b5";
+  ctx.font = "12px Segoe UI, Arial";
+  ctx.fillText(view.npcRole, panel.x + 28, panel.y + 52);
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#9db09a";
+  ctx.fillText("E / Enter confirm  |  Esc close", panel.x + panel.w - 28, panel.y + 34);
+  ctx.textAlign = "left";
+
+  drawSidebar(ctx, geometry);
+  drawContent(ctx, geometry);
+}
+
+export function getQuestPanelHoverTarget(state, mouseX, mouseY) {
+  const geometry = getQuestPanelGeometry(state);
+  if (!geometry) return null;
+
+  for (const topic of geometry.topics) {
+    if (pointInRect(mouseX, mouseY, topic.rect)) {
+      return {
+        action: "quest-panel-topic",
+        index: topic.index,
+        rect: topic.rect,
+      };
+    }
+  }
+
+  for (const button of geometry.buttons) {
+    if (pointInRect(mouseX, mouseY, button.rect)) {
+      return {
+        action: "quest-panel-action",
+        index: button.index,
+        rect: button.rect,
+      };
+    }
+  }
+
+  return null;
+}
+
+function getQuestPanelGeometry(state) {
+  const view = getQuestPanelView(state);
+  if (!view) return null;
+
+  const panelW = Math.min(980, state.viewport.width - 88);
+  const panelH = Math.min(652, state.viewport.height - 92);
+  const panel = {
+    x: Math.round(state.viewport.width / 2 - panelW / 2),
+    y: Math.round(state.viewport.height / 2 - panelH / 2),
+    w: panelW,
+    h: panelH,
+  };
+  const sidebarW = panelW < 840 ? 230 : 246;
+  const layout = {
+    sidebarX: panel.x + 24,
+    sidebarY: panel.y + 84,
+    sidebarW,
+    sidebarH: panel.h - 120,
+    contentX: panel.x + sidebarW + 42,
+    contentY: panel.y + 86,
+    contentW: panel.w - sidebarW - 68,
+    contentH: panel.h - 124,
+  };
+
+  const topics = view.topics.map((topic, index) => ({
+    ...topic,
+    index,
+    rect: {
+      x: layout.sidebarX + 12,
+      y: layout.sidebarY + 42 + index * 52,
+      w: layout.sidebarW - 24,
+      h: 42,
+    },
+  }));
+
+  const buttonMeasure = getMeasureContext("700 13px Segoe UI, Arial");
+  let cursorX = layout.contentX + layout.contentW;
+  const buttonY = panel.y + panel.h - 62;
+  const buttons = [...view.actions].reverse().map((action, reverseIndex) => {
+    const width = Math.max(132, Math.ceil(buttonMeasure.measureText(action.label).width) + 34);
+    cursorX -= width;
+    const button = {
+      ...action,
+      index: view.actions.length - reverseIndex - 1,
+      rect: { x: cursorX, y: buttonY, w: width, h: 30 },
+    };
+    cursorX -= 12;
+    return button;
+  }).reverse();
+
+  return { panel, layout, view, topics, buttons };
+}
+
+function drawSidebar(ctx, geometry) {
+  const { layout, view, topics } = geometry;
+  ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
+  ctx.fillRect(layout.sidebarX, layout.sidebarY, layout.sidebarW, layout.sidebarH);
+  ctx.fillStyle = "#111820";
+  ctx.fillRect(layout.sidebarX + 4, layout.sidebarY + 4, layout.sidebarW - 8, layout.sidebarH - 8);
+  ctx.strokeStyle = "#384855";
+  ctx.strokeRect(layout.sidebarX + 2, layout.sidebarY + 2, layout.sidebarW - 4, layout.sidebarH - 4);
+
+  ctx.fillStyle = "#d8e7c8";
+  ctx.font = "700 13px Segoe UI, Arial";
+  ctx.fillText("Quests & Topics", layout.sidebarX + 16, layout.sidebarY + 22);
+
+  topics.forEach((topic) => {
+    const selected = topic.index === view.selectedTopicIndex;
+    const focused = selected && view.focus === "topics";
+    ctx.fillStyle = selected ? "rgba(123, 185, 255, 0.18)" : "rgba(0, 0, 0, 0.26)";
+    ctx.fillRect(topic.rect.x, topic.rect.y, topic.rect.w, topic.rect.h);
+    ctx.strokeStyle = focused ? "#bfe5ff" : selected ? "#79b8ff" : "#263142";
+    ctx.lineWidth = focused ? 2 : 1;
+    ctx.strokeRect(topic.rect.x, topic.rect.y, topic.rect.w, topic.rect.h);
+    ctx.fillStyle = getTopicStatusColor(topic.status);
+    ctx.fillRect(topic.rect.x + 10, topic.rect.y + 14, 9, 9);
+    ctx.fillStyle = "#fff6d8";
+    ctx.font = "700 12px Segoe UI, Arial";
+    ctx.fillText(topic.title, topic.rect.x + 28, topic.rect.y + 18);
+    ctx.fillStyle = "#b7c5cf";
+    ctx.font = "11px Segoe UI, Arial";
+    ctx.fillText(formatTopicStatus(topic.status), topic.rect.x + 28, topic.rect.y + 33);
+  });
+}
+
+function drawContent(ctx, geometry) {
+  const { panel, layout, view, buttons } = geometry;
+  ctx.fillStyle = "rgba(0, 0, 0, 0.26)";
+  ctx.fillRect(layout.contentX, layout.contentY, layout.contentW, layout.contentH);
+  ctx.fillStyle = "#10171e";
+  ctx.fillRect(layout.contentX + 4, layout.contentY + 4, layout.contentW - 8, layout.contentH - 8);
+  ctx.strokeStyle = "#384855";
+  ctx.strokeRect(layout.contentX + 2, layout.contentY + 2, layout.contentW - 4, layout.contentH - 4);
+
+  drawStatusTag(ctx, layout.contentX + 18, layout.contentY + 18, view.statusLabel, getModeColor(view.mode));
+
+  ctx.fillStyle = "#f4ead3";
+  ctx.font = "700 28px Georgia, serif";
+  drawWrappedText(ctx, view.title, layout.contentX + 18, layout.contentY + 64, layout.contentW - 36, 30, 2);
+
+  let cursorY = layout.contentY + 92;
+  ctx.fillStyle = "#d7e4cf";
+  ctx.font = "13px Segoe UI, Arial";
+  for (const line of view.bodyLines || []) {
+    const lines = drawWrappedText(ctx, line, layout.contentX + 18, cursorY, layout.contentW - 36, 18, 4);
+    cursorY += lines.length * 18 + 8;
+  }
+
+  if (view.objectives?.length) {
+    ctx.fillStyle = "#fff2d5";
+    ctx.font = "700 14px Segoe UI, Arial";
+    ctx.fillText("Objectives", layout.contentX + 18, cursorY + 6);
+    cursorY += 24;
+    ctx.font = "12px Segoe UI, Arial";
+    for (const objective of view.objectives) {
+      const complete = objective.current >= objective.required;
+      ctx.fillStyle = complete ? "#a4de8c" : "#d7e4cf";
+      const prefix = complete ? "[Done]" : "[ ]";
+      drawWrappedText(
+        ctx,
+        `${prefix} ${objective.label}: ${Math.min(objective.current, objective.required)}/${objective.required}`,
+        layout.contentX + 18,
+        cursorY,
+        layout.contentW - 36,
+        16,
+        2
+      );
+      cursorY += 18;
+    }
+    cursorY += 8;
+  }
+
+  if (view.quest?.rewards) {
+    ctx.fillStyle = "#fff2d5";
+    ctx.font = "700 14px Segoe UI, Arial";
+    ctx.fillText("Rewards", layout.contentX + 18, cursorY + 6);
+    cursorY += 24;
+    ctx.fillStyle = "#bdd6a5";
+    ctx.font = "12px Segoe UI, Arial";
+    const rewardLines = formatRewardLines(view.quest.rewards);
+    rewardLines.forEach((line) => {
+      const wrapped = drawWrappedText(ctx, line, layout.contentX + 18, cursorY, layout.contentW - 36, 16, 2);
+      cursorY += wrapped.length * 16 + 4;
+    });
+  }
+
+  buttons.forEach((button) => {
+    const selected = button.index === view.selectedActionIndex;
+    const focused = selected && view.focus === "actions";
+    ctx.fillStyle = "rgba(0, 0, 0, 0.42)";
+    ctx.fillRect(button.rect.x, button.rect.y, button.rect.w, button.rect.h);
+    ctx.fillStyle = focused ? "#22342d" : "#121920";
+    ctx.fillRect(button.rect.x + 2, button.rect.y + 2, button.rect.w - 4, button.rect.h - 4);
+    ctx.strokeStyle = focused ? button.accent : "#334551";
+    ctx.lineWidth = focused ? 2 : 1;
+    ctx.strokeRect(button.rect.x + 2, button.rect.y + 2, button.rect.w - 4, button.rect.h - 4);
+    ctx.fillStyle = "#fff6dd";
+    ctx.font = "700 13px Segoe UI, Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(button.label, button.rect.x + button.rect.w / 2, button.rect.y + 20);
+    ctx.textAlign = "left";
+  });
+
+  ctx.fillStyle = "#9db09a";
+  ctx.font = "11px Segoe UI, Arial";
+  drawWrappedText(
+    ctx,
+    "Use Arrow Keys to move through topics, Left/Right or Tab to switch focus, and Enter to confirm.",
+    layout.contentX + 18,
+    panel.y + panel.h - 26,
+    layout.contentW - 160,
+    14,
+    2
+  );
+}
+
+function drawStatusTag(ctx, x, y, label, color) {
+  const measure = getMeasureContext("700 11px Segoe UI, Arial");
+  const width = Math.ceil(measure.measureText(label).width) + 22;
+  ctx.fillStyle = "rgba(0, 0, 0, 0.46)";
+  ctx.fillRect(x, y, width, 24);
+  ctx.fillStyle = "#131a20";
+  ctx.fillRect(x + 2, y + 2, width - 4, 20);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 2, y + 2, width - 4, 20);
+  ctx.fillStyle = "#f6ead0";
+  ctx.font = "700 11px Segoe UI, Arial";
+  ctx.fillText(label, x + 11, y + 15);
+}
+
+function formatRewardLines(rewards) {
+  const lines = [];
+  const currency = [];
+  if (rewards.silver) currency.push(`${rewards.silver} silver`);
+  if (rewards.xp) currency.push(`${rewards.xp} XP`);
+  if (rewards.talentPoints) currency.push(`${rewards.talentPoints} talent point${rewards.talentPoints > 1 ? "s" : ""}`);
+  if (currency.length) lines.push(currency.join("  |  "));
+
+  for (const [itemId, amount] of Object.entries(rewards.items || {})) {
+    const item = ITEM_DEFS[itemId];
+    lines.push(`${amount}x ${item?.name || itemId}`);
+  }
+
+  return lines.length ? lines : ["No rewards."];
+}
+
+function getTopicStatusColor(status) {
+  switch (status) {
+    case "complete":
+      return "#f2c67d";
+    case "available":
+      return "#8fdc8b";
+    case "active":
+      return "#79b8ff";
+    case "service":
+      return "#d9bb73";
+    default:
+      return "#8da0aa";
+  }
+}
+
+function formatTopicStatus(status) {
+  switch (status) {
+    case "complete":
+      return "Ready to turn in";
+    case "available":
+      return "Available";
+    case "active":
+      return "In progress";
+    case "service":
+      return "Open vendor or altar";
+    default:
+      return "Conversation";
+  }
+}
+
+function getModeColor(mode) {
+  switch (mode) {
+    case "turn-in":
+      return "#e6c57e";
+    case "offer":
+      return "#8fdc8b";
+    case "progress":
+      return "#79b8ff";
+    case "service":
+      return "#d9bb73";
+    default:
+      return "#9bb0be";
+  }
+}
+
+function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight, maxLines = Infinity) {
+  const lines = toWrappedLines(ctx, text, maxWidth, maxLines);
+  lines.forEach((line, index) => {
+    ctx.fillText(line, x, y + index * lineHeight);
+  });
+  return lines;
+}
+
+function toWrappedLines(ctx, text, maxWidth, maxLines = Infinity) {
+  const raw = typeof text === "string" ? text.trim() : "";
+  if (!raw) return [];
+
+  const words = raw.split(/\s+/);
+  const lines = [];
+  let current = words.shift() || "";
+  let truncated = false;
+
+  for (const word of words) {
+    const candidate = `${current} ${word}`;
+    if (ctx.measureText(candidate).width <= maxWidth) {
+      current = candidate;
+      continue;
+    }
+
+    lines.push(current);
+    current = word;
+    if (lines.length >= maxLines - 1) {
+      truncated = true;
+      break;
+    }
+  }
+
+  if (truncated) {
+    let lastLine = current;
+    while (lastLine.length > 1 && ctx.measureText(`${lastLine}...`).width > maxWidth) {
+      lastLine = lastLine.slice(0, -1).trimEnd();
+    }
+    lines.push(`${lastLine}...`);
+  } else if (lines.length < maxLines) {
+    lines.push(current);
+  }
+
+  return lines.filter(Boolean).slice(0, maxLines);
+}
+
+function getMeasureContext(font) {
+  const ctx = TEXT_MEASURE_CTX;
+  if (!ctx) {
+    return {
+      measureText(value) {
+        return { width: String(value || "").length * 7 };
+      },
+    };
+  }
+  ctx.font = font;
+  return ctx;
+}
+
+function pointInRect(x, y, rect) {
+  return x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
+}

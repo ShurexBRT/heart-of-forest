@@ -358,14 +358,14 @@ export const SCENES = {
 };
 
 export const WORLD_MAP_LAYOUT = {
-  whispering_woods: { x: 0.18, y: 0.38 },
-  mossroot_marsh: { x: 0.4, y: 0.4 },
-  mossy_ruins: { x: 0.34, y: 0.18 },
-  emberpine_grove: { x: 0.58, y: 0.18 },
-  frostveil_tundra: { x: 0.56, y: 0.62 },
-  blighted_woods: { x: 0.7, y: 0.38 },
-  hollowheart_ruins: { x: 0.86, y: 0.5 },
-  sunken_reliquary: { x: 0.3, y: 0.06 },
-  starfall_sanctum: { x: 0.5, y: 0.04 },
-  chapel_of_tides: { x: 0.46, y: 0.64 },
+  whispering_woods: { x: 0.16, y: 0.64 },
+  mossroot_marsh: { x: 0.4, y: 0.64 },
+  mossy_ruins: { x: 0.18, y: 0.36 },
+  emberpine_grove: { x: 0.44, y: 0.36 },
+  frostveil_tundra: { x: 0.58, y: 0.22 },
+  blighted_woods: { x: 0.7, y: 0.5 },
+  hollowheart_ruins: { x: 0.88, y: 0.22 },
+  sunken_reliquary: { x: 0.18, y: 0.1 },
+  starfall_sanctum: { x: 0.88, y: 0.02 },
+  chapel_of_tides: { x: 0.4, y: 0.9 },
 };

@@ -55,13 +55,17 @@ import {
   transferSelectedStashEntry,
 } from "./systems/services.js";
 import {
+  activateQuestPanelSelection,
   advanceDialogue,
   beginInteraction,
+  closeQuestPanel,
   consumeStoryEvents,
   createStoryState,
   getActiveQuestEntries,
   getNearestInteractionTarget,
+  moveQuestPanelSelection,
   refreshQuestStates,
+  shiftQuestPanelFocus,
   updateQuestAvailability,
   updateStoryRuntime,
 } from "./systems/story.js";
@@ -93,7 +97,7 @@ const settings = loadSettings();
 const progression = createProgression(snapshot?.progression);
 const debugBoot = readDebugBootConfig();
 let state = createState(progression, snapshot, {
-  mode: debugBoot.mode || GAME_MODES.START_MENU,
+  mode: debugBoot.mode || (debugBoot.overlay ? GAME_MODES.PLAYING : GAME_MODES.START_MENU),
   settings,
 });
 applyDebugBootState(state, debugBoot);
@@ -202,11 +206,13 @@ function readDebugBootConfig() {
   return {
     mode: map[modeKey?.toLowerCase?.()] || null,
     forceGameOver: modeKey?.toLowerCase?.() === "gameover",
+    overlay: params.get("debugUi")?.toLowerCase?.() || null,
+    questNpc: params.get("debugNpc")?.toLowerCase?.() || null,
   };
 }
 
 function applyDebugBootState(nextState, debugConfig) {
-  if (!debugConfig?.mode) return;
+  if (!debugConfig?.mode && !debugConfig?.overlay) return;
 
   if (debugConfig.mode === GAME_MODES.OPTIONS) {
     nextState.frontend.optionsReturnMode = GAME_MODES.START_MENU;
@@ -216,6 +222,30 @@ function applyDebugBootState(nextState, debugConfig) {
     nextState.gameOver = true;
     nextState.mode = GAME_MODES.GAME_OVER;
     nextState.player.hp = 0;
+  }
+
+  if (debugConfig.overlay && nextState.mode === GAME_MODES.PLAYING) {
+    if (debugConfig.overlay === "questlog") {
+      nextState.ui.questLogOpen = true;
+    } else if (debugConfig.overlay === "worldmap") {
+      nextState.ui.worldMapOpen = true;
+    } else if (debugConfig.overlay === "talents") {
+      nextState.ui.menuOpen = true;
+      nextState.ui.activeTab = "talents";
+    } else if (debugConfig.overlay === "inventory") {
+      nextState.ui.menuOpen = true;
+      nextState.ui.activeTab = "inventory";
+    } else if (debugConfig.overlay === "character") {
+      nextState.ui.menuOpen = true;
+      nextState.ui.activeTab = "character";
+    } else if (debugConfig.overlay === "questpanel") {
+      nextState.story.questPanel = {
+        npcId: debugConfig.questNpc || "elder_rowan",
+        selectedTopicIndex: 0,
+        selectedActionIndex: 0,
+        focus: "topics",
+      };
+    }
   }
 }
 
@@ -298,7 +328,7 @@ function resumeGame() {
 }
 
 function pauseGame() {
-  if (state.gameOver || state.transition.active || state.story.dialogue) {
+  if (state.gameOver || state.transition.active || state.story.dialogue || state.story.questPanel) {
     return false;
   }
 
@@ -313,6 +343,7 @@ function returnToTitle(options = {}) {
   clearResetSaveArm();
   state.transition = createTransitionState();
   state.story.dialogue = null;
+  state.story.questPanel = null;
   state.story.focus = null;
   state.story.prompt = "";
   state.nearExit = null;
@@ -592,6 +623,7 @@ function applySceneState(sceneId, entryId, options = {}) {
   state.story.focus = null;
   state.story.prompt = "";
   state.story.dialogue = null;
+  state.story.questPanel = null;
   state.combatTimer = 0;
   closePanels();
   updateQuestAvailability(state);
@@ -767,7 +799,7 @@ function updateInteractionState() {
   refreshQuestStates(state);
   consumeStoryEvents(state);
 
-  if (state.story.dialogue) {
+  if (state.story.dialogue || state.story.questPanel) {
     state.story.focus = null;
     state.story.prompt = "";
     return;
@@ -777,6 +809,45 @@ function updateInteractionState() {
 }
 
 function handleInteractionInput() {
+  if (state.story.questPanel) {
+    if (wasPressed(input, "escape", "Escape")) {
+      closeQuestPanel(state);
+      return true;
+    }
+
+    if (
+      wasPressed(input, "tab", "Tab") ||
+      wasPressed(input, "arrowleft", "ArrowLeft") ||
+      wasPressed(input, "arrowright", "ArrowRight") ||
+      wasPressed(input, "a", "KeyA") ||
+      wasPressed(input, "d", "KeyD")
+    ) {
+      shiftQuestPanelFocus(state);
+      return true;
+    }
+
+    if (wasPressed(input, "arrowup", "ArrowUp") || wasPressed(input, "w", "KeyW")) {
+      moveQuestPanelSelection(state, -1);
+      return true;
+    }
+
+    if (wasPressed(input, "arrowdown", "ArrowDown") || wasPressed(input, "s", "KeyS")) {
+      moveQuestPanelSelection(state, 1);
+      return true;
+    }
+
+    if (
+      wasPressed(input, "e", "KeyE") ||
+      wasPressed(input, "enter", "Enter") ||
+      wasPressed(input, " ", "Space")
+    ) {
+      activateQuestPanelSelection(state);
+      return true;
+    }
+
+    return true;
+  }
+
   if (state.story.dialogue) {
     if (
       wasPressed(input, "e", "KeyE") ||
@@ -1273,6 +1344,15 @@ function handleMouseUiInput() {
     case "quest-select":
       state.ui.selectedQuestIndex = target.index;
       return true;
+    case "quest-panel-topic":
+      state.story.questPanel.selectedTopicIndex = target.index;
+      state.story.questPanel.selectedActionIndex = 0;
+      state.story.questPanel.focus = "topics";
+      return true;
+    case "quest-panel-action":
+      state.story.questPanel.selectedActionIndex = target.index;
+      state.story.questPanel.focus = "actions";
+      return activateQuestPanelSelection(state);
     case "inventory-select":
       state.ui.selectedInventoryIndex = target.index;
       return true;
@@ -1560,6 +1640,10 @@ function handleMenuNavigation() {
 function handleUiInput() {
   if (state.story.dialogue) {
     return false;
+  }
+
+  if (state.story.questPanel) {
+    return handleMouseUiInput();
   }
 
   if ((state.ui.questLogOpen || (!state.ui.menuOpen && !state.ui.questLogOpen)) && handleMouseUiInput()) {
