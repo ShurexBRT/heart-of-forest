@@ -1,4 +1,5 @@
 import { distance } from "../core/math.js";
+import { SERVICE_DEFS } from "../data/gameData.js";
 import { NPC_DEFS, QUEST_DEFS } from "../data/storyData.js";
 import {
   awardRewards,
@@ -528,10 +529,11 @@ function buildNpcTopics(progression, npcDef) {
   }));
 
   if (npcDef.serviceId) {
+    const service = SERVICE_DEFS[npcDef.serviceId];
     topics.push({
       kind: "service",
       serviceId: npcDef.serviceId,
-      title: "Services",
+      title: service?.title || "Services",
       status: "service",
     });
   }
@@ -562,11 +564,12 @@ function resolveQuestPanelTopicState(state, npcDef, topic) {
   }
 
   if (topic.kind === "service") {
+    const service = SERVICE_DEFS[topic.serviceId];
     return {
       mode: "service",
       quest: null,
-      title: "Village Services",
-      statusLabel: "Gossip",
+      title: service?.title || "Village Services",
+      statusLabel: service?.subtitle || "Services",
       bodyLines: getDialogueLines(npcDef, "after"),
       objectives: [],
       rewardSummary: "",

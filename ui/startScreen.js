@@ -232,6 +232,11 @@ export function getFrontendLayout(viewport, mode = GAME_MODES.START_MENU) {
   const compact = panelW < compactThreshold;
   const heroSplit = mode === GAME_MODES.START_MENU && !compact;
   const sidebarSplit = (mode === GAME_MODES.PAUSED || mode === GAME_MODES.GAME_OVER) && !compact;
+  const compactStartHeroH =
+    mode === GAME_MODES.START_MENU && !heroSplit
+      ? Math.max(108, Math.min(136, Math.floor(contentH * 0.19)))
+      : 0;
+  const compactStartHeroY = contentY + 96;
   const actionW = Math.min(heroSplit ? 346 : 352, contentW - (compact ? 0 : 24));
   const actionX = heroSplit ? contentX : sidebarSplit ? contentX : Math.round(panelX + panelW / 2 - actionW / 2);
   const heroX = heroSplit ? actionX + actionW + 28 : contentX;
@@ -254,14 +259,24 @@ export function getFrontendLayout(viewport, mode = GAME_MODES.START_MENU) {
     actionX,
     actionY:
       mode === GAME_MODES.START_MENU
-        ? contentY + (heroSplit ? 196 : 212)
+        ? heroSplit
+          ? contentY + 196
+          : compactStartHeroY + compactStartHeroH + 18
         : mode === GAME_MODES.PAUSED
           ? contentY + 162
           : mode === GAME_MODES.GAME_OVER
             ? contentY + 236
             : contentY + 138,
     actionW,
-    heroRect: { x: heroX, y: contentY + 72, w: heroW, h: Math.max(240, contentH - 120) },
+    heroRect: {
+      x: heroX,
+      y: mode === GAME_MODES.START_MENU && !heroSplit ? compactStartHeroY : contentY + 72,
+      w: heroW,
+      h:
+        mode === GAME_MODES.START_MENU && !heroSplit
+          ? compactStartHeroH
+          : Math.max(240, contentH - 120),
+    },
     sideRect: { x: sideX, y: contentY + 124, w: sideW, h: Math.max(220, contentH - 148) },
   };
 }
@@ -306,8 +321,16 @@ function getOptionEntries(state, layout) {
   return OPTIONS_ACTIONS.map((action) => {
     const description = getOptionDescription(action, state.frontend.resetSaveArmed);
     const metrics = getOptionControlMetrics(action, splitLayout.leftW);
-    const descriptionLines = toWrappedLines(measure, description, metrics.textWidth, 4);
-    const height = Math.max(metrics.stacked ? 92 : 74, 34 + descriptionLines.length * 14 + (metrics.stacked ? 28 : 0));
+    const descriptionLines = toWrappedLines(
+      measure,
+      description,
+      metrics.textWidth,
+      splitLayout.compact ? 2 : 4
+    );
+    const height = Math.max(
+      metrics.stacked ? (splitLayout.compact ? 74 : 92) : splitLayout.compact ? 64 : 74,
+      34 + descriptionLines.length * 14 + (metrics.stacked ? 26 : 0)
+    );
     const entry = {
       action,
       label: formatActionLabel(action),
@@ -371,23 +394,38 @@ function drawOptionsMenu(ctx, state, layout, theme) {
   const splitLayout = getOptionsSplitLayout(layout);
   const entries = getFrontendEntries(state);
 
-  drawPanelBlock(ctx, splitLayout.leftX, splitLayout.leftY - 42, splitLayout.leftW, layout.panelH - 190, theme, "Field Rites");
+  drawPanelBlock(
+    ctx,
+    splitLayout.leftX,
+    splitLayout.leftY - 42,
+    splitLayout.leftW,
+    splitLayout.leftBlockH,
+    theme,
+    "Field Rites"
+  );
   for (const entry of entries) {
     drawOptionRow(ctx, entry, state.settings, state.frontend, theme);
   }
 
-  drawGuidePanel(ctx, splitLayout.rightX, splitLayout.rightY, splitLayout.rightW, splitLayout.rightH, theme);
-  drawFooterSummary(
-    ctx,
-    layout,
-    getFooterMessage(
-      state,
-      state.frontend.optionsReturnMode === GAME_MODES.PAUSED
-        ? "Back returns to Pause."
-        : "Back returns to the title screen."
-    ),
-    getFooterColor(state, "#9cb29f")
-  );
+  if (splitLayout.showGuide) {
+    drawGuidePanel(ctx, splitLayout.rightX, splitLayout.rightY, splitLayout.rightW, splitLayout.rightH, theme);
+  }
+
+  if (!splitLayout.compact || !splitLayout.showGuide) {
+    drawFooterSummary(
+      ctx,
+      layout,
+      splitLayout.showGuide
+        ? getFooterMessage(
+            state,
+            state.frontend.optionsReturnMode === GAME_MODES.PAUSED
+              ? "Back returns to Pause."
+              : "Back returns to the title screen."
+          )
+        : "WASD move  |  Space dash  |  LMB staff  |  RMB bolt  |  Q quest log  |  Esc back",
+      getFooterColor(state, "#9cb29f")
+    );
+  }
 }
 
 function drawPauseMenu(ctx, state, layout, theme) {
@@ -501,6 +539,65 @@ function drawHeader(ctx, layout, theme, copy) {
 function drawStartHero(ctx, layout, theme) {
   const hero = layout.heroRect;
   drawPanelBlock(ctx, hero.x, hero.y, hero.w, hero.h, theme, "Ayla of the White Hood");
+
+  if (!layout.heroSplit) {
+    const portrait = getAylaPortrait();
+    const textX = hero.x + 18;
+    const textW = Math.max(140, hero.w - 158);
+    const portraitBox = {
+      x: hero.x + hero.w - 126,
+      y: hero.y + 14,
+      w: 102,
+      h: hero.h - 26,
+    };
+
+    const glow = ctx.createRadialGradient(
+      portraitBox.x + portraitBox.w * 0.54,
+      portraitBox.y + portraitBox.h * 0.48,
+      6,
+      portraitBox.x + portraitBox.w * 0.54,
+      portraitBox.y + portraitBox.h * 0.48,
+      76
+    );
+    glow.addColorStop(0, "rgba(143, 203, 131, 0.22)");
+    glow.addColorStop(1, "rgba(16, 25, 29, 0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(hero.x + 6, hero.y + 8, hero.w - 12, hero.h - 16);
+
+    if (portrait) {
+      drawCanvasPortrait(ctx, portrait, portraitBox);
+    } else {
+      const fallback = getActorSprite(AYLA_PALETTE, "right", 1, "ayla", "cast");
+      drawPixelSprite(ctx, fallback, portraitBox.x + portraitBox.w * 0.52, portraitBox.y + portraitBox.h * 0.9, {
+        scale: 2.4,
+        alpha: 0.98,
+      });
+    }
+
+    ctx.fillStyle = "#f0e5cd";
+    ctx.font = "700 13px Segoe UI, Arial";
+    drawWrappedText(
+      ctx,
+      "White Hood warden of the village road and shrine line.",
+      textX,
+      hero.y + 42,
+      textW,
+      16,
+      3
+    );
+    ctx.fillStyle = "#b9cab8";
+    ctx.font = "11px Segoe UI, Arial";
+    drawWrappedText(
+      ctx,
+      "Staff, roots, spirit bolts, and a pulse that blooms outward.",
+      textX,
+      hero.y + 76,
+      textW,
+      14,
+      3
+    );
+    return;
+  }
 
   const artX = hero.x + 22;
   const artY = hero.y + 48;
@@ -655,6 +752,21 @@ function drawGameOverMemorial(ctx, rectData, state, theme) {
 function drawGuidePanel(ctx, x, y, w, h, theme) {
   drawPanelBlock(ctx, x, y, w, h, theme, "Field Guide");
 
+  if (w < 280 || h < 170) {
+    const compactLines = [
+      "WASD move  |  Space dash  |  E interact",
+      "LMB staff  |  RMB bolt  |  1 root  |  R pulse",
+      "Q quest log  |  C / I / T views  |  2-4 bound items",
+      "Esc back  |  Hold E on gates to confirm travel",
+    ];
+    ctx.fillStyle = "#d7e2d4";
+    ctx.font = "11px Segoe UI, Arial";
+    compactLines.forEach((line, index) => {
+      drawWrappedText(ctx, line, x + 18, y + 30 + index * 22, w - 36, 14, 2);
+    });
+    return;
+  }
+
   let cursorY = y + 34;
   const sectionGap = 10;
   const cardW = w - 24;
@@ -749,7 +861,7 @@ function drawOptionRow(ctx, entry, settings, frontend = null, theme) {
   ctx.strokeRect(bounds.x + 3, bounds.y + 3, bounds.w - 6, bounds.h - 6);
 
   ctx.fillStyle = "#f3ead2";
-  ctx.font = "700 17px Segoe UI, Arial";
+  ctx.font = bounds.w < 460 ? "700 15px Segoe UI, Arial" : "700 17px Segoe UI, Arial";
   ctx.fillText(entry.label, textX, textY);
 
   ctx.fillStyle = "#b9c8c0";
@@ -836,21 +948,25 @@ function getOptionsSplitLayout(layout) {
   const leftW = compact ? layout.contentW : Math.min(452, layout.contentW * 0.49);
   const rightX = compact ? layout.contentX : layout.contentX + leftW + 28;
   const rightW = compact ? layout.contentW : layout.contentW - leftW - 28;
-  const leftY = layout.contentY + 148;
-  const rightY = compact ? leftY + 418 : layout.contentY + 128;
+  const leftY = compact ? layout.contentY + 112 : layout.contentY + 148;
+  const leftBlockH = compact ? Math.max(344, layout.panelH - 182) : layout.panelH - 190;
+  const rightY = compact ? leftY + leftBlockH + 12 : layout.contentY + 128;
   const rightH = compact
-    ? Math.max(140, layout.panelY + layout.panelH - rightY - 52)
+    ? Math.max(102, layout.panelY + layout.panelH - rightY - 44)
     : layout.panelH - 190;
 
   return {
+    compact,
+    showGuide: !compact,
     leftX: layout.contentX,
     leftY,
     leftW,
+    leftBlockH,
     rightX,
     rightY,
     rightW,
     rightH,
-    gap: 14,
+    gap: compact ? 8 : 14,
   };
 }
 

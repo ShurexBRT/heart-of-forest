@@ -60,13 +60,21 @@ function getHudAbilitySpecs() {
 }
 
 export function drawHud(ctx, state, abilityInfo) {
-  drawSceneInfo(ctx, state);
-  drawBossBar(ctx, state);
-  drawQuestTracker(ctx, state);
-  drawBottomHud(ctx, state, abilityInfo);
+  const majorOverlayOpen = Boolean(
+    state.story.questPanel || state.ui.questLogOpen || state.ui.menuOpen || state.ui.worldMapOpen
+  );
+
+  if (!majorOverlayOpen) {
+    drawSceneInfo(ctx, state);
+    drawBossBar(ctx, state);
+    drawQuestTracker(ctx, state);
+    drawBottomHud(ctx, state, abilityInfo);
+  }
   drawBanner(ctx, state);
-  drawInteractionPrompt(ctx, state);
-  drawExitPrompt(ctx, state);
+  if (!majorOverlayOpen) {
+    drawInteractionPrompt(ctx, state);
+    drawExitPrompt(ctx, state);
+  }
   drawToast(ctx, state);
   if (state.story.questPanel) renderQuestPanel(ctx, state);
   if (state.ui.questLogOpen) drawQuestLogOverlay(ctx, state);
@@ -602,7 +610,7 @@ function drawCharacterOverlay(ctx, state) {
   const { x, y, width, height } = frame;
   const portrait = getAylaPortrait();
   const bonuses = getPlayerBonuses(state.progression);
-  const helpWidth = Math.min(280, Math.max(180, width * 0.32));
+  const helpWidth = Math.min(frame.compact ? 210 : 280, Math.max(180, width * 0.32));
   const helpX = x + width - helpWidth - 18;
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.86)";
@@ -610,7 +618,7 @@ function drawCharacterOverlay(ctx, state) {
   ctx.fillStyle = "#10161d";
   ctx.fillRect(x + 6, y + 6, width - 12, height - 12);
   ctx.fillStyle = "#f6ead0";
-  ctx.font = "700 24px Segoe UI, Arial";
+  ctx.font = frame.compact ? "700 20px Segoe UI, Arial" : "700 24px Segoe UI, Arial";
   ctx.fillText("Ayla", x + 18, y + 30);
   ctx.font = "12px Segoe UI, Arial";
   ctx.fillStyle = "#d7e4cf";
@@ -626,7 +634,7 @@ function drawCharacterOverlay(ctx, state) {
 
   drawTabs(ctx, state, x + 18, y + 48);
 
-  if (portrait) {
+  if (portrait && !frame.compact) {
     ctx.drawImage(portrait, x + 18, y + 86, 176, 200);
   }
 
@@ -653,13 +661,20 @@ function drawTabs(ctx, state, x, y) {
     tabs.push(["services", "Services"]);
   }
 
+  const availableWidth = Math.max(280, state.viewport.width - x * 2 - 10);
+  const gap = availableWidth < 520 ? 10 : 10;
+  const tabW = Math.max(
+    86,
+    Math.min(116, Math.floor((availableWidth - gap * (tabs.length - 1)) / tabs.length))
+  );
+
   tabs.forEach(([id, label], index) => {
-    const tx = x + index * 126;
+    const tx = x + index * (tabW + gap);
     const active = state.ui.activeTab === id;
     ctx.fillStyle = active ? "#2a3342" : "#171d26";
-    ctx.fillRect(tx, y, 116, 28);
+    ctx.fillRect(tx, y, tabW, 28);
     ctx.strokeStyle = active ? "#79b8ff" : "#2d3848";
-    ctx.strokeRect(tx, y, 116, 28);
+    ctx.strokeRect(tx, y, tabW, 28);
     ctx.fillStyle = active ? "#fff3d8" : "#cdd9d4";
     ctx.font = "700 12px Segoe UI, Arial";
     ctx.fillText(label, tx + 16, y + 18);
@@ -886,7 +901,14 @@ function drawTalentTab(ctx, state, x, y, width, height) {
     ctx.fillText(`${row.talent.tree}  |  ${row.talent.name}`, row.rect.x + 12, row.rect.y + 17);
     ctx.fillStyle = "#cfd9d3";
     ctx.font = "11px Segoe UI, Arial";
-    ctx.fillText(shorten(row.talent.description, Math.max(26, Math.floor(panel.listWidth / 11))), row.rect.x + 12, row.rect.y + 34);
+    ctx.fillText(
+      shorten(
+        row.talent.description,
+        panel.compact ? Math.max(34, Math.floor(panel.listWidth / 8.4)) : Math.max(26, Math.floor(panel.listWidth / 11))
+      ),
+      row.rect.x + 12,
+      row.rect.y + 34
+    );
     ctx.textAlign = "right";
     ctx.fillStyle = unlocked ? "#9ce1a3" : state.progression.talentPoints > 0 ? "#f1d786" : "#8692a3";
     ctx.fillText(unlocked ? "Unlocked" : "Available", row.rect.x + row.rect.w - 12, row.rect.y + 25);
@@ -908,7 +930,15 @@ function drawTalentTab(ctx, state, x, y, width, height) {
   ctx.fillText(detail.tree.toUpperCase(), panel.detailRect.x + 14, panel.detailRect.y + 40);
   ctx.fillStyle = "#d7e4cf";
   ctx.font = "12px Segoe UI, Arial";
-  drawWrappedText(ctx, detail.description, panel.detailRect.x + 14, panel.detailRect.y + 62, panel.detailRect.w - 28, 18, 5);
+  drawWrappedText(
+    ctx,
+    detail.description,
+    panel.detailRect.x + 14,
+    panel.detailRect.y + 62,
+    panel.detailRect.w - 28,
+    18,
+    panel.compact ? 6 : 5
+  );
 
   const detailUnlocked = Boolean(state.progression.talents[detail.id]);
   ctx.fillStyle = detailUnlocked ? "#9ce1a3" : state.progression.talentPoints > 0 ? "#f1d786" : "#8692a3";
@@ -1621,10 +1651,18 @@ function makeOptionButtons(x, y, options, currentValue, action, accent = "#79b8f
 }
 
 function getCharacterOverlayFrame(state) {
-  const marginX = Math.max(28, Math.min(68, Math.floor(state.viewport.width * 0.05)));
-  const marginTop = Math.max(24, Math.min(70, Math.floor(state.viewport.height * 0.06)));
-  const marginBottom = Math.max(44, Math.min(150, Math.floor(state.viewport.height * 0.12)));
+  const compact = state.viewport.width < 760 || state.viewport.height < 680;
+  const marginX = compact
+    ? Math.max(14, Math.min(28, Math.floor(state.viewport.width * 0.035)))
+    : Math.max(28, Math.min(68, Math.floor(state.viewport.width * 0.05)));
+  const marginTop = compact
+    ? Math.max(14, Math.min(26, Math.floor(state.viewport.height * 0.03)))
+    : Math.max(24, Math.min(70, Math.floor(state.viewport.height * 0.06)));
+  const marginBottom = compact
+    ? Math.max(18, Math.min(28, Math.floor(state.viewport.height * 0.04)))
+    : Math.max(44, Math.min(150, Math.floor(state.viewport.height * 0.12)));
   return {
+    compact,
     x: marginX,
     y: marginTop,
     width: state.viewport.width - marginX * 2,
@@ -1768,24 +1806,41 @@ function getCharacterPanelData(state, frame) {
 }
 
 function getTalentPanelData(state, frame) {
-  const listX = frame.x + 220;
-  const headerY = frame.y + 104;
-  const detailW = Math.min(300, Math.max(252, Math.floor(frame.width * 0.28)));
-  const listWidth = Math.max(300, frame.width - 286 - detailW);
-  const rowHeight = 48;
-  const availableHeight = Math.max(220, frame.height - 178);
-  const visibleCount = Math.max(5, Math.floor(availableHeight / rowHeight));
+  const compact = frame.compact || frame.width < 760;
+  const listX = compact ? frame.x + 18 : frame.x + 220;
+  const headerY = compact ? frame.y + 96 : frame.y + 104;
+  const rowHeight = compact ? 44 : 48;
+  const listWidth = compact
+    ? frame.width - 36
+    : Math.max(300, frame.width - 286 - Math.min(300, Math.max(252, Math.floor(frame.width * 0.28))));
+  const detailW = compact
+    ? listWidth
+    : Math.min(300, Math.max(252, Math.floor(frame.width * 0.28)));
+  const visibleCount = compact
+    ? Math.max(4, Math.min(6, Math.floor(Math.max(176, frame.height - 320) / rowHeight)))
+    : Math.max(5, Math.floor(Math.max(220, frame.height - 178) / rowHeight));
   const maxStart = Math.max(0, TALENT_DEFS.length - visibleCount);
-  const startIndex = Math.max(0, Math.min(maxStart, state.ui.selectedTalentIndex - Math.floor(visibleCount / 2)));
+  const startIndex = Math.max(
+    0,
+    Math.min(maxStart, state.ui.selectedTalentIndex - Math.floor(visibleCount / 2))
+  );
   const visibleTalents = TALENT_DEFS.slice(startIndex, startIndex + visibleCount);
   const rows = visibleTalents.map((talent, offset) => ({
     talent,
     index: startIndex + offset,
-    rect: rect(listX, frame.y + 124 + offset * rowHeight, listWidth, 42),
+    rect: rect(listX, frame.y + 124 + offset * rowHeight, listWidth, compact ? 38 : 42),
   }));
   const selectedTalent = TALENT_DEFS[state.ui.selectedTalentIndex] || null;
-  const detailRect = rect(listX + listWidth + 20, frame.y + 124, detailW, Math.max(252, frame.height - 162));
+  const detailRect = compact
+    ? rect(
+        listX,
+        frame.y + 136 + visibleCount * rowHeight,
+        detailW,
+        Math.max(150, frame.height - (146 + visibleCount * rowHeight))
+      )
+    : rect(listX + listWidth + 20, frame.y + 124, detailW, Math.max(252, frame.height - 162));
   return {
+    compact,
     rows,
     listX,
     listWidth,

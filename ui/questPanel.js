@@ -72,51 +72,88 @@ function getQuestPanelGeometry(state) {
   const view = getQuestPanelView(state);
   if (!view) return null;
 
-  const panelW = Math.min(980, state.viewport.width - 88);
-  const panelH = Math.min(652, state.viewport.height - 92);
+  const compact = state.viewport.width < 720 || state.viewport.height < 640;
+  const panelW = Math.min(compact ? 640 : 980, state.viewport.width - (compact ? 28 : 88));
+  const panelH = Math.min(compact ? 700 : 652, state.viewport.height - (compact ? 28 : 92));
   const panel = {
     x: Math.round(state.viewport.width / 2 - panelW / 2),
     y: Math.round(state.viewport.height / 2 - panelH / 2),
     w: panelW,
     h: panelH,
   };
-  const sidebarW = panelW < 840 ? 230 : 246;
-  const layout = {
-    sidebarX: panel.x + 24,
-    sidebarY: panel.y + 84,
-    sidebarW,
-    sidebarH: panel.h - 120,
-    contentX: panel.x + sidebarW + 42,
-    contentY: panel.y + 86,
-    contentW: panel.w - sidebarW - 68,
-    contentH: panel.h - 124,
-  };
+  const sidebarW = compact ? panel.w - 36 : panelW < 840 ? 230 : 246;
+  const sidebarH = compact ? Math.min(156, 48 + view.topics.length * 46) : panel.h - 120;
+  const layout = compact
+    ? {
+        compact,
+        sidebarX: panel.x + 18,
+        sidebarY: panel.y + 78,
+        sidebarW,
+        sidebarH,
+        contentX: panel.x + 18,
+        contentY: panel.y + 90 + sidebarH,
+        contentW: panel.w - 36,
+        contentH: panel.h - sidebarH - 146,
+      }
+    : {
+        compact,
+        sidebarX: panel.x + 24,
+        sidebarY: panel.y + 84,
+        sidebarW,
+        sidebarH,
+        contentX: panel.x + sidebarW + 42,
+        contentY: panel.y + 86,
+        contentW: panel.w - sidebarW - 68,
+        contentH: panel.h - 124,
+      };
 
   const topics = view.topics.map((topic, index) => ({
     ...topic,
     index,
     rect: {
       x: layout.sidebarX + 12,
-      y: layout.sidebarY + 42 + index * 52,
+      y: layout.sidebarY + 42 + index * (compact ? 46 : 52),
       w: layout.sidebarW - 24,
-      h: 42,
+      h: compact ? 38 : 42,
     },
   }));
 
-  const buttonMeasure = getMeasureContext("700 13px Segoe UI, Arial");
-  let cursorX = layout.contentX + layout.contentW;
-  const buttonY = panel.y + panel.h - 62;
-  const buttons = [...view.actions].reverse().map((action, reverseIndex) => {
-    const width = Math.max(132, Math.ceil(buttonMeasure.measureText(action.label).width) + 34);
-    cursorX -= width;
-    const button = {
+  let buttons;
+  const buttonY = panel.y + panel.h - 56;
+  if (compact) {
+    const buttonGap = 10;
+    const buttonW = Math.max(
+      104,
+      Math.floor((layout.contentW - buttonGap * Math.max(0, view.actions.length - 1)) / Math.max(1, view.actions.length))
+    );
+    buttons = view.actions.map((action, index) => ({
       ...action,
-      index: view.actions.length - reverseIndex - 1,
-      rect: { x: cursorX, y: buttonY, w: width, h: 30 },
-    };
-    cursorX -= 12;
-    return button;
-  }).reverse();
+      index,
+      rect: {
+        x: layout.contentX + index * (buttonW + buttonGap),
+        y: buttonY,
+        w: buttonW,
+        h: 30,
+      },
+    }));
+  } else {
+    const buttonMeasure = getMeasureContext("700 13px Segoe UI, Arial");
+    let cursorX = layout.contentX + layout.contentW;
+    buttons = [...view.actions]
+      .reverse()
+      .map((action, reverseIndex) => {
+        const width = Math.max(132, Math.ceil(buttonMeasure.measureText(action.label).width) + 34);
+        cursorX -= width;
+        const button = {
+          ...action,
+          index: view.actions.length - reverseIndex - 1,
+          rect: { x: cursorX, y: buttonY, w: width, h: 30 },
+        };
+        cursorX -= 12;
+        return button;
+      })
+      .reverse();
+  }
 
   return { panel, layout, view, topics, buttons };
 }
@@ -145,16 +182,21 @@ function drawSidebar(ctx, geometry) {
     ctx.fillStyle = getTopicStatusColor(topic.status);
     ctx.fillRect(topic.rect.x + 10, topic.rect.y + 14, 9, 9);
     ctx.fillStyle = "#fff6d8";
-    ctx.font = "700 12px Segoe UI, Arial";
+    ctx.font = layout.compact ? "700 11px Segoe UI, Arial" : "700 12px Segoe UI, Arial";
     ctx.fillText(topic.title, topic.rect.x + 28, topic.rect.y + 18);
     ctx.fillStyle = "#b7c5cf";
     ctx.font = "11px Segoe UI, Arial";
-    ctx.fillText(formatTopicStatus(topic.status), topic.rect.x + 28, topic.rect.y + 33);
+    ctx.fillText(
+      formatTopicStatus(topic.status),
+      topic.rect.x + 28,
+      topic.rect.y + (layout.compact ? 31 : 33)
+    );
   });
 }
 
 function drawContent(ctx, geometry) {
   const { panel, layout, view, buttons } = geometry;
+  const contentLimitY = buttons.length > 0 ? buttons[0].rect.y - 18 : panel.y + panel.h - 26;
   ctx.fillStyle = "rgba(0, 0, 0, 0.26)";
   ctx.fillRect(layout.contentX, layout.contentY, layout.contentW, layout.contentH);
   ctx.fillStyle = "#10171e";
@@ -165,15 +207,31 @@ function drawContent(ctx, geometry) {
   drawStatusTag(ctx, layout.contentX + 18, layout.contentY + 18, view.statusLabel, getModeColor(view.mode));
 
   ctx.fillStyle = "#f4ead3";
-  ctx.font = "700 28px Georgia, serif";
-  drawWrappedText(ctx, view.title, layout.contentX + 18, layout.contentY + 64, layout.contentW - 36, 30, 2);
+  ctx.font = layout.compact ? "700 22px Georgia, serif" : "700 28px Georgia, serif";
+  drawWrappedText(
+    ctx,
+    view.title,
+    layout.contentX + 18,
+    layout.contentY + (layout.compact ? 56 : 64),
+    layout.contentW - 36,
+    layout.compact ? 24 : 30,
+    layout.compact ? 3 : 2
+  );
 
-  let cursorY = layout.contentY + 92;
+  let cursorY = layout.contentY + (layout.compact ? 88 : 92);
   ctx.fillStyle = "#d7e4cf";
-  ctx.font = "13px Segoe UI, Arial";
+  ctx.font = layout.compact ? "12px Segoe UI, Arial" : "13px Segoe UI, Arial";
   for (const line of view.bodyLines || []) {
-    const lines = drawWrappedText(ctx, line, layout.contentX + 18, cursorY, layout.contentW - 36, 18, 4);
-    cursorY += lines.length * 18 + 8;
+    const lines = drawWrappedText(
+      ctx,
+      line,
+      layout.contentX + 18,
+      cursorY,
+      layout.contentW - 36,
+      layout.compact ? 17 : 18,
+      4
+    );
+    cursorY += lines.length * (layout.compact ? 17 : 18) + 8;
   }
 
   if (view.objectives?.length) {
@@ -206,11 +264,22 @@ function drawContent(ctx, geometry) {
     ctx.fillText("Rewards", layout.contentX + 18, cursorY + 6);
     cursorY += 24;
     ctx.fillStyle = "#bdd6a5";
-    ctx.font = "12px Segoe UI, Arial";
-    const rewardLines = formatRewardLines(view.quest.rewards);
+    ctx.font = layout.compact ? "11px Segoe UI, Arial" : "12px Segoe UI, Arial";
+    const rewardLines = layout.compact
+      ? formatCompactRewardLines(view.quest.rewards)
+      : formatRewardLines(view.quest.rewards);
     rewardLines.forEach((line) => {
-      const wrapped = drawWrappedText(ctx, line, layout.contentX + 18, cursorY, layout.contentW - 36, 16, 2);
-      cursorY += wrapped.length * 16 + 4;
+      if (cursorY + 16 > contentLimitY) return;
+      const wrapped = drawWrappedText(
+        ctx,
+        line,
+        layout.contentX + 18,
+        cursorY,
+        layout.contentW - 36,
+        layout.compact ? 14 : 16,
+        2
+      );
+      cursorY += wrapped.length * (layout.compact ? 14 : 16) + 4;
     });
   }
 
@@ -231,17 +300,19 @@ function drawContent(ctx, geometry) {
     ctx.textAlign = "left";
   });
 
-  ctx.fillStyle = "#9db09a";
-  ctx.font = "11px Segoe UI, Arial";
-  drawWrappedText(
-    ctx,
-    "Use Arrow Keys to move through topics, Left/Right or Tab to switch focus, and Enter to confirm.",
-    layout.contentX + 18,
-    panel.y + panel.h - 26,
-    layout.contentW - 160,
-    14,
-    2
-  );
+  if (!layout.compact) {
+    ctx.fillStyle = "#9db09a";
+    ctx.font = "11px Segoe UI, Arial";
+    drawWrappedText(
+      ctx,
+      "Use Arrow Keys to move through topics, Left/Right or Tab to switch focus, and Enter to confirm.",
+      layout.contentX + 18,
+      panel.y + panel.h - 26,
+      layout.contentW - 160,
+      14,
+      2
+    );
+  }
 }
 
 function drawStatusTag(ctx, x, y, label, color) {
@@ -270,6 +341,32 @@ function formatRewardLines(rewards) {
   for (const [itemId, amount] of Object.entries(rewards.items || {})) {
     const item = ITEM_DEFS[itemId];
     lines.push(`${amount}x ${item?.name || itemId}`);
+  }
+
+  return lines.length ? lines : ["No rewards."];
+}
+
+function formatCompactRewardLines(rewards) {
+  const lines = [];
+  const currency = [];
+  if (rewards.silver) currency.push(`${rewards.silver} silver`);
+  if (rewards.xp) currency.push(`${rewards.xp} XP`);
+  if (rewards.talentPoints) currency.push(`${rewards.talentPoints} talent point${rewards.talentPoints > 1 ? "s" : ""}`);
+  if (currency.length) {
+    lines.push(currency.join("  |  "));
+  }
+
+  const itemLines = Object.entries(rewards.items || {}).map(([itemId, amount]) => {
+    const item = ITEM_DEFS[itemId];
+    return `${amount}x ${item?.name || itemId}`;
+  });
+
+  if (itemLines.length > 0) {
+    const visible = itemLines.slice(0, 2);
+    if (itemLines.length > 2) {
+      visible.push(`+${itemLines.length - 2} more`);
+    }
+    lines.push(visible.join("  |  "));
   }
 
   return lines.length ? lines : ["No rewards."];
