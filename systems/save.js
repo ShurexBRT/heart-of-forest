@@ -1,8 +1,9 @@
 import { INITIAL_SCENE_ID, SCENES } from "../data/sceneNetwork.js";
+import { createClock, serializeClock } from "./clock.js";
 
 const SAVE_KEY = "heart-of-forest-save";
 const SETTINGS_KEY = "heart-of-forest-settings";
-const SAVE_VERSION = "0.1.0";
+const SAVE_VERSION = "0.2.0";
 let invalidSaveWarned = false;
 
 export function getDefaultSettings() {
@@ -45,6 +46,7 @@ export function createDefaultSave() {
       actionSlots: [],
       silver: 0,
     },
+    calendar: serializeClock(createClock()),
     progression: null,
     ui: null,
     runtimeSnapshot: null,
@@ -197,6 +199,7 @@ function migrateLegacySnapshot(raw) {
       silver: Math.max(0, integerOr(progression.silver, 0)),
     },
     progression,
+    calendar: serializeClock(createClock()),
     ui: raw.ui || null,
     runtimeSnapshot: {
       progression,
@@ -204,6 +207,7 @@ function migrateLegacySnapshot(raw) {
       currentSceneId,
       currentEntryId: raw.currentEntryId || "default",
       playerVitals: raw.playerVitals || null,
+      clock: serializeClock(createClock()),
       ui: raw.ui || null,
     },
     savedAt: Date.now(),
@@ -217,6 +221,9 @@ function normalizeSave(rawSave) {
   const player = normalizePlayer(rawSave.player, defaults.player);
   const world = normalizeWorld(rawSave.world, defaults.world);
   const inventory = normalizeInventory(rawSave.inventory, defaults.inventory);
+  const calendar = serializeClock(
+    createClock(rawSave.calendar || rawSave.runtimeSnapshot?.clock || defaults.calendar)
+  );
 
   if (!player || !world || !inventory) return null;
 
@@ -225,9 +232,17 @@ function normalizeSave(rawSave) {
     player,
     world,
     inventory,
+    calendar,
     progression: isObject(rawSave.progression) ? rawSave.progression : null,
     ui: isObject(rawSave.ui) ? rawSave.ui : null,
-    runtimeSnapshot: normalizeRuntimeSnapshot(rawSave.runtimeSnapshot, player, world, inventory, rawSave),
+    runtimeSnapshot: normalizeRuntimeSnapshot(
+      rawSave.runtimeSnapshot,
+      player,
+      world,
+      inventory,
+      calendar,
+      rawSave
+    ),
     savedAt: integerOr(rawSave.savedAt, Date.now()),
   };
 }
@@ -277,9 +292,12 @@ function normalizeInventory(rawInventory, defaults) {
   };
 }
 
-function normalizeRuntimeSnapshot(runtimeSnapshot, player, world, inventory, rawSave) {
+function normalizeRuntimeSnapshot(runtimeSnapshot, player, world, inventory, calendar, rawSave) {
   if (isObject(runtimeSnapshot)) {
-    return runtimeSnapshot;
+    return {
+      ...runtimeSnapshot,
+      clock: serializeClock(createClock(runtimeSnapshot.clock || calendar)),
+    };
   }
 
   const progression = isObject(rawSave.progression) ? rawSave.progression : {
@@ -305,6 +323,7 @@ function normalizeRuntimeSnapshot(runtimeSnapshot, player, world, inventory, raw
       maxHp: player.maxHp,
       maxSpirit: player.maxSpirit,
     },
+    clock: serializeClock(createClock(calendar)),
     ui: isObject(rawSave.ui) ? rawSave.ui : null,
   };
 }

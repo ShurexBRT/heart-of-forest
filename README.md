@@ -10,6 +10,7 @@ Trenutni fokus je na malom, povezanom ARPG vertical slice-u:
 - multi-step quest chains sa vise mini-dungeon boss zavrsnica
 - loot, affix, buyback i local save loop
 - Enemy & Biome Identity pass za jaci encounter identitet po zoni
+- persistent day clock foundation for future homestead, farming, and NPC schedules
 
 ## Controls
 
@@ -88,6 +89,7 @@ Trenutni fokus je na malom, povezanom ARPG vertical slice-u:
 - action slots on `2-4`
 - XP, level-ups, talent points, and talent unlocks
 - local save via `localStorage`
+- persistent `Day / Time` clock that pauses in menus and conversations
 - quest log, character sheet, inventory, and talents UI
 - clickable character / inventory / talent / service panels with hover tooltips
 - service UI for:

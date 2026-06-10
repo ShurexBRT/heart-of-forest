@@ -21,6 +21,13 @@ import {
   updateAudio,
 } from "./systems/audio.js";
 import {
+  createClock,
+  serializeClock,
+  setClockTime,
+  startNextDay,
+  updateClock,
+} from "./systems/clock.js";
+import {
   handlePlayerAbilities,
   markCombat,
   resolveEnemyCrowding,
@@ -134,6 +141,7 @@ function createState(currentProgression, saveData = null, runtime = {}) {
     sceneProgress,
     story: createStoryState(),
     storyEvents: [],
+    clock: createClock(saveData?.clock),
     nearExit: null,
     exitCharge: 0,
     transition: createTransitionState(),
@@ -369,6 +377,7 @@ function buildRuntimeSnapshot() {
     currentSceneId: state.currentSceneId,
     currentEntryId: state.currentEntryId,
     playerVitals: capturePlayerVitals(state.player),
+    clock: serializeClock(state.clock),
     ui: {
       questLogOpen: false,
       menuOpen: false,
@@ -427,7 +436,7 @@ function buildSaveData() {
   const runtimeSnapshot = buildRuntimeSnapshot();
 
   return {
-    version: "0.1.0",
+    version: "0.2.0",
     player: {
       ...runtimeSnapshot.playerVitals,
       level: state.progression.level,
@@ -454,6 +463,7 @@ function buildSaveData() {
       actionSlots: state.progression.actionSlots,
       silver: getCurrency(state.progression),
     },
+    calendar: serializeClock(state.clock),
     progression: state.progression,
     ui: runtimeSnapshot.ui,
     runtimeSnapshot,
@@ -1780,6 +1790,19 @@ function update(dt) {
       return;
     }
 
+    const clockResult = updateClock(state.clock, dt, {
+      paused:
+        state.transition.active ||
+        state.gameOver ||
+        Boolean(state.story.dialogue) ||
+        Boolean(state.story.questPanel) ||
+        isUiOpen(),
+    });
+    if (clockResult.reachedDayEnd) {
+      setToast("It is 02:00. The day will wait until Ayla can rest at home.", 4);
+      saveCurrentGame();
+    }
+
     updateStoryRuntime(state, dt);
     updateInteractionState();
 
@@ -1897,6 +1920,16 @@ updateMouseWorld();
 
 window.__heartOfForestDebug = {
   getState: () => state,
+  getClock: () => serializeClock(state.clock),
+  setClock(hour, minute = 0) {
+    return setClockTime(state.clock, hour, minute);
+  },
+  nextDay() {
+    const snapshot = startNextDay(state.clock);
+    setToast(`Day ${state.clock.day} begins at dawn.`, 2.4);
+    saveCurrentGame();
+    return snapshot;
+  },
   travelTo(sceneId, entryId = "default") {
     if (!SCENES[sceneId]) return false;
     applySceneState(sceneId, entryId);

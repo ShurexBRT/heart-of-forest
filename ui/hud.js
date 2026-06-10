@@ -15,6 +15,7 @@ import {
 import { getAylaPortrait } from "../rendering/atlasAssets.js";
 import { getActiveService, getServiceEntries, getStashUiEntries } from "../systems/services.js";
 import { NPC_DEFS } from "../data/storyData.js";
+import { getClockView } from "../systems/clock.js";
 import { getQuestPanelHoverTarget, renderQuestPanel } from "./questPanel.js";
 
 const TEXT_MEASURE_CANVAS =
@@ -403,6 +404,7 @@ function drawSceneInfo(ctx, state) {
   if (state.gameOver) return;
 
   const encounter = state.encounter;
+  const clock = getClockView(state.clock);
   const x = state.viewport.width - 302;
   const y = 18;
   const cleared = Boolean(state.sceneProgress?.[state.currentSceneId]?.cleared);
@@ -442,6 +444,10 @@ function drawSceneInfo(ctx, state) {
   ctx.fillText(phaseLabel, x + 12, y + 58);
   ctx.fillStyle = "#e8d487";
   ctx.fillText(`Silver ${getCurrency(state.progression)}`, x + 12, y + 74);
+  ctx.textAlign = "right";
+  ctx.fillStyle = clock.reachedDayEnd ? "#efaa8a" : "#d9e8c9";
+  ctx.fillText(`Day ${clock.day}  ${clock.timeLabel}`, x + 268, y + 74);
+  ctx.textAlign = "left";
 
   if (state.combatTimer <= 0 && state.player.hp < state.player.maxHp) {
     ctx.fillStyle = "#96dda5";
