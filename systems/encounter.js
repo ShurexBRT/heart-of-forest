@@ -12,18 +12,19 @@ export function createEncounterState(arena, config = {}) {
     [["basic", "basic", "basic"]],
   ];
   const rng = createRng(config.seed || `${config.poiTypeId || "site"}:${config.threatTier || 1}`);
+  const peaceful = Boolean(config.peaceful || waveTemplates.length === 0);
 
   return {
-    phase: "waveIntro",
+    phase: peaceful ? "idle" : "waveIntro",
     waveIndex: -1,
     totalWaves: waveTemplates.length,
     wavePlans: generateWavePlans(waveTemplates, rng),
     spawnQueue: [],
     spawnTimer: 0.8,
-    phaseTimer: config.introDelay ?? 0.55,
+    phaseTimer: peaceful ? 0 : config.introDelay ?? 0.55,
     zoneAlpha: 0,
     bannerText: config.title || "Expedition Begins",
-    bannerTimer: 1.5,
+    bannerTimer: peaceful ? 1.2 : 1.5,
     arena,
     bossEnabled: Boolean(config.bossEnabled),
     completionText: config.completionText || "Area Cleansed",

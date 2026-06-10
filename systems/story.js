@@ -174,8 +174,7 @@ export function beginInteraction(state, target) {
   }
 
   if (target.kind === "object") {
-    useInteractable(state, target.data);
-    return true;
+    return useInteractable(state, target.data);
   }
 
   return false;
@@ -441,17 +440,19 @@ function pickNpcQuest(progression, npcId) {
 function useInteractable(state, interactable) {
   if (interactable.serviceId) {
     openServiceUi(state, interactable.serviceId, interactable.name);
-    return;
+    return true;
   }
 
-  if (interactable.disabled) return;
+  if (interactable.disabled) return false;
   if (interactable.requiresCleared && !state.sceneProgress[state.currentSceneId]?.cleared) {
     setToast(state, "Clear the nearby corruption first.", 1.8);
-    return;
+    return true;
   }
 
-  interactable.disabled = true;
-  markSceneObjectState(state, interactable.id);
+  if (!interactable.repeatable) {
+    interactable.disabled = true;
+    markSceneObjectState(state, interactable.id);
+  }
 
   if (interactable.collectKey) {
     state.storyEvents.push({ type: "collect", key: interactable.collectKey, amount: 1 });
@@ -468,6 +469,9 @@ function useInteractable(state, interactable) {
 
   setToast(state, interactable.toastText || `${interactable.name} secured`, 2);
   queueAudio(state, "use-item");
+  return interactable.action
+    ? { action: interactable.action, interactableId: interactable.id }
+    : true;
 }
 
 function markSceneObjectState(state, objectId) {

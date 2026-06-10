@@ -419,7 +419,7 @@ function drawSceneInfo(ctx, state) {
   ) {
     phaseLabel = state.scene.bossName || "Boss Fight";
   } else if (!cleared && aliveThreats <= 0) {
-    phaseLabel = "Village Calm";
+    phaseLabel = state.scene.peacefulLabel || "Village Calm";
   } else if (!cleared && encounter.totalWaves > 0) {
     const displayedWave =
       encounter.phase === "waveIntro"
@@ -1476,10 +1476,18 @@ function drawTransitionOverlay(ctx, state) {
   ctx.textAlign = "center";
   ctx.font = "700 28px Segoe UI, Arial";
   ctx.fillStyle = `rgba(255, 244, 208, ${Math.min(1, 0.35 + ratio)})`;
-  ctx.fillText(`Entering ${state.transition.label}`, state.viewport.width / 2, state.viewport.height / 2);
+  ctx.fillText(
+    state.transition.title || `Entering ${state.transition.label}`,
+    state.viewport.width / 2,
+    state.viewport.height / 2
+  );
   ctx.font = "13px Segoe UI, Arial";
   ctx.fillStyle = `rgba(222, 239, 210, ${Math.min(1, 0.2 + ratio)})`;
-  ctx.fillText("The forest shifts under Ayla's feet", state.viewport.width / 2, state.viewport.height / 2 + 28);
+  ctx.fillText(
+    state.transition.subtitle || "The forest shifts under Ayla's feet",
+    state.viewport.width / 2,
+    state.viewport.height / 2 + 28
+  );
   ctx.restore();
   ctx.textAlign = "left";
 }

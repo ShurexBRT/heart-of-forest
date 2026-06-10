@@ -37,6 +37,7 @@ Trenutni fokus je na malom, povezanom ARPG vertical slice-u:
 ## What Currently Works
 
 - connected zone flow across:
+  - `Ayla's Homestead`
   - `Whispering Woods`
   - `Moonlit Marsh`
   - `Mossy Ruins`
@@ -49,6 +50,8 @@ Trenutni fokus je na malom, povezanom ARPG vertical slice-u:
   - `Chapel of Tides`
   - `Starfall Sanctum`
 - hub-style village presentation with NPC interactions
+- peaceful homestead scene with six prepared garden plots
+- sleep interaction that starts the next day, restores health and spirit, and autosaves
 - combat kit:
   - Staff Strike
   - Spirit Bolt

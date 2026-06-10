@@ -1,6 +1,29 @@
-export const INITIAL_SCENE_ID = "whispering_woods";
+export const INITIAL_SCENE_ID = "ayla_homestead";
 
 export const SCENES = {
+  ayla_homestead: {
+    id: "ayla_homestead",
+    title: "Ayla's Homestead",
+    regionName: "Heartwood Meadow",
+    completionText: "Home Restored",
+    peacefulLabel: "Homestead Quiet",
+    peaceful: true,
+    biomeId: "forest",
+    seed: "ayla-homestead",
+    poiTypeId: "homestead",
+    threatTier: 0,
+    bossEnabled: false,
+    sceneStyle: "aylaHomestead",
+    introDelay: 0,
+    waveTemplates: [],
+    connections: {
+      forestPath: {
+        label: "Whispering Woods",
+        toSceneId: "whispering_woods",
+        targetEntryId: "homePath",
+      },
+    },
+  },
   whispering_woods: {
     id: "whispering_woods",
     title: "Whispering Woods",
@@ -18,6 +41,11 @@ export const SCENES = {
       [["thornling", "barkling", "root_stalker"], ["barkling", "barkling", "thornling"]],
     ],
     connections: {
+      homePath: {
+        label: "Ayla's Homestead",
+        toSceneId: "ayla_homestead",
+        targetEntryId: "forestPath",
+      },
       eastRoad: {
         label: "Moonlit Marsh",
         toSceneId: "mossroot_marsh",
@@ -358,6 +386,7 @@ export const SCENES = {
 };
 
 export const WORLD_MAP_LAYOUT = {
+  ayla_homestead: { x: 0.03, y: 0.86 },
   whispering_woods: { x: 0.16, y: 0.64 },
   mossroot_marsh: { x: 0.4, y: 0.64 },
   mossy_ruins: { x: 0.18, y: 0.36 },

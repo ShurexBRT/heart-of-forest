@@ -187,12 +187,15 @@ function createUiState(saved = null) {
 function createTransitionState() {
   return {
     active: false,
+    kind: "travel",
     phase: null,
     timer: 0,
     duration: TRANSITION_DURATION,
     targetSceneId: null,
     targetEntryId: null,
     label: "",
+    title: "",
+    subtitle: "",
   };
 }
 
@@ -716,13 +719,34 @@ function isExitUnlocked(exit) {
 function startTransition(exit) {
   queueAudio(state, "travel");
   state.transition.active = true;
+  state.transition.kind = "travel";
   state.transition.phase = "out";
   state.transition.timer = 0;
   state.transition.duration = TRANSITION_DURATION;
   state.transition.targetSceneId = exit.toSceneId;
   state.transition.targetEntryId = exit.targetEntryId;
   state.transition.label = exit.label;
+  state.transition.title = `Entering ${exit.label}`;
+  state.transition.subtitle = "The forest shifts under Ayla's feet";
   state.nearExit = exit;
+}
+
+function startSleepTransition() {
+  if (state.transition.active) return false;
+
+  queueAudio(state, "travel");
+  state.transition.active = true;
+  state.transition.kind = "sleep";
+  state.transition.phase = "out";
+  state.transition.timer = 0;
+  state.transition.duration = 0.7;
+  state.transition.targetSceneId = "ayla_homestead";
+  state.transition.targetEntryId = "bedside";
+  state.transition.label = `Day ${state.clock.day + 1}`;
+  state.transition.title = `Day ${state.clock.day + 1}`;
+  state.transition.subtitle = "Ayla wakes with the grove at dawn";
+  state.nearExit = null;
+  return true;
 }
 
 function updateTransition(dt) {
@@ -732,7 +756,13 @@ function updateTransition(dt) {
   if (transition.phase === "out") {
     transition.timer += dt;
     if (transition.timer >= transition.duration) {
-      applySceneState(transition.targetSceneId, transition.targetEntryId);
+      if (transition.kind === "sleep") {
+        startNextDay(state.clock);
+        applySceneState(transition.targetSceneId, transition.targetEntryId, { restoreFull: true });
+        setToast(`Day ${state.clock.day} begins at dawn. Health and spirit restored.`, 3);
+      } else {
+        applySceneState(transition.targetSceneId, transition.targetEntryId);
+      }
       saveCurrentGame();
       transition.phase = "in";
       transition.timer = transition.duration;
@@ -876,7 +906,10 @@ function handleInteractionInput() {
   }
 
   if (wasPressed(input, "e", "KeyE") && state.story.focus) {
-    beginInteraction(state, state.story.focus);
+    const interaction = beginInteraction(state, state.story.focus);
+    if (interaction?.action === "sleep") {
+      startSleepTransition();
+    }
     return true;
   }
 
@@ -1929,6 +1962,9 @@ window.__heartOfForestDebug = {
     setToast(`Day ${state.clock.day} begins at dawn.`, 2.4);
     saveCurrentGame();
     return snapshot;
+  },
+  sleep() {
+    return startSleepTransition();
   },
   travelTo(sceneId, entryId = "default") {
     if (!SCENES[sceneId]) return false;

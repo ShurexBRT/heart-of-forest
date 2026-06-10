@@ -350,6 +350,8 @@ function interactable(id, type, x, y, extra = {}) {
     dialogueLines: extra.dialogueLines || null,
     toastText: extra.toastText || null,
     serviceId: extra.serviceId || null,
+    action: extra.action || null,
+    repeatable: Boolean(extra.repeatable),
     disabled: false,
     name: extra.name || type,
     sortY: extra.sortY ?? y + 10,
@@ -400,6 +402,105 @@ function createBaseArena(context, tiles, props) {
   };
 }
 
+function buildAylaHomestead(context, rng) {
+  const tiles = createTiles(rng);
+  const plotWidth = 9;
+  const plotHeight = 7;
+  const plotTiles = [
+    { x: 40, y: 15 },
+    { x: 52, y: 15 },
+    { x: 64, y: 15 },
+    { x: 40, y: 25 },
+    { x: 52, y: 25 },
+    { x: 64, y: 25 },
+  ];
+
+  stampRect(tiles, 8, 7, 22, 16, "soil", 1);
+  paintPath(tiles, 24, 25, 38, 23, 3, "path", 0);
+  paintPath(tiles, 38, 23, 96, 29, 3, "path", 1);
+  paintPath(tiles, 33, 26, 33, 47, 2, "path", 0);
+  for (const plot of plotTiles) {
+    stampRect(tiles, plot.x, plot.y, plotWidth, plotHeight, "soil", 0);
+    clearOverlayRect(tiles, plot.x, plot.y, plotWidth, plotHeight);
+  }
+  scatterOverlay(tiles, rng, 8, 28, 26, 19, 40, "flowersWarm");
+  scatterOverlay(tiles, rng, 86, 8, 10, 14, 18, "flowersCool");
+
+  const interactables = [
+    interactable("ayla-bed", "bed", 430, 322, {
+      name: "Ayla's Bed",
+      promptLabel: "Sleep until morning",
+      toastText: "Ayla settles in as the homestead grows quiet.",
+      action: "sleep",
+      repeatable: true,
+      interactionRadius: 72,
+      w: 44,
+      h: 28,
+      sortY: 334,
+    }),
+    ...plotTiles.map((plot, index) =>
+      interactable(
+        `garden-plot-${index + 1}`,
+        "farmPlot",
+        (plot.x + plotWidth / 2) * TILE_SIZE,
+        (plot.y + plotHeight / 2) * TILE_SIZE,
+        {
+          name: `Garden Plot ${index + 1}`,
+          promptLabel: "Inspect Garden Plot",
+          toastText: "This garden plot is ready for planting.",
+          action: "inspect-plot",
+          repeatable: true,
+          interactionRadius: 96,
+          w: plotWidth * TILE_SIZE,
+          h: plotHeight * TILE_SIZE,
+          sortY: 1,
+        }
+      )
+    ),
+  ];
+
+  return createBaseArena(context, tiles, {
+    playerSpawn: { x: 456, y: 410 },
+    entrySpawns: {
+      default: { x: 456, y: 410 },
+      bedside: { x: 456, y: 382 },
+      forestPath: { x: 1438, y: 466 },
+    },
+    spawnPoints: [],
+    bossZone: { x: 1120, y: 480, radius: 160 },
+    bossAddSpawns: [],
+    exits: [
+      makeExit("forestPath", 1480, 372, 72, 188, "right", context.connections.forestPath),
+    ],
+    obstacles: [
+      cottage(160, 90),
+      well(520, 300),
+      fenceH(608, 202, 592),
+      fenceH(608, 526, 592),
+      fenceV(592, 202, 132),
+      fenceV(592, 412, 134),
+      fenceV(1184, 202, 132),
+      fenceV(1184, 412, 134),
+      signpost(1398, 430),
+      lantern(492, 334),
+      lantern(1370, 398),
+      tree(78, 620, 118, "forest"),
+      tree(238, 728, 112, "forest"),
+      tree(500, 748, 116, "forest"),
+      tree(1378, 104, 112, "forest"),
+      tree(1450, 690, 116, "forest"),
+      bush(82, 382, 92, 56),
+      bush(388, 708, 84, 52),
+      bush(1320, 768, 92, 56),
+      rock(620, 144, 74, 44),
+      rock(1430, 604, 70, 42),
+    ],
+    npcs: [],
+    interactables,
+    hazards: [],
+  });
+}
+
 function buildWhisperingWoods(context, rng) {
   const flags = context.worldFlags || {};
   const tiles = createTiles(rng);
@@ -411,6 +512,7 @@ function buildWhisperingWoods(context, rng) {
   paintPath(tiles, 48, 31, 90, 28, 3, "path", 1);
   paintPath(tiles, 48, 31, 53, 7, 3, "path", 0);
   paintPath(tiles, 20, 25, 18, 35, 2, "path", 0);
+  paintPath(tiles, 18, 35, 4, 43, 2, "path", 0);
   scatterOverlay(tiles, rng, 10, 8, 18, 10, 24, "flowersWarm");
   scatterOverlay(tiles, rng, 65, 16, 14, 10, 18, "flowersCool");
 
@@ -492,6 +594,7 @@ function buildWhisperingWoods(context, rng) {
     playerSpawn: { x: 392, y: 716 },
     entrySpawns: {
       default: { x: 392, y: 716 },
+      homePath: { x: 126, y: 714 },
       eastRoad: { x: 1438, y: 452 },
       northTrail: { x: 850, y: 124 },
     },
@@ -510,6 +613,7 @@ function buildWhisperingWoods(context, rng) {
       { x: 1080, y: 620 },
     ],
     exits: [
+      makeExit("homePath", 24, 632, 72, 176, "left", context.connections.homePath),
       makeExit("eastRoad", 1480, 364, 72, 164, "right", context.connections.eastRoad),
       makeExit("northTrail", 752, 24, 196, 64, "up", context.connections.northTrail),
     ],
@@ -527,6 +631,7 @@ function buildWhisperingWoods(context, rng) {
       lantern(664, 278),
       lantern(292, 302),
       lantern(610, 278),
+      signpost(132, 684),
       ...(flags.village_patrols_returned ? [lantern(840, 278), fenceH(874, 286, 122)] : []),
       ...(flags.apothecary_resupplied ? [lantern(194, 280, "cool"), signpost(242, 336)] : []),
       bush(232, 676, 88, 54),
@@ -537,7 +642,7 @@ function buildWhisperingWoods(context, rng) {
       tree(1250, 682, 114, "forest"),
       tree(824, 792, 114, "forest"),
       tree(428, 820, 110, "forest"),
-      tree(100, 618, 116, "forest"),
+      tree(176, 612, 92, "forest"),
       rock(906, 312, 74, 44),
       rock(1154, 500, 82, 46),
       rock(986, 702, 72, 42),
@@ -1427,6 +1532,10 @@ function buildStarfallSanctum(context, rng) {
 
 export function createArena(context = {}) {
   const rng = createRng(context.seed || context.id || "arena");
+
+  if (context.sceneStyle === "aylaHomestead") {
+    return buildAylaHomestead(context, rng);
+  }
 
   if (context.sceneStyle === "mossyRuins") {
     return buildMossyRuins(context, rng);

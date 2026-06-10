@@ -803,6 +803,55 @@ function drawBridge(ctx, bridge, sceneStyle, origin) {
 function drawInteractable(ctx, item, origin) {
   const point = toScreen(origin, item.anchorX, item.anchorY);
 
+  if (item.type === "farmPlot") {
+    const halfW = item.w / 2;
+    const halfH = item.h / 2;
+    const corners = [
+      toScreen(origin, item.x - halfW, item.y - halfH),
+      toScreen(origin, item.x + halfW, item.y - halfH),
+      toScreen(origin, item.x + halfW, item.y + halfH),
+      toScreen(origin, item.x - halfW, item.y + halfH),
+    ];
+
+    ctx.save();
+    ctx.fillStyle = "rgba(78, 49, 31, 0.42)";
+    ctx.strokeStyle = "#b38a5d";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(corners[0].x, corners[0].y);
+    for (let index = 1; index < corners.length; index += 1) {
+      ctx.lineTo(corners[index].x, corners[index].y);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    for (let row = -2; row <= 2; row += 1) {
+      const rowY = item.y + row * 17;
+      drawIsoLine(
+        ctx,
+        origin,
+        item.x - halfW + 14,
+        rowY,
+        item.x + halfW - 14,
+        rowY,
+        2,
+        row % 2 === 0 ? "#d0a16c" : "#8b603e"
+      );
+    }
+  }
+
+  if (item.type === "bed") {
+    drawIsoShadow(ctx, point.x, point.y, 20, 7);
+    pixelRect(ctx, point.x - 22, point.y - 20, 44, 18, "#765238");
+    pixelRect(ctx, point.x - 18, point.y - 26, 36, 18, "#d9c6a0");
+    pixelRect(ctx, point.x - 16, point.y - 24, 13, 8, "#f4ecd6");
+    pixelRect(ctx, point.x - 1, point.y - 22, 17, 12, "#7fa779");
+    pixelRect(ctx, point.x - 22, point.y - 4, 4, 8, "#503723");
+    pixelRect(ctx, point.x + 18, point.y - 4, 4, 8, "#503723");
+  }
+
   if (item.type === "flower") {
     drawIsoShadow(ctx, point.x, point.y, 8, 4);
     pixelRect(ctx, point.x - 2, point.y - 12, 4, 10, "#6bbd62");
@@ -1054,6 +1103,7 @@ function drawSceneAtmosphere(ctx, state) {
   const style = state.scene.sceneStyle;
   let overlay = "rgba(10, 14, 12, 0.06)";
 
+  if (style === "aylaHomestead") overlay = "rgba(38, 28, 12, 0.035)";
   if (style === "emberpineGrove") overlay = "rgba(58, 22, 14, 0.09)";
   if (style === "frostveilTundra") overlay = "rgba(16, 28, 40, 0.08)";
   if (style === "blightedWoods" || style === "hollowheartRuins") overlay = "rgba(34, 14, 18, 0.1)";

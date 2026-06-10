@@ -32,7 +32,7 @@ const HELP_SECTIONS = [
   },
   {
     title: "Travel & Save",
-    lines: ["Esc pauses the run", "Hold E on gates to confirm zone travel", "Autosave triggers on travel and major clears"],
+    lines: ["Esc pauses the run", "Hold E on gates to confirm zone travel", "Sleep at home to start a new day", "Autosave triggers on travel, sleep, and major clears"],
   },
 ];
 
@@ -378,7 +378,7 @@ function drawStartMenu(ctx, state, layout, theme) {
     layout,
     state.frontend.canContinue && state.frontend.lastSavedAt
       ? `Last save: ${new Date(state.frontend.lastSavedAt).toLocaleString()}`
-      : "No valid save found. Begin a fresh journey from the White Hood's village.",
+      : "No valid save found. Begin a fresh journey from Ayla's homestead.",
     state.frontend.canContinue ? "#e6d9b7" : "#91a098"
   );
 }
@@ -1182,7 +1182,7 @@ function getActionValue(state, action) {
 function getActionNote(action, state) {
   switch (action) {
     case "new-game":
-      return "Start at the village road with a fresh save, fresh routes, and the grove still on edge.";
+      return "Wake at Ayla's homestead with six garden plots, fresh routes, and the grove still on edge.";
     case "continue":
       return state.frontend.canContinue
         ? "Restore the latest local save and return to Ayla's current road."
