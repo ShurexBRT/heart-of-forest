@@ -467,11 +467,13 @@ function useInteractable(state, interactable) {
     };
   }
 
+  if (interactable.action) {
+    return { action: interactable.action, interactableId: interactable.id };
+  }
+
   setToast(state, interactable.toastText || `${interactable.name} secured`, 2);
   queueAudio(state, "use-item");
-  return interactable.action
-    ? { action: interactable.action, interactableId: interactable.id }
-    : true;
+  return true;
 }
 
 function markSceneObjectState(state, objectId) {

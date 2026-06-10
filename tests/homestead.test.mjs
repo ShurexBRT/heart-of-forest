@@ -29,7 +29,7 @@ test("homestead contains six repeatable plots and a repeatable bed", () => {
   const bed = arena.interactables.find((entry) => entry.type === "bed");
 
   assert.equal(plots.length, 6);
-  assert.ok(plots.every((plot) => plot.repeatable && plot.action === "inspect-plot"));
+  assert.ok(plots.every((plot) => plot.repeatable && plot.action === "farm-plot"));
   assert.ok(bed);
   assert.equal(bed.repeatable, true);
   assert.equal(bed.action, "sleep");

@@ -35,6 +35,11 @@ import {
 } from "./systems/combat.js";
 import { createEncounterState, updateEncounter } from "./systems/encounter.js";
 import { updateEnvironment } from "./systems/environment.js";
+import {
+  advanceFarmPlots,
+  interactWithFarmPlot,
+  syncFarmInteractables,
+} from "./systems/farming.js";
 import { updateParticles } from "./systems/particles.js";
 import {
   assignItemToActionSlot,
@@ -757,9 +762,23 @@ function updateTransition(dt) {
     transition.timer += dt;
     if (transition.timer >= transition.duration) {
       if (transition.kind === "sleep") {
+        const previousDay = state.clock.day;
         startNextDay(state.clock);
+        const farmResult = advanceFarmPlots(
+          ensureSceneProgress("ayla_homestead"),
+          previousDay
+        );
         applySceneState(transition.targetSceneId, transition.targetEntryId, { restoreFull: true });
-        setToast(`Day ${state.clock.day} begins at dawn. Health and spirit restored.`, 3);
+        const cropText =
+          farmResult.maturePlots > 0
+            ? ` ${farmResult.maturePlots} crop${farmResult.maturePlots === 1 ? " is" : "s are"} ready to harvest.`
+            : farmResult.grownPlots > 0
+              ? ` ${farmResult.grownPlots} plot${farmResult.grownPlots === 1 ? "" : "s"} grew overnight.`
+              : "";
+        setToast(
+          `Day ${state.clock.day} begins at dawn. Health and spirit restored.${cropText}`,
+          3.4
+        );
       } else {
         applySceneState(transition.targetSceneId, transition.targetEntryId);
       }
@@ -838,6 +857,12 @@ function updateInteractionState() {
   updateQuestAvailability(state);
   refreshQuestStates(state);
   consumeStoryEvents(state);
+  syncFarmInteractables(
+    state.arena,
+    ensureSceneProgress(state.currentSceneId),
+    state.progression,
+    state.clock
+  );
 
   if (state.story.dialogue || state.story.questPanel) {
     state.story.focus = null;
@@ -846,6 +871,35 @@ function updateInteractionState() {
   }
 
   getNearestInteractionTarget(state);
+}
+
+function handleInteractionAction(interaction) {
+  if (!interaction?.action) return false;
+
+  if (interaction.action === "sleep") {
+    return startSleepTransition();
+  }
+
+  if (interaction.action === "farm-plot") {
+    const result = interactWithFarmPlot(
+      ensureSceneProgress(state.currentSceneId),
+      interaction.interactableId,
+      state.progression,
+      state.clock
+    );
+    syncFarmInteractables(
+      state.arena,
+      ensureSceneProgress(state.currentSceneId),
+      state.progression,
+      state.clock
+    );
+    setToast(result.text, result.changed ? 2.6 : 2);
+    queueAudio(state, result.event === "harvested" ? "quest" : "use-item");
+    if (result.changed) saveCurrentGame();
+    return true;
+  }
+
+  return false;
 }
 
 function handleInteractionInput() {
@@ -907,9 +961,7 @@ function handleInteractionInput() {
 
   if (wasPressed(input, "e", "KeyE") && state.story.focus) {
     const interaction = beginInteraction(state, state.story.focus);
-    if (interaction?.action === "sleep") {
-      startSleepTransition();
-    }
+    handleInteractionAction(interaction);
     return true;
   }
 

@@ -200,6 +200,16 @@ export const ITEM_DEFS = {
     color: "#9be98a",
     description: "A pale herb that amplifies spirit attunement.",
   },
+  moonleaf_seed: {
+    id: "moonleaf_seed",
+    name: "Moonleaf Seed",
+    category: "material",
+    maxStack: 40,
+    rarity: "common",
+    value: 4,
+    color: "#d8c878",
+    description: "A hardy seed ready for Ayla's homestead plots.",
+  },
   bog_amber: {
     id: "bog_amber",
     name: "Bog Amber",

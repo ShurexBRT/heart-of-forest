@@ -28,7 +28,7 @@ const HELP_SECTIONS = [
   },
   {
     title: "Field Tools",
-    lines: ["Q opens the quest log", "C / I / T switch character views", "2 / 3 / 4 trigger bound items", "5 / 6 drink quick potions"],
+    lines: ["E plants, waters, and harvests home plots", "Q opens the quest log", "C / I / T switch character views", "2 / 3 / 4 trigger bound items", "5 / 6 drink quick potions"],
   },
   {
     title: "Travel & Save",

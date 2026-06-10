@@ -52,6 +52,7 @@ Trenutni fokus je na malom, povezanom ARPG vertical slice-u:
 - hub-style village presentation with NPC interactions
 - peaceful homestead scene with six prepared garden plots
 - sleep interaction that starts the next day, restores health and spirit, and autosaves
+- persistent Moonleaf farming loop with planting, daily watering, growth, and harvest
 - combat kit:
   - Staff Strike
   - Spirit Bolt

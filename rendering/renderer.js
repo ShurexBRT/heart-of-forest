@@ -840,6 +840,8 @@ function drawInteractable(ctx, item, origin) {
         row % 2 === 0 ? "#d0a16c" : "#8b603e"
       );
     }
+
+    drawFarmCrop(ctx, item, origin);
   }
 
   if (item.type === "bed") {
@@ -898,6 +900,47 @@ function drawInteractable(ctx, item, origin) {
     pixelRect(ctx, point.x - 6, point.y - 22, 12, 14, "#cfc6b7");
     pixelRect(ctx, point.x - 2, point.y - 34, 4, 8, "#9ee88b");
     pixelRect(ctx, point.x - 7, point.y - 36, 14, 2, "#f0de9a");
+  }
+}
+
+function drawFarmCrop(ctx, item, origin) {
+  const view = item.farmView;
+  if (!view || view.state === "empty") return;
+
+  const positions = [
+    [-34, -20],
+    [0, -20],
+    [34, -20],
+    [-34, 20],
+    [0, 20],
+    [34, 20],
+  ];
+
+  if (view.watered) {
+    for (const [offsetX, offsetY] of positions.slice(0, 4)) {
+      const drop = toScreen(origin, item.x + offsetX + 10, item.y + offsetY + 8);
+      pixelRect(ctx, drop.x - 1, drop.y - 2, 3, 2, "#8fd9df");
+    }
+  }
+
+  if (view.stage <= 0) {
+    for (const [offsetX, offsetY] of positions.slice(0, 4)) {
+      const seed = toScreen(origin, item.x + offsetX, item.y + offsetY);
+      pixelRect(ctx, seed.x - 2, seed.y - 2, 4, 3, "#e1ce79");
+    }
+    return;
+  }
+
+  const visiblePlants = view.mature ? positions.length : 4;
+  for (const [offsetX, offsetY] of positions.slice(0, visiblePlants)) {
+    const plant = toScreen(origin, item.x + offsetX, item.y + offsetY);
+    drawIsoShadow(ctx, plant.x, plant.y + 1, view.mature ? 7 : 5, 3);
+    pixelRect(ctx, plant.x - 1, plant.y - (view.mature ? 12 : 8), 3, view.mature ? 11 : 7, "#57894f");
+    pixelRect(ctx, plant.x - (view.mature ? 6 : 4), plant.y - (view.mature ? 13 : 9), view.mature ? 6 : 4, 4, "#91d37b");
+    pixelRect(ctx, plant.x + 1, plant.y - (view.mature ? 15 : 10), view.mature ? 6 : 4, 4, "#b9ed9a");
+    if (view.mature) {
+      pixelRect(ctx, plant.x - 2, plant.y - 19, 5, 5, "#e7f5b3");
+    }
   }
 }
 

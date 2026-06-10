@@ -62,7 +62,6 @@ function normalizeInventory(rawInventory = {}) {
   for (const [itemId, amount] of Object.entries(rawInventory)) {
     if (!getItemDef(itemId)) continue;
     const safeAmount = Math.max(0, Math.floor(amount || 0));
-    if (safeAmount <= 0) continue;
     normalized[itemId] = safeAmount;
   }
 
@@ -192,6 +191,7 @@ export function createProgression(snapshot = null) {
     inventory: {
       spirit_bloom: 3,
       moonleaf: 1,
+      moonleaf_seed: 6,
       health_potion: 3,
       spirit_tonic: 1,
     },
@@ -251,10 +251,7 @@ export function addItem(progression, itemId, amount = 1) {
 
 export function removeItem(progression, itemId, amount = 1) {
   if ((progression.inventory[itemId] || 0) < amount) return false;
-  progression.inventory[itemId] -= amount;
-  if (progression.inventory[itemId] <= 0) {
-    delete progression.inventory[itemId];
-  }
+  progression.inventory[itemId] = Math.max(0, progression.inventory[itemId] - amount);
   return true;
 }
 

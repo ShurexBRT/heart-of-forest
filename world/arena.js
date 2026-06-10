@@ -447,8 +447,7 @@ function buildAylaHomestead(context, rng) {
         {
           name: `Garden Plot ${index + 1}`,
           promptLabel: "Inspect Garden Plot",
-          toastText: "This garden plot is ready for planting.",
-          action: "inspect-plot",
+          action: "farm-plot",
           repeatable: true,
           interactionRadius: 96,
           w: plotWidth * TILE_SIZE,
