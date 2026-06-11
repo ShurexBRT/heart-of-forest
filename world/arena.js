@@ -662,6 +662,7 @@ function buildMossrootMarsh(context, rng) {
   stampEllipse(tiles, 78, 20, 11, 8, "water", 0);
   paintPath(tiles, 8, 31, 92, 30, 2, "planks", 0);
   paintPath(tiles, 44, 30, 50, 52, 2, "planks", 1);
+  paintPath(tiles, 67, 18, 75, 16, 1, "planks", 1);
   clearOverlayRect(tiles, 0, 22, 100, 14);
   scatterOverlay(tiles, rng, 10, 8, 18, 10, 20, "reeds");
   scatterOverlay(tiles, rng, 60, 40, 16, 8, 18, "reeds");
@@ -699,7 +700,7 @@ function buildMossrootMarsh(context, rng) {
       requiresCleared: true,
       sortY: 326,
     }),
-    interactable("waystone-seal-2", "seal", 1212, 244, {
+    interactable("waystone-seal-2", "seal", 1198, 244, {
       name: "Waystone Seal",
       promptLabel: "Recover Seal",
       collectKey: "waystoneSealsRecovered",
@@ -751,6 +752,7 @@ function buildMossrootMarsh(context, rng) {
       water(1124, 150, 226, 154, "marsh"),
       bridge(236, 450, 224, 44),
       bridge(794, 356, 46, 232),
+      bridge(1088, 224, 178, 42),
       tree(182, 150, 110, "swamp"),
       tree(422, 118, 108, "swamp"),
       tree(1222, 364, 112, "swamp"),
@@ -881,12 +883,12 @@ function buildFrostveilTundra(context, rng) {
   scatterOverlay(tiles, rng, 60, 38, 14, 12, 12, "frostFlowers");
 
   const interactables = [
-    interactable("lost-scout", "scout", 994, 248, {
+    interactable("lost-scout", "scout", 994, 312, {
       name: "Lost Scout",
       promptLabel: "Inspect Camp",
       collectKey: "scoutFound",
       toastText: "Scout signal recovered",
-      sortY: 262,
+      sortY: 326,
       dialogueLines: [
         "A frozen satchel rests beside the collapsed tent.",
         "The scout's message points north. Whatever rules the ruins is awake.",
@@ -1278,13 +1280,13 @@ function buildBlightedWoods(context, rng) {
   clearOverlayRect(tiles, 12, 18, 76, 30);
 
   const interactables = [
-    interactable("blight-effigy-1", "corruptedRoot", 814, 316, {
+    interactable("blight-effigy-1", "corruptedRoot", 814, 390, {
       name: "Blight Effigy",
       promptLabel: "Shatter Effigy",
       collectKey: "blightEffigiesBroken",
       toastText: "Blight effigy shattered",
       requiresCleared: true,
-      sortY: 332,
+      sortY: 406,
     }),
     interactable("blight-effigy-2", "corruptedRoot", 1128, 618, {
       name: "Blight Effigy",
