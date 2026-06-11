@@ -145,9 +145,20 @@ function drawTile(ctx, x, y, halfW, halfH, tile, theme, sceneStyle) {
       ? ctx.createPattern(texture, "repeat")
       : null;
   drawDiamond(ctx, x, y, halfW, halfH, pattern || palette.base);
-  drawDiamondStroke(ctx, x, y, halfW, halfH, palette.edge);
-  drawHalfDiamond(ctx, x, y - 1, halfW - 1, halfH - 1, palette.highlight);
-  drawFooting(ctx, x, y, halfW, halfH, palette.shadow);
+  if (atlasPattern) {
+    ctx.save();
+    ctx.globalAlpha = 0.45;
+    drawDiamondStroke(ctx, x, y, halfW, halfH, palette.edge);
+    ctx.globalAlpha = 0.22;
+    drawHalfDiamond(ctx, x, y - 1, halfW - 1, halfH - 1, palette.highlight);
+    ctx.globalAlpha = 0.18;
+    drawFooting(ctx, x, y, halfW, halfH, palette.shadow);
+    ctx.restore();
+  } else {
+    drawDiamondStroke(ctx, x, y, halfW, halfH, palette.edge);
+    drawHalfDiamond(ctx, x, y - 1, halfW - 1, halfH - 1, palette.highlight);
+    drawFooting(ctx, x, y, halfW, halfH, palette.shadow);
+  }
 
   if (tile.overlay === "clover") {
     pixelRect(ctx, x - 2, y - 1, 2, 2, "#79bf69");

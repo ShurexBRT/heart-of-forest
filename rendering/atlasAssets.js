@@ -9,7 +9,8 @@ const ATLAS_PATHS = {
   "verdant-grove": "./assets/atlases/verdant-grove.png",
 };
 
-const ATLAS_WORLD_ART_ENABLED = false;
+const ATLAS_WORLD_ART_ENABLED = true;
+const ATLAS_TILE_PATTERNS_ENABLED = false;
 const ATLAS_PLAYER_ENABLED = false;
 
 const SCENE_ATLAS_KEYS = {
@@ -117,18 +118,21 @@ export function drawAylaAtlasSprite(ctx, x, y, facing, frame, pose, options = {}
 
 export function drawBiomeProp(ctx, sceneStyle, type, x, y, options = {}) {
   if (!ATLAS_WORLD_ART_ENABLED) return false;
+  if (type === "tree" && (sceneStyle === "blightedWoods" || sceneStyle === "hollowheartRuins")) {
+    return false;
+  }
   const art = getBiomeArt(sceneStyle);
   if (!art) return false;
 
   const bucket =
     type === "tree"
       ? art.sprites.trees
-      : type === "rock" || type === "iceRock"
-        ? art.sprites.rocks
-        : type === "ruin"
-          ? art.sprites.ruins
-          : type === "bridge"
-            ? art.sprites.bridges
+      : type === "bridge"
+        ? art.sprites.bridges
+        : type === "signpost"
+          ? art.sprites.signposts
+          : type === "lantern"
+            ? art.sprites.lanterns
             : null;
 
   if (!bucket || bucket.length === 0) return false;
@@ -145,6 +149,7 @@ export function drawBiomeProp(ctx, sceneStyle, type, x, y, options = {}) {
 }
 
 export function getBiomePattern(sceneStyle, ground, variant = 0) {
+  if (!ATLAS_TILE_PATTERNS_ENABLED) return null;
   if (!ATLAS_WORLD_ART_ENABLED) return null;
   const art = getBiomeArt(sceneStyle);
   if (!art) return null;
