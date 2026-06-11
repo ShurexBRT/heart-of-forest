@@ -88,19 +88,27 @@ export function drawHud(ctx, state, abilityInfo) {
 }
 
 export function getUiHoverTarget(state, mouseX, mouseY) {
+  if (state.story.dialogue) {
+    return getActiveOverlayCloseHoverTarget(state, mouseX, mouseY);
+  }
+
   if (state.story.questPanel) {
     return getQuestPanelHoverTarget(state, mouseX, mouseY);
   }
 
   if (state.ui.worldMapOpen) {
-    return null;
+    return getActiveOverlayCloseHoverTarget(state, mouseX, mouseY);
   }
 
   if (state.ui.menuOpen) {
+    const closeTarget = getActiveOverlayCloseHoverTarget(state, mouseX, mouseY);
+    if (closeTarget) return closeTarget;
     return getMenuHoverTarget(state, mouseX, mouseY);
   }
 
   if (state.ui.questLogOpen) {
+    const closeTarget = getActiveOverlayCloseHoverTarget(state, mouseX, mouseY);
+    if (closeTarget) return closeTarget;
     return getQuestLogHoverTarget(state, mouseX, mouseY);
   }
 
@@ -119,7 +127,7 @@ function drawBottomHud(ctx, state, abilityInfo) {
 
   ctx.fillStyle = "rgba(228, 238, 214, 0.78)";
   ctx.font = "11px Segoe UI, Arial";
-  ctx.fillText(`Lv ${xp.level}  |  Q Quest Log  |  C Character  |  I Inventory  |  T Talents  |  R Pulse  |  2-4 Action`, x + 18, y - 38);
+  ctx.fillText(`Lv ${xp.level}  |  L Quest Log  |  C Character  |  I Inventory  |  N Talents  |  R Pulse  |  2-4 Action`, x + 18, y - 38);
 
   drawXpProgressPanel(ctx, x + 154, y - 32, panelW - 308, xp);
 
@@ -535,10 +543,8 @@ function drawQuestTracker(ctx, state) {
 function drawQuestLogOverlay(ctx, state) {
   const panel = getQuestLogPanelData(state);
   const { quests } = panel;
-  const x = 56;
-  const y = 84;
-  const width = state.viewport.width - 112;
-  const height = state.viewport.height - 180;
+  const frame = getQuestLogFrame(state);
+  const { x, y, width, height } = frame;
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.82)";
   ctx.fillRect(x, y, width, height);
@@ -550,8 +556,10 @@ function drawQuestLogOverlay(ctx, state) {
   ctx.font = "12px Segoe UI, Arial";
   ctx.fillStyle = "#d3e1cf";
   ctx.textAlign = "right";
-  ctx.fillText("Q / Esc to close", x + width - 18, y + 28);
+  ctx.fillText("L / Esc to close", x + width - 58, y + 28);
   ctx.textAlign = "left";
+  drawPanelChrome(ctx, x, y, width, height, "#7ca57b");
+  drawOverlayCloseButton(ctx, getOverlayCloseButton(frame), state.ui.hoverTarget);
 
   if (quests.length === 0) {
     ctx.fillStyle = "#d7e4cf";
@@ -559,8 +567,6 @@ function drawQuestLogOverlay(ctx, state) {
     ctx.fillText("No active quests yet.", x + 18, y + 70);
     return;
   }
-
-  drawPanelChrome(ctx, x, y, width, height, "#7ca57b");
 
   panel.rows.forEach((row) => {
     const selected = row.index === state.ui.selectedQuestIndex;
@@ -617,7 +623,7 @@ function drawCharacterOverlay(ctx, state) {
   const portrait = getAylaPortrait();
   const bonuses = getPlayerBonuses(state.progression);
   const helpWidth = Math.min(frame.compact ? 210 : 280, Math.max(180, width * 0.32));
-  const helpX = x + width - helpWidth - 18;
+  const helpX = x + width - helpWidth - 56;
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.86)";
   ctx.fillRect(x, y, width, height);
@@ -630,7 +636,7 @@ function drawCharacterOverlay(ctx, state) {
   ctx.fillStyle = "#d7e4cf";
   drawWrappedText(
     ctx,
-    "C / I / T / Tab switch views  |  Esc closes",
+    "C / I / N / Tab switch views  |  Esc closes",
     helpX,
     y + 18,
     helpWidth,
@@ -655,6 +661,7 @@ function drawCharacterOverlay(ctx, state) {
   }
 
   drawPanelChrome(ctx, x, y, width, height, "#8a6e49");
+  drawOverlayCloseButton(ctx, getOverlayCloseButton(frame), state.ui.hoverTarget);
 }
 
 function drawTabs(ctx, state, x, y) {
@@ -1251,10 +1258,8 @@ function drawExitPrompt(ctx, state) {
 
 function drawWorldMapOverlay(ctx, state) {
   const viewport = state.viewport;
-  const panelW = Math.min(820, viewport.width - 56);
-  const panelH = Math.min(620, viewport.height - 56);
-  const x = Math.round(viewport.width / 2 - panelW / 2);
-  const y = Math.round(viewport.height / 2 - panelH / 2);
+  const frame = getWorldMapFrame(state);
+  const { x, y, width: panelW, height: panelH } = frame;
   const contentX = x + 28;
   const contentY = y + 88;
   const graphW = panelW - 56;
@@ -1293,7 +1298,7 @@ function drawWorldMapOverlay(ctx, state) {
   ctx.fillStyle = "#9db09a";
   ctx.font = "12px Segoe UI, Arial";
   ctx.textAlign = "right";
-  ctx.fillText("M / Esc close", x + panelW - 26, y + 38);
+  ctx.fillText("M / Esc close", x + panelW - 64, y + 38);
   ctx.textAlign = "left";
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
@@ -1387,6 +1392,7 @@ function drawWorldMapOverlay(ctx, state) {
   ctx.fillStyle = "#c8d4bd";
   ctx.font = "12px Segoe UI, Arial";
   drawWrappedText(ctx, footer, contentX, y + panelH - 28, panelW - 56, 15, 2);
+  drawOverlayCloseButton(ctx, getOverlayCloseButton(frame), state.ui.hoverTarget);
 }
 
 function drawToast(ctx, state) {
@@ -1439,13 +1445,8 @@ function drawDialogue(ctx, state) {
   const dialogue = state.story.dialogue;
   if (!dialogue) return;
 
-  const x = 56;
-  const width = state.viewport.width - 112;
-  ctx.font = "14px Segoe UI, Arial";
-  const wrappedLines = toWrappedLines(ctx, dialogue.lines[dialogue.index], width - 36);
-  const bodyHeight = Math.max(36, wrappedLines.length * 20);
-  const height = 84 + bodyHeight;
-  const y = state.viewport.height - height - 40;
+  const frame = getDialogueFrame(state);
+  const { x, y, width, height } = frame;
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.86)";
   ctx.fillRect(x, y, width, height);
@@ -1460,8 +1461,9 @@ function drawDialogue(ctx, state) {
   ctx.fillStyle = "rgba(255, 246, 208, 0.72)";
   ctx.font = "12px Segoe UI, Arial";
   ctx.textAlign = "right";
-  ctx.fillText("E / Enter / Space", x + width - 18, y + height - 16);
+  ctx.fillText("E / Enter / Space", x + width - 58, y + height - 16);
   ctx.textAlign = "left";
+  drawOverlayCloseButton(ctx, getOverlayCloseButton(frame), state.ui.hoverTarget);
 }
 
 function drawTransitionOverlay(ctx, state) {
@@ -1682,6 +1684,84 @@ function getCharacterOverlayFrame(state) {
     width: state.viewport.width - marginX * 2,
     height: state.viewport.height - marginTop - marginBottom,
   };
+}
+
+function getQuestLogFrame(state) {
+  return {
+    x: 56,
+    y: 84,
+    width: state.viewport.width - 112,
+    height: state.viewport.height - 180,
+  };
+}
+
+function getWorldMapFrame(state) {
+  const width = Math.min(820, state.viewport.width - 56);
+  const height = Math.min(620, state.viewport.height - 56);
+  return {
+    x: Math.round(state.viewport.width / 2 - width / 2),
+    y: Math.round(state.viewport.height / 2 - height / 2),
+    width,
+    height,
+  };
+}
+
+function getDialogueFrame(state) {
+  const width = state.viewport.width - 112;
+  const measureCtx = getMeasureContext("14px Segoe UI, Arial");
+  const dialogue = state.story.dialogue;
+  const text = dialogue?.lines?.[dialogue.index] || "";
+  const wrappedLines = toWrappedLines(measureCtx, text, width - 36);
+  const bodyHeight = Math.max(36, wrappedLines.length * 20);
+  const height = 84 + bodyHeight;
+  return {
+    x: 56,
+    y: state.viewport.height - height - 40,
+    width,
+    height,
+  };
+}
+
+function getOverlayCloseButton(frame) {
+  return {
+    action: "close-overlay",
+    rect: rect(frame.x + frame.width - 44, frame.y + 12, 28, 28),
+  };
+}
+
+function getActiveOverlayCloseHoverTarget(state, mouseX, mouseY) {
+  let frame = null;
+  if (state.story.dialogue) {
+    frame = getDialogueFrame(state);
+  } else if (state.ui.worldMapOpen) {
+    frame = getWorldMapFrame(state);
+  } else if (state.ui.menuOpen) {
+    frame = getCharacterOverlayFrame(state);
+  } else if (state.ui.questLogOpen) {
+    frame = getQuestLogFrame(state);
+  }
+
+  if (!frame) return null;
+  const button = getOverlayCloseButton(frame);
+  return pointInRect(mouseX, mouseY, button.rect) ? button : null;
+}
+
+function drawOverlayCloseButton(ctx, button, hoverTarget) {
+  const hovered = hoverTarget?.action === "close-overlay";
+  const { x, y, width, height } = button.rect;
+  ctx.fillStyle = hovered ? "#7b2f35" : "#252d35";
+  ctx.fillRect(x, y, width, height);
+  ctx.strokeStyle = hovered ? "#ffb0a9" : "#82909a";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, width - 1, height - 1);
+  ctx.strokeStyle = hovered ? "#fff0ed" : "#dce4e7";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x + 9, y + 9);
+  ctx.lineTo(x + width - 9, y + height - 9);
+  ctx.moveTo(x + width - 9, y + 9);
+  ctx.lineTo(x + 9, y + height - 9);
+  ctx.stroke();
 }
 
 function getTabTargets(state, frame) {

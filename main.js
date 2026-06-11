@@ -254,6 +254,13 @@ function applyDebugBootState(nextState, debugConfig) {
     } else if (debugConfig.overlay === "character") {
       nextState.ui.menuOpen = true;
       nextState.ui.activeTab = "character";
+    } else if (debugConfig.overlay === "dialogue") {
+      nextState.story.dialogue = {
+        speakerName: "Elder Rowan",
+        lines: ["The grove remembers every careful choice. Close this window when you are ready."],
+        index: 0,
+        onClose: null,
+      };
     } else if (debugConfig.overlay === "questpanel") {
       nextState.story.questPanel = {
         npcId: debugConfig.questNpc || "elder_rowan",
@@ -1195,6 +1202,28 @@ function closePanels() {
   clearActiveService(state);
 }
 
+function closeActiveInGameWindow() {
+  if (state.story.dialogue) {
+    state.story.dialogue = null;
+    queueAudio(state, "ui");
+    return true;
+  }
+
+  if (state.story.questPanel) {
+    closeQuestPanel(state);
+    queueAudio(state, "ui");
+    return true;
+  }
+
+  if (isUiOpen()) {
+    closePanels();
+    queueAudio(state, "ui");
+    return true;
+  }
+
+  return false;
+}
+
 function openMenu(tab) {
   queueAudio(state, "ui");
   state.ui.menuOpen = true;
@@ -1433,6 +1462,8 @@ function handleMouseUiInput() {
   }
 
   switch (target.action) {
+    case "close-overlay":
+      return closeActiveInGameWindow();
     case "open-tab":
       openMenu(target.tab);
       return true;
@@ -1734,14 +1765,14 @@ function handleMenuNavigation() {
 
 function handleUiInput() {
   if (state.story.dialogue) {
-    return false;
+    return handleMouseUiInput();
   }
 
   if (state.story.questPanel) {
     return handleMouseUiInput();
   }
 
-  if ((state.ui.questLogOpen || (!state.ui.menuOpen && !state.ui.questLogOpen)) && handleMouseUiInput()) {
+  if (!state.ui.menuOpen && handleMouseUiInput()) {
     return true;
   }
 
@@ -1754,7 +1785,7 @@ function handleUiInput() {
     return pauseGame();
   }
 
-  if (wasPressed(input, "q", "KeyQ")) {
+  if (wasPressed(input, "l", "KeyL")) {
     toggleQuestLog();
     return true;
   }
@@ -1780,7 +1811,7 @@ function handleUiInput() {
     return true;
   }
 
-  if (wasPressed(input, "t", "KeyT")) {
+  if (wasPressed(input, "n", "KeyN")) {
     state.ui.worldMapOpen = false;
     openMenu("talents");
     return true;

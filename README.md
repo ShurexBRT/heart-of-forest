@@ -25,10 +25,10 @@ Trenutni fokus je na malom, povezanom ARPG vertical slice-u:
 - `5`: Health Potion
 - `6`: Spirit Tonic
 - `E`: interact / advance dialogue
-- `Q`: quest log
+- `L`: quest log
 - `C`: character panel
 - `I`: inventory panel
-- `T`: talents panel
+- `N`: talents panel
 - `Tab`: cycle panel tabs
 - `Esc`: close open panel
 - stand briefly on an exit zone to travel

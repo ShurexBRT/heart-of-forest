@@ -34,16 +34,22 @@ export function renderQuestPanel(ctx, state) {
   ctx.fillText(view.npcRole, panel.x + 28, panel.y + 52);
   ctx.textAlign = "right";
   ctx.fillStyle = "#9db09a";
-  ctx.fillText("E / Enter confirm  |  Esc close", panel.x + panel.w - 28, panel.y + 34);
+  ctx.fillText("E / Enter confirm  |  Esc close", panel.x + panel.w - 68, panel.y + 34);
   ctx.textAlign = "left";
 
   drawSidebar(ctx, geometry);
   drawContent(ctx, geometry);
+  drawCloseButton(ctx, getCloseButton(geometry), state.ui.hoverTarget);
 }
 
 export function getQuestPanelHoverTarget(state, mouseX, mouseY) {
   const geometry = getQuestPanelGeometry(state);
   if (!geometry) return null;
+
+  const closeButton = getCloseButton(geometry);
+  if (pointInRect(mouseX, mouseY, closeButton.rect)) {
+    return closeButton;
+  }
 
   for (const topic of geometry.topics) {
     if (pointInRect(mouseX, mouseY, topic.rect)) {
@@ -473,6 +479,36 @@ function getMeasureContext(font) {
   }
   ctx.font = font;
   return ctx;
+}
+
+function getCloseButton(geometry) {
+  return {
+    action: "close-overlay",
+    rect: {
+      x: geometry.panel.x + geometry.panel.w - 48,
+      y: geometry.panel.y + 16,
+      w: 28,
+      h: 28,
+    },
+  };
+}
+
+function drawCloseButton(ctx, button, hoverTarget) {
+  const hovered = hoverTarget?.action === "close-overlay";
+  const { x, y, w, h } = button.rect;
+  ctx.fillStyle = hovered ? "#7b2f35" : "#252d35";
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = hovered ? "#ffb0a9" : "#82909a";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  ctx.strokeStyle = hovered ? "#fff0ed" : "#dce4e7";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x + 9, y + 9);
+  ctx.lineTo(x + w - 9, y + h - 9);
+  ctx.moveTo(x + w - 9, y + 9);
+  ctx.lineTo(x + 9, y + h - 9);
+  ctx.stroke();
 }
 
 function pointInRect(x, y, rect) {

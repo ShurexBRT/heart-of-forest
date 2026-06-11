@@ -28,7 +28,7 @@ const HELP_SECTIONS = [
   },
   {
     title: "Field Tools",
-    lines: ["E plants, waters, and harvests home plots", "Q opens the quest log", "C / I / T switch character views", "2 / 3 / 4 trigger bound items", "5 / 6 drink quick potions"],
+    lines: ["E plants, waters, and harvests home plots", "L opens the quest log", "C / I / N switch character views", "2 / 3 / 4 trigger bound items", "5 / 6 drink quick potions"],
   },
   {
     title: "Travel & Save",
@@ -422,7 +422,7 @@ function drawOptionsMenu(ctx, state, layout, theme) {
               ? "Back returns to Pause."
               : "Back returns to the title screen."
           )
-        : "WASD move  |  Space dash  |  LMB staff  |  RMB bolt  |  Q quest log  |  Esc back",
+        : "WASD move  |  Space dash  |  LMB staff  |  RMB bolt  |  L quest log  |  Esc back",
       getFooterColor(state, "#9cb29f")
     );
   }
@@ -756,7 +756,7 @@ function drawGuidePanel(ctx, x, y, w, h, theme) {
     const compactLines = [
       "WASD move  |  Space dash  |  E interact",
       "LMB staff  |  RMB bolt  |  1 root  |  R pulse",
-      "Q quest log  |  C / I / T views  |  2-4 bound items",
+      "L quest log  |  C / I / N views  |  2-4 bound items",
       "Esc back  |  Hold E on gates to confirm travel",
     ];
     ctx.fillStyle = "#d7e2d4";
