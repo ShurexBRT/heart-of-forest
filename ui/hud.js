@@ -1,4 +1,8 @@
-import { EQUIPMENT_SLOTS, ITEM_DEFS, TALENT_DEFS } from "../data/gameData.js";
+import {
+  ITEM_DEFS,
+  TALENT_BRANCHES,
+  TALENT_DEFS,
+} from "../data/gameData.js";
 import { SCENES, WORLD_MAP_LAYOUT } from "../data/sceneNetwork.js";
 import {
   getCurrency,
@@ -9,10 +13,13 @@ import {
   getPlayerBonuses,
   getQuestCounter,
   getStashEntries,
-  getUnlockedTalentList,
+  getTalentUnlockState,
   getXpProgress,
 } from "../systems/progression.js";
+import { getRegionForScene } from "../data/regionData.js";
+import { getRegionStatus } from "../systems/regions.js";
 import { getAylaPortrait } from "../rendering/atlasAssets.js";
+import { drawTalentIcon } from "../rendering/talentIconAssets.js";
 import { getActiveService, getServiceEntries, getStashUiEntries } from "../systems/services.js";
 import { NPC_DEFS } from "../data/storyData.js";
 import { getClockView } from "../systems/clock.js";
@@ -117,41 +124,36 @@ export function getUiHoverTarget(state, mouseX, mouseY) {
 
 function drawBottomHud(ctx, state, abilityInfo) {
   const { width, height } = state.viewport;
-  const panelW = 760;
+  const panelW = 680;
   const panelH = 132;
   const x = width / 2 - panelW / 2;
-  const y = height - panelH - 16;
+  const y = height - panelH - 12;
   const xp = getXpProgress(state.progression);
   const healthPotions = state.progression.inventory.health_potion || 0;
   const spiritTonics = state.progression.inventory.spirit_tonic || 0;
-
-  ctx.fillStyle = "rgba(228, 238, 214, 0.78)";
-  ctx.font = "11px Segoe UI, Arial";
-  ctx.fillText(`Lv ${xp.level}  |  L Quest Log  |  C Character  |  I Inventory  |  N Talents  |  R Pulse  |  2-4 Action`, x + 18, y - 38);
-
-  drawXpProgressPanel(ctx, x + 154, y - 32, panelW - 308, xp);
 
   ctx.fillStyle = "rgba(5, 8, 12, 0.84)";
   ctx.fillRect(x, y, panelW, panelH);
   ctx.fillStyle = "#11171f";
   ctx.fillRect(x + 6, y + 6, panelW - 12, panelH - 12);
 
-  drawOrb(ctx, x + 78, y + 58, 46, state.player.hp / state.player.maxHp, "#8d242b", "#ef6b62");
-  drawOrb(ctx, x + panelW - 78, y + 58, 46, state.player.spirit / state.player.maxSpirit, "#173f67", "#6ad8ff");
+  drawXpBar(ctx, x + 90, y + 7, panelW - 180, xp.ratio, `Lv ${xp.level}`);
+  drawOrb(ctx, x + 58, y + 54, 36, state.player.hp / state.player.maxHp, "#8d242b", "#ef6b62");
+  drawOrb(ctx, x + panelW - 58, y + 54, 36, state.player.spirit / state.player.maxSpirit, "#173f67", "#6ad8ff");
 
   ctx.fillStyle = "#f7ead0";
   ctx.font = "700 12px Segoe UI, Arial";
   ctx.textAlign = "center";
-  ctx.fillText(`${Math.round(state.player.hp)}/${state.player.maxHp}`, x + 78, y + 64);
-  ctx.fillText(`${Math.round(state.player.spirit)}/${state.player.maxSpirit}`, x + panelW - 78, y + 64);
+  ctx.fillText(`${Math.round(state.player.hp)}`, x + 58, y + 58);
+  ctx.fillText(`${Math.round(state.player.spirit)}`, x + panelW - 58, y + 58);
   ctx.textAlign = "left";
 
-  const abilityRowWidth = getHudAbilitySpecs().length * 76 + (getHudAbilitySpecs().length - 1) * 10;
-  drawAbilitySlots(ctx, x + panelW / 2 - abilityRowWidth / 2, y + 18, state.player, abilityInfo);
-  drawActionSlots(ctx, x + panelW / 2 - 147, y + 82, state.progression);
-  drawQuickCounters(ctx, x + 18, y + 98, healthPotions, spiritTonics, panelW);
-  drawBuffChips(ctx, x + 198, y + 98, state.player);
-  drawCurrencyChip(ctx, x + panelW - 182, y + 98, state.progression);
+  const abilityRowWidth = getHudAbilitySpecs().length * 64 + (getHudAbilitySpecs().length - 1) * 8;
+  drawAbilitySlots(ctx, x + panelW / 2 - abilityRowWidth / 2, y + 16, state.player, abilityInfo);
+  drawActionSlots(ctx, x + panelW / 2 - 127, y + 72, state.progression);
+  drawQuickCounters(ctx, x + 12, y + 106, healthPotions, spiritTonics, panelW);
+  drawBuffChips(ctx, x + 96, y + 106, state.player, state.progression);
+  drawCurrencyChip(ctx, x + panelW - 236, y + 106, state.progression);
   drawPanelChrome(ctx, x, y, panelW, panelH, "#7f9a74");
 }
 
@@ -187,9 +189,9 @@ function drawOrb(ctx, cx, cy, radius, ratio, dark, light) {
 
 function drawAbilitySlots(ctx, startX, y, player, abilityInfo) {
   const abilities = getHudAbilitySpecs();
-  const slotW = 76;
-  const slotH = 54;
-  const gap = 10;
+  const slotW = 64;
+  const slotH = 46;
+  const gap = 8;
 
   for (let i = 0; i < abilities.length; i += 1) {
     const [name, color] = abilities[i];
@@ -227,15 +229,15 @@ function drawAbilitySlots(ctx, startX, y, player, abilityInfo) {
       const cooldownText = cooldown >= 1 ? cooldown.toFixed(1) : cooldown.toFixed(2);
       ctx.fillStyle = "#dce6ee";
       ctx.font = "700 12px Segoe UI, Arial";
-      ctx.fillText(info.key, x + 10, y + 15);
+      ctx.fillText(info.key, x + 8, y + 14);
       ctx.fillStyle = "#f6f0d8";
       ctx.font = "700 20px Segoe UI, Arial";
       ctx.textAlign = "center";
-      ctx.fillText(cooldownText, x + slotW / 2, y + 31);
+      ctx.fillText(cooldownText, x + slotW / 2, y + 29);
       ctx.textAlign = "left";
       ctx.fillStyle = "#d7e4cf";
       ctx.font = "11px Segoe UI, Arial";
-      ctx.fillText(info.shortLabel || info.label, x + 10, y + 44);
+      ctx.fillText(info.shortLabel || info.label, x + 8, y + 40);
 
       ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
       ctx.fillRect(innerX + 6, y + slotH - 12, innerW - 12, 5);
@@ -244,19 +246,27 @@ function drawAbilitySlots(ctx, startX, y, player, abilityInfo) {
     } else {
       ctx.fillStyle = unlocked ? "#f7fff1" : "#88939f";
       ctx.font = "700 16px Segoe UI, Arial";
-      ctx.fillText(info.key, x + 10, y + 22);
+      ctx.fillText(info.key, x + 8, y + 19);
       ctx.font = "12px Segoe UI, Arial";
       ctx.fillStyle = unlocked ? "#d7e4cf" : "#97a2ae";
-      ctx.fillText(unlocked ? info.shortLabel || info.label : "Locked", x + 10, y + 40);
+      ctx.fillText(unlocked ? info.shortLabel || info.label : "Locked", x + 8, y + 36);
+    }
+
+    if (name === "pulse" && info.signatureAbility) {
+      const charge = Math.max(0, Math.min(100, player.heartCharge || 0));
+      ctx.fillStyle = "rgba(0,0,0,0.68)";
+      ctx.fillRect(x + 5, y + slotH - 8, slotW - 10, 4);
+      ctx.fillStyle = charge >= 100 ? "#fff09a" : color;
+      ctx.fillRect(x + 5, y + slotH - 8, (slotW - 10) * charge / 100, 4);
     }
   }
 }
 
 function drawActionSlots(ctx, x, y, progression) {
   const slots = getActionSlotEntries(progression);
-  const slotW = 90;
-  const slotH = 34;
-  const gap = 12;
+  const slotW = 78;
+  const slotH = 28;
+  const gap = 10;
 
   for (let index = 0; index < slots.length; index += 1) {
     const slot = slots[index];
@@ -273,16 +283,16 @@ function drawActionSlots(ctx, x, y, progression) {
 
     if (slot.item) {
       ctx.fillStyle = slot.item.color || "#d8e2ec";
-      ctx.fillRect(slotX + 8, y + 8, 12, 18);
+      ctx.fillRect(slotX + 7, y + 7, 10, 14);
       ctx.fillStyle = "#f6ead0";
       ctx.font = "700 12px Segoe UI, Arial";
-      ctx.fillText(slot.key, slotX + 28, y + 13);
+      ctx.fillText(slot.key, slotX + 22, y + 11);
       ctx.fillStyle = slot.count > 0 ? "#eef6dd" : "#9098a5";
       ctx.font = "11px Segoe UI, Arial";
-      ctx.fillText(shorten(slot.item.name, 11), slotX + 28, y + 25);
+      ctx.fillText(shorten(slot.item.name, 8), slotX + 22, y + 22);
       ctx.textAlign = "right";
       ctx.fillStyle = slot.count > 0 ? "#fff4d8" : "#9aa4b1";
-      ctx.fillText(`x${slot.count}`, slotX + slotW - 8, y + 25);
+      ctx.fillText(`x${slot.count}`, slotX + slotW - 6, y + 22);
       ctx.textAlign = "left";
       if (slot.count <= 0) {
         ctx.fillStyle = "rgba(0,0,0,0.42)";
@@ -302,27 +312,27 @@ function drawActionSlots(ctx, x, y, progression) {
 
 function drawQuickCounters(ctx, x, y, healthPotions, spiritTonics, panelW) {
   const chips = [
-    { key: "5", label: "Health", count: healthPotions, color: "#df6a67", x },
-    { key: "6", label: "Spirit", count: spiritTonics, color: "#6ecff7", x: x + panelW - 110 },
+    { key: "5", label: "HP", count: healthPotions, color: "#df6a67", x },
+    { key: "6", label: "SP", count: spiritTonics, color: "#6ecff7", x: x + panelW - 86 },
   ];
 
   for (const chip of chips) {
     ctx.fillStyle = "rgba(0,0,0,0.56)";
-    ctx.fillRect(chip.x, y, 92, 22);
+    ctx.fillRect(chip.x, y, 74, 18);
     ctx.fillStyle = "#10161d";
-    ctx.fillRect(chip.x + 2, y + 2, 88, 18);
+    ctx.fillRect(chip.x + 2, y + 2, 70, 14);
     ctx.fillStyle = chip.color;
-    ctx.fillRect(chip.x + 4, y + 4, 10, 14);
+    ctx.fillRect(chip.x + 4, y + 4, 8, 10);
     ctx.fillStyle = "#f6ead0";
     ctx.font = "700 11px Segoe UI, Arial";
-    ctx.fillText(chip.key, chip.x + 20, y + 11);
+    ctx.fillText(chip.key, chip.x + 16, y + 10);
     ctx.fillStyle = "#dce6d6";
     ctx.font = "10px Segoe UI, Arial";
-    ctx.fillText(`${chip.label} x${chip.count}`, chip.x + 20, y + 19);
+    ctx.fillText(`${chip.label} x${chip.count}`, chip.x + 30, y + 12);
   }
 }
 
-function drawBuffChips(ctx, x, y, player) {
+function drawBuffChips(ctx, x, y, player, progression) {
   const chips = [];
   if (player.activeBuffs?.ward > 0) {
     chips.push({ label: `Ward ${player.activeBuffs.ward.toFixed(0)}s`, color: "#d8d57b" });
@@ -330,20 +340,31 @@ function drawBuffChips(ctx, x, y, player) {
   if (player.activeBuffs?.speed > 0) {
     chips.push({ label: `Windstep ${player.activeBuffs.speed.toFixed(0)}s`, color: "#8be4c3" });
   }
+  if (progression.activePreparation) {
+    const preparation = progression.activePreparation;
+    const fallbackName = ITEM_DEFS[preparation.itemId]?.name || `${preparation.damageType || "Regional"} ward`;
+    const reduction = Math.round(
+      (preparation.damageReduction ?? preparation.reduction ?? 0.25) * 100
+    );
+    chips.push({
+      label: `${preparation.label || fallbackName} ${reduction}%`,
+      color: preparation.damageType === "mire" ? "#7fd7cb" : "#a8d77b",
+    });
+  }
   if (chips.length === 0) return;
 
   let cursorX = x;
   for (const chip of chips) {
-    const width = Math.max(82, Math.ceil(ctx.measureText(chip.label).width) + 20);
+    const width = Math.max(74, Math.ceil(ctx.measureText(chip.label).width) + 18);
     ctx.fillStyle = "rgba(0,0,0,0.54)";
-    ctx.fillRect(cursorX, y, width, 22);
+    ctx.fillRect(cursorX, y, width, 18);
     ctx.fillStyle = "#10161d";
-    ctx.fillRect(cursorX + 2, y + 2, width - 4, 18);
+    ctx.fillRect(cursorX + 2, y + 2, width - 4, 14);
     ctx.fillStyle = chip.color;
-    ctx.fillRect(cursorX + 5, y + 5, 8, 12);
+    ctx.fillRect(cursorX + 5, y + 5, 7, 8);
     ctx.fillStyle = "#eef7df";
     ctx.font = "10px Segoe UI, Arial";
-    ctx.fillText(chip.label, cursorX + 18, y + 15);
+    ctx.fillText(chip.label, cursorX + 16, y + 12);
     cursorX += width + 8;
   }
 }
@@ -351,17 +372,17 @@ function drawBuffChips(ctx, x, y, player) {
 function drawCurrencyChip(ctx, x, y, progression) {
   const silver = getCurrency(progression);
   ctx.fillStyle = "rgba(0,0,0,0.56)";
-  ctx.fillRect(x, y, 154, 22);
+  ctx.fillRect(x, y, 142, 18);
   ctx.fillStyle = "#10161d";
-  ctx.fillRect(x + 2, y + 2, 150, 18);
+  ctx.fillRect(x + 2, y + 2, 138, 14);
   ctx.fillStyle = "#e4c776";
-  ctx.fillRect(x + 6, y + 5, 10, 10);
+  ctx.fillRect(x + 6, y + 4, 8, 8);
   ctx.fillStyle = "#f6ead0";
   ctx.font = "700 11px Segoe UI, Arial";
-  ctx.fillText("Silver", x + 24, y + 11);
+  ctx.fillText("Silver", x + 20, y + 10);
   ctx.textAlign = "right";
   ctx.fillStyle = "#fff6dc";
-  ctx.fillText(String(silver), x + 144, y + 11);
+  ctx.fillText(String(silver), x + 134, y + 10);
   ctx.textAlign = "left";
 }
 
@@ -416,6 +437,12 @@ function drawSceneInfo(ctx, state) {
   const x = state.viewport.width - 302;
   const y = 18;
   const cleared = Boolean(state.sceneProgress?.[state.currentSceneId]?.cleared);
+  const region = getRegionForScene(state.currentSceneId);
+  const regionStatus = getRegionStatus(
+    state.progression,
+    state.sceneProgress,
+    state.currentSceneId
+  );
   const aliveThreats =
     state.enemies.length + encounter.spawnQueue.length + (state.boss && !state.boss.dead ? 1 : 0);
   let phaseLabel = cleared ? "Area Secure" : `Threats ${aliveThreats}`;
@@ -450,8 +477,12 @@ function drawSceneInfo(ctx, state) {
   ctx.fillText(state.scene.regionName, x + 12, y + 40);
   ctx.fillStyle = "#fff5cf";
   ctx.fillText(phaseLabel, x + 12, y + 58);
-  ctx.fillStyle = "#e8d487";
-  ctx.fillText(`Silver ${getCurrency(state.progression)}`, x + 12, y + 74);
+  ctx.fillStyle = regionStatus.color;
+  ctx.fillText(
+    `${region?.name || "Wilds"}: ${regionStatus.label}`,
+    x + 12,
+    y + 74
+  );
   ctx.textAlign = "right";
   ctx.fillStyle = clock.reachedDayEnd ? "#efaa8a" : "#d9e8c9";
   ctx.fillText(`Day ${clock.day}  ${clock.timeLabel}`, x + 268, y + 74);
@@ -489,6 +520,15 @@ function drawBossBar(ctx, state) {
   ctx.fillStyle = "#fff4d4";
   ctx.font = "700 13px Segoe UI, Arial";
   ctx.fillText(state.scene.bossName || "Elder Hollow", state.viewport.width / 2, y - 4);
+  if (boss) {
+    ctx.font = "700 10px Segoe UI, Arial";
+    ctx.fillStyle = "#d9e7d0";
+    ctx.fillText(
+      `${String(boss.identity?.damageType || "physical").toUpperCase()}  |  PHASE ${boss.phase || 1}`,
+      state.viewport.width / 2,
+      y + 13
+    );
+  }
   ctx.textAlign = "left";
 }
 
@@ -501,7 +541,9 @@ function drawQuestTracker(ctx, state) {
   const x = 20;
   const y = 98;
   const width = 320;
-  const rows = quests.slice(0, 3).map((quest) => {
+  const selectedQuest =
+    quests[Math.min(state.ui.selectedQuestIndex || 0, quests.length - 1)] || quests[0];
+  const rows = [selectedQuest].map((quest) => {
     const note =
       quest.status === "complete"
         ? getQuestTurnInLabel(quest)
@@ -521,7 +563,7 @@ function drawQuestTracker(ctx, state) {
   ctx.fillRect(x + 4, y + 4, width - 8, height - 8);
   ctx.fillStyle = "#f6fff1";
   ctx.font = "700 13px Segoe UI, Arial";
-  ctx.fillText("Active Quests", x + 12, y + 18);
+  ctx.fillText("Pinned Quest", x + 12, y + 18);
 
   let cursorY = y + 38;
   for (const row of rows) {
@@ -646,7 +688,7 @@ function drawCharacterOverlay(ctx, state) {
 
   drawTabs(ctx, state, x + 18, y + 48);
 
-  if (portrait && !frame.compact) {
+  if (portrait && !frame.compact && state.ui.activeTab === "character") {
     ctx.drawImage(portrait, x + 18, y + 86, 176, 200);
   }
 
@@ -657,7 +699,7 @@ function drawCharacterOverlay(ctx, state) {
   } else if (state.ui.activeTab === "services") {
     drawServiceTab(ctx, state, x, y, width, height);
   } else {
-    drawTalentTab(ctx, state, x, y, width, height);
+    drawTalentTab(ctx, state, x, y, width, height, frame.compact);
   }
 
   drawPanelChrome(ctx, x, y, width, height, "#8a6e49");
@@ -889,97 +931,140 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
   }
 }
 
-function drawTalentTab(ctx, state, x, y, width, height) {
-  const panel = getTalentPanelData(state, { x, y, width, height });
+function drawTalentTab(ctx, state, x, y, width, height, compact = false) {
+  const panel = getTalentPanelData(state, { x, y, width, height, compact });
   ctx.fillStyle = "#fff2d5";
   ctx.font = "700 16px Segoe UI, Arial";
-  ctx.fillText("Talents", panel.listX, panel.headerY);
+  ctx.fillText("Ayla's Talent Tree", panel.treeRect.x, panel.headerY);
   ctx.font = "11px Segoe UI, Arial";
   ctx.fillStyle = "#d7e4cf";
-  ctx.fillText(`Unspent Points: ${state.progression.talentPoints}`, panel.listX + 100, panel.headerY);
-  ctx.textAlign = "right";
-  ctx.fillText(`Showing ${panel.rangeLabel}`, panel.listX + panel.listWidth, panel.headerY);
+  ctx.fillText(`Unspent Points: ${state.progression.talentPoints}  |  One Signature ultimate`, panel.treeRect.x + 150, panel.headerY);
+
+  for (const branch of panel.branches) {
+    ctx.fillStyle = branch.color;
+    ctx.font = "700 13px Segoe UI, Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(branch.name, branch.centerX, panel.branchHeaderY);
+    ctx.fillStyle = "#aebcaf";
+    ctx.font = "10px Segoe UI, Arial";
+    ctx.fillText(branch.subtitle, branch.centerX, panel.branchHeaderY + 15);
+  }
   ctx.textAlign = "left";
+
+  ctx.save();
+  ctx.lineWidth = 3;
+  for (const connection of panel.connections) {
+    ctx.strokeStyle = connection.active ? connection.color : "rgba(76, 88, 99, 0.68)";
+    ctx.beginPath();
+    ctx.moveTo(connection.from.x, connection.from.y);
+    ctx.lineTo(connection.to.x, connection.to.y);
+    ctx.stroke();
+  }
+  ctx.restore();
 
   panel.rows.forEach((row) => {
     const unlocked = Boolean(state.progression.talents[row.talent.id]);
     const selected = row.index === state.ui.selectedTalentIndex;
-    ctx.fillStyle = selected ? "rgba(121, 184, 255, 0.16)" : "rgba(0, 0, 0, 0.26)";
-    ctx.fillRect(row.rect.x, row.rect.y, row.rect.w, row.rect.h);
-    ctx.strokeStyle = selected ? "#79b8ff" : "#263142";
-    ctx.lineWidth = selected ? 2 : 1;
-    ctx.strokeRect(row.rect.x, row.rect.y, row.rect.w, row.rect.h);
-    ctx.fillStyle = unlocked ? "#9ce1a3" : "#fff6d8";
-    ctx.font = "700 12px Segoe UI, Arial";
-    ctx.fillText(`${row.talent.tree}  |  ${row.talent.name}`, row.rect.x + 12, row.rect.y + 17);
-    ctx.fillStyle = "#cfd9d3";
-    ctx.font = "11px Segoe UI, Arial";
+    const unlockState = row.unlockState;
+    ctx.fillStyle = unlocked
+      ? "rgba(91, 151, 105, 0.3)"
+      : selected
+        ? "rgba(121, 184, 255, 0.18)"
+        : "rgba(0, 0, 0, 0.3)";
+    ctx.fillRect(row.rect.x, row.rect.y, row.rect.width, row.rect.height);
+    ctx.strokeStyle = unlocked
+      ? row.color
+      : selected
+        ? "#d9efff"
+        : unlockState.unlockable
+          ? row.color
+          : "#34404c";
+    ctx.lineWidth = row.talent.capstone ? 3 : selected ? 2 : 1;
+    ctx.strokeRect(row.rect.x, row.rect.y, row.rect.width, row.rect.height);
+    const iconSize = Math.min(row.rect.height - 6, 36);
+    drawTalentIcon(
+      ctx,
+      row.talent.id,
+      row.rect.x + 4,
+      row.rect.y + (row.rect.height - iconSize) / 2,
+      iconSize,
+      { alpha: unlocked || unlockState.unlockable ? 1 : 0.42 }
+    );
+    ctx.fillStyle = unlocked ? "#c9f0bb" : unlockState.unlockable ? "#fff2cf" : "#87929e";
+    ctx.font = "700 11px Segoe UI, Arial";
+    ctx.textAlign = "left";
     ctx.fillText(
-      shorten(
-        row.talent.description,
-        panel.compact ? Math.max(34, Math.floor(panel.listWidth / 8.4)) : Math.max(26, Math.floor(panel.listWidth / 11))
-      ),
-      row.rect.x + 12,
+      row.talent.capstone ? `ULT: ${row.talent.name}` : row.talent.name,
+      row.rect.x + iconSize + 9,
+      row.rect.y + 18
+    );
+    ctx.fillStyle = unlocked ? row.color : "#9eabb4";
+    ctx.font = "10px Segoe UI, Arial";
+    ctx.fillText(
+      unlocked ? "LEARNED" : unlockState.unlockable ? "AVAILABLE" : `TIER ${row.talent.tier}`,
+      row.rect.x + iconSize + 9,
       row.rect.y + 34
     );
-    ctx.textAlign = "right";
-    ctx.fillStyle = unlocked ? "#9ce1a3" : state.progression.talentPoints > 0 ? "#f1d786" : "#8692a3";
-    ctx.fillText(unlocked ? "Unlocked" : "Available", row.rect.x + row.rect.w - 12, row.rect.y + 25);
-    ctx.textAlign = "left";
   });
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#b8c7bd";
+  ctx.fillText("8 points max in current campaign", panel.treeRect.x + panel.treeRect.width, panel.headerY);
+  ctx.textAlign = "left";
 
   const detail = panel.selectedTalent;
   if (!detail) return;
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
-  ctx.fillRect(panel.detailRect.x, panel.detailRect.y, panel.detailRect.w, panel.detailRect.h);
+  ctx.fillRect(panel.detailRect.x, panel.detailRect.y, panel.detailRect.width, panel.detailRect.height);
   ctx.strokeStyle = "#2d3848";
-  ctx.strokeRect(panel.detailRect.x, panel.detailRect.y, panel.detailRect.w, panel.detailRect.h);
+  ctx.strokeRect(panel.detailRect.x, panel.detailRect.y, panel.detailRect.width, panel.detailRect.height);
   ctx.fillStyle = "#fff2d5";
   ctx.font = "700 15px Segoe UI, Arial";
-  ctx.fillText(detail.name, panel.detailRect.x + 14, panel.detailRect.y + 22);
-  ctx.fillStyle = "#8fdc8b";
+  const detailUnlocked = Boolean(state.progression.talents[detail.id]);
+  drawTalentIcon(
+    ctx,
+    detail.id,
+    panel.detailRect.x + 14,
+    panel.detailRect.y + 12,
+    76,
+    { alpha: detailUnlocked || panel.selectedUnlockState.unlockable ? 1 : 0.58 }
+  );
+  ctx.fillText(detail.name, panel.detailRect.x + 104, panel.detailRect.y + 24);
+  ctx.fillStyle = panel.selectedBranch?.color || "#8fdc8b";
   ctx.font = "700 11px Segoe UI, Arial";
-  ctx.fillText(detail.tree.toUpperCase(), panel.detailRect.x + 14, panel.detailRect.y + 40);
+  ctx.fillText(detail.tree.toUpperCase(), panel.detailRect.x + 104, panel.detailRect.y + 43);
   ctx.fillStyle = "#d7e4cf";
   ctx.font = "12px Segoe UI, Arial";
   drawWrappedText(
     ctx,
     detail.description,
-    panel.detailRect.x + 14,
-    panel.detailRect.y + 62,
-    panel.detailRect.w - 28,
+    panel.detailRect.x + 104,
+    panel.detailRect.y + 63,
+    Math.max(220, panel.detailRect.width - 304),
     18,
     panel.compact ? 6 : 5
   );
 
-  const detailUnlocked = Boolean(state.progression.talents[detail.id]);
-  ctx.fillStyle = detailUnlocked ? "#9ce1a3" : state.progression.talentPoints > 0 ? "#f1d786" : "#8692a3";
+  ctx.fillStyle = detailUnlocked ? "#9ce1a3" : panel.selectedUnlockState.unlockable ? "#f1d786" : "#b18d86";
   ctx.font = "700 12px Segoe UI, Arial";
   ctx.fillText(
-    detailUnlocked ? "Unlocked" : state.progression.talentPoints > 0 ? "Ready to unlock" : "Need a talent point",
-    panel.detailRect.x + 14,
-    panel.detailRect.y + 164
-  );
-
-  const unlocked = getUnlockedTalentList(state.progression);
-  ctx.fillStyle = "#fff2d5";
-  ctx.font = "700 13px Segoe UI, Arial";
-  ctx.fillText("Unlocked Summary", panel.detailRect.x + 14, panel.detailRect.y + 194);
-  ctx.fillStyle = "#d7e4cf";
-  ctx.font = "11px Segoe UI, Arial";
-  drawWrappedText(
-    ctx,
-    unlocked.length > 0 ? unlocked.map((talent) => talent.name).join(", ") : "No talents unlocked yet.",
-    panel.detailRect.x + 14,
-    panel.detailRect.y + 214,
-    panel.detailRect.w - 28,
-    16,
-    7
+    detailUnlocked
+      ? "Unlocked"
+      : panel.selectedUnlockState.unlockable
+        ? "Ready to unlock"
+        : panel.selectedUnlockState.reason,
+    panel.detailRect.x + 104,
+    panel.detailRect.y + 102
   );
 
   if (panel.unlockButton) {
-    drawActionButton(ctx, panel.unlockButton, state.ui.hoverTarget, "#142219", "#f6ead0");
+    drawActionButton(
+      ctx,
+      panel.unlockButton,
+      state.ui.hoverTarget,
+      panel.selectedUnlockState.unlockable ? "#142219" : "#21191a",
+      panel.selectedUnlockState.unlockable ? "#f6ead0" : "#9b8e8a"
+    );
   }
 }
 
@@ -1089,7 +1174,7 @@ function drawServiceTab(ctx, state, x, y, width, height) {
     return;
   }
 
-  if (service.kind === "altar") {
+  if (service.kind === "altar" || service.kind === "crafting") {
     panel.rows.forEach(({ entry, index, rect: rowRect, descriptionLines }) => {
       const selected = index === state.ui.selectedServiceIndex;
       ctx.fillStyle = selected ? "rgba(121, 184, 255, 0.16)" : "rgba(0, 0, 0, 0.26)";
@@ -1098,14 +1183,18 @@ function drawServiceTab(ctx, state, x, y, width, height) {
       ctx.strokeRect(rowRect.x, rowRect.y, rowRect.width, rowRect.height);
       ctx.fillStyle = "#fff6d8";
       ctx.font = "700 12px Segoe UI, Arial";
-      ctx.fillText(entry.title, rowRect.x + 12, rowRect.y + 18);
+      ctx.fillText(entry.title || entry.name, rowRect.x + 12, rowRect.y + 18);
       ctx.fillStyle = "#d7e4cf";
       ctx.font = "11px Segoe UI, Arial";
       descriptionLines.forEach((line, lineIndex) => {
         ctx.fillText(line, rowRect.x + 12, rowRect.y + 36 + lineIndex * 13);
       });
       ctx.fillStyle = entry.affordable ? "#f1d786" : "#c67d72";
-      ctx.fillText(formatActionCost(entry), rowRect.x + 12, rowRect.y + rowRect.height - 8);
+      ctx.fillText(
+        service.kind === "crafting" ? formatRecipeCost(entry) : formatActionCost(entry),
+        rowRect.x + 12,
+        rowRect.y + rowRect.height - 8
+      );
     });
     if (panel.actionButton) {
       drawActionButton(ctx, panel.actionButton, state.ui.hoverTarget, "#182117", "#fff6dd");
@@ -1351,6 +1440,7 @@ function drawWorldMapOverlay(ctx, state) {
 
     const current = sceneId === state.currentSceneId;
     const cleared = Boolean(state.sceneProgress[sceneId]?.cleared);
+    const status = getRegionStatus(state.progression, state.sceneProgress, sceneId);
     const color = getBiomeMapColor(scene.biomeId);
     const radius = current ? 14 : 10;
 
@@ -1364,7 +1454,7 @@ function drawWorldMapOverlay(ctx, state) {
     ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.strokeStyle = current ? "#fff7d8" : cleared ? "#b8e4b0" : "#243240";
+    ctx.strokeStyle = current ? "#fff7d8" : status.color;
     ctx.lineWidth = current ? 3 : 2;
     ctx.stroke();
 
@@ -1386,8 +1476,13 @@ function drawWorldMapOverlay(ctx, state) {
     ctx.textAlign = "left";
   }
 
+  const currentStatus = getRegionStatus(
+    state.progression,
+    state.sceneProgress,
+    state.currentSceneId
+  );
   const footer = state.scene?.title
-    ? `Current zone: ${state.scene.title}. Hold E on a gate to confirm travel.`
+    ? `Current zone: ${state.scene.title}. Region ${currentStatus.label}. Hold E on a gate to confirm travel.`
     : "Hold E on a gate to confirm travel.";
   ctx.fillStyle = "#c8d4bd";
   ctx.font = "12px Segoe UI, Arial";
@@ -1580,6 +1675,14 @@ function formatActionCost(action) {
   for (const [itemId, amount] of Object.entries(action.costItems || {})) {
     parts.push(`${amount} ${formatItemName(itemId)}`);
   }
+  return parts.join("  |  ");
+}
+
+function formatRecipeCost(recipe) {
+  const parts = (recipe.ingredientEntries || []).map(
+    (entry) => `${entry.owned}/${entry.required} ${formatItemName(entry.itemId)}`
+  );
+  parts.push(`${recipe.costSilver} silver`);
   return parts.join("  |  ");
 }
 
@@ -1901,57 +2004,90 @@ function getCharacterPanelData(state, frame) {
 
 function getTalentPanelData(state, frame) {
   const compact = frame.compact || frame.width < 760;
-  const listX = compact ? frame.x + 18 : frame.x + 220;
-  const headerY = compact ? frame.y + 96 : frame.y + 104;
-  const rowHeight = compact ? 44 : 48;
-  const listWidth = compact
-    ? frame.width - 36
-    : Math.max(300, frame.width - 286 - Math.min(300, Math.max(252, Math.floor(frame.width * 0.28))));
-  const detailW = compact
-    ? listWidth
-    : Math.min(300, Math.max(252, Math.floor(frame.width * 0.28)));
-  const visibleCount = compact
-    ? Math.max(4, Math.min(6, Math.floor(Math.max(176, frame.height - 320) / rowHeight)))
-    : Math.max(5, Math.floor(Math.max(220, frame.height - 178) / rowHeight));
-  const maxStart = Math.max(0, TALENT_DEFS.length - visibleCount);
-  const startIndex = Math.max(
-    0,
-    Math.min(maxStart, state.ui.selectedTalentIndex - Math.floor(visibleCount / 2))
+  const treeRect = rect(frame.x + 28, frame.y + 92, frame.width - 56, frame.height - 112);
+  const headerY = frame.y + 104;
+  const branchHeaderY = frame.y + 128;
+  const branchIds = Object.keys(TALENT_BRANCHES);
+  const columnGap = compact ? 8 : 18;
+  const columnWidth = (treeRect.width - columnGap * 2) / 3;
+  const nodeHeight = compact ? 38 : 42;
+  const tierGap = Math.max(
+    compact ? 42 : 48,
+    Math.min(compact ? 48 : 56, (frame.height - 270) / 5)
   );
-  const visibleTalents = TALENT_DEFS.slice(startIndex, startIndex + visibleCount);
-  const rows = visibleTalents.map((talent, offset) => ({
-    talent,
-    index: startIndex + offset,
-    rect: rect(listX, frame.y + 124 + offset * rowHeight, listWidth, compact ? 38 : 42),
-  }));
+  const nodesTop = frame.y + 158;
+  const rows = TALENT_DEFS.map((talent, index) => {
+    const branchIndex = branchIds.indexOf(talent.branch);
+    const branch = TALENT_BRANCHES[talent.branch];
+    return {
+      talent,
+      index,
+      color: branch?.color || "#9ce1a3",
+      unlockState: getTalentUnlockState(state.progression, talent.id),
+      rect: rect(
+        treeRect.x + branchIndex * (columnWidth + columnGap) + 8,
+        nodesTop + (talent.tier - 1) * tierGap,
+        columnWidth - 16,
+        nodeHeight
+      ),
+    };
+  });
+  const rowById = Object.fromEntries(rows.map((row) => [row.talent.id, row]));
+  const connections = rows.flatMap((row) =>
+    (row.talent.requires || []).map((requiredId) => {
+      const parent = rowById[requiredId];
+      return {
+        color: row.color,
+        active:
+          Boolean(state.progression.talents[requiredId]) &&
+          Boolean(state.progression.talents[row.talent.id]),
+        from: {
+          x: parent.rect.x + parent.rect.width / 2,
+          y: parent.rect.y + parent.rect.height,
+        },
+        to: {
+          x: row.rect.x + row.rect.width / 2,
+          y: row.rect.y,
+        },
+      };
+    })
+  );
   const selectedTalent = TALENT_DEFS[state.ui.selectedTalentIndex] || null;
-  const detailRect = compact
-    ? rect(
-        listX,
-        frame.y + 136 + visibleCount * rowHeight,
-        detailW,
-        Math.max(150, frame.height - (146 + visibleCount * rowHeight))
-      )
-    : rect(listX + listWidth + 20, frame.y + 124, detailW, Math.max(252, frame.height - 162));
+  const selectedUnlockState = selectedTalent
+    ? getTalentUnlockState(state.progression, selectedTalent.id)
+    : { unlockable: false, reason: "" };
+  const detailY = nodesTop + 5 * tierGap + nodeHeight + 14;
+  const detailRect = rect(
+    treeRect.x,
+    detailY,
+    treeRect.width,
+    Math.max(116, frame.y + frame.height - detailY - 18)
+  );
   return {
     compact,
     rows,
-    listX,
-    listWidth,
+    treeRect,
     headerY,
+    branchHeaderY,
+    branches: branchIds.map((branchId, index) => ({
+      ...TALENT_BRANCHES[branchId],
+      centerX: treeRect.x + index * (columnWidth + columnGap) + columnWidth / 2,
+    })),
+    connections,
     detailRect,
     selectedTalent,
-    rangeLabel: `${startIndex + 1}-${Math.min(TALENT_DEFS.length, startIndex + visibleCount)} / ${TALENT_DEFS.length}`,
+    selectedBranch: selectedTalent ? TALENT_BRANCHES[selectedTalent.branch] : null,
+    selectedUnlockState,
     unlockButton:
       selectedTalent && !state.progression.talents[selectedTalent.id]
         ? makeButton(
-            detailRect.x + 14,
-            detailRect.y + detailRect.h - 40,
-            detailRect.w - 28,
+            detailRect.x + detailRect.width - 184,
+            detailRect.y + detailRect.height - 40,
+            170,
             28,
-            "Unlock",
+            selectedUnlockState.unlockable ? "Unlock Talent" : "Locked",
             "talent-unlock",
-            "#9ce1a3",
+            selectedUnlockState.unlockable ? "#9ce1a3" : "#765b58",
             { index: state.ui.selectedTalentIndex, talent: selectedTalent }
           )
         : null,
@@ -2019,7 +2155,7 @@ function getServicePanelData(state, frame) {
     };
   }
 
-  if (service.kind === "altar") {
+  if (service.kind === "altar" || service.kind === "crafting") {
     const entries = getServiceEntries(state);
     const rowWidth = frame.width - 280;
     const rows = [];
@@ -2041,10 +2177,23 @@ function getServicePanelData(state, frame) {
     });
     const selected = entries[state.ui.selectedServiceIndex] || null;
     const actionButton = selected
-      ? makeButton(bodyX, frame.y + frame.height - 86, frame.width - 280, 30, selected.affordable ? "Invoke Rite" : "Requirements Not Met", "service-activate", selected.affordable ? "#b1e29f" : "#8a6e6a", {
+        ? makeButton(
+            bodyX,
+            frame.y + frame.height - 86,
+            frame.width - 280,
+            30,
+            selected.affordable
+              ? service.kind === "crafting"
+                ? "Brew Preparation"
+                : "Invoke Rite"
+              : "Requirements Not Met",
+            "service-activate",
+            selected.affordable ? "#b1e29f" : "#8a6e6a",
+            {
           index: state.ui.selectedServiceIndex,
           entry: selected,
-        })
+            }
+          )
       : null;
     return {
       service,
@@ -2168,6 +2317,9 @@ function getQuestRewardSummary(rewards) {
       if (!item) continue;
       parts.push(`${amount}x ${item.name}`);
     }
+  }
+  for (const recipeId of rewards.recipes || []) {
+    parts.push(`Recipe: ${formatItemName(recipeId)}`);
   }
 
   return parts.length > 0 ? `Rewards: ${parts.join("  |  ")}` : "Rewards: none";
@@ -2322,7 +2474,11 @@ function getMenuHoverTarget(state, mouseX, mouseY) {
     const panel = getServicePanelData(state, frame);
     if (!panel.service) return null;
 
-    if (panel.service.kind === "shop" || panel.service.kind === "altar") {
+    if (
+      panel.service.kind === "shop" ||
+      panel.service.kind === "altar" ||
+      panel.service.kind === "crafting"
+    ) {
       if (panel.service.kind === "shop") {
         for (const button of panel.subpanelButtons || []) {
           if (pointInRect(mouseX, mouseY, button.rect)) {
@@ -2371,7 +2527,16 @@ function getMenuHoverTarget(state, mouseX, mouseY) {
                 [panel.selected.mode === "buyback" ? `Recover for ${panel.selected.price} silver` : `Price ${panel.selected.price} silver`],
                 state.progression
               )
-            : { title: panel.selected.title, lines: [panel.selected.description, formatActionCost(panel.selected)], accent: panel.actionButton.accent },
+            : {
+                title: panel.selected.title || panel.selected.name,
+                lines: [
+                  panel.selected.description,
+                  panel.service.kind === "crafting"
+                    ? formatRecipeCost(panel.selected)
+                    : formatActionCost(panel.selected),
+                ],
+                accent: panel.actionButton.accent,
+              },
         };
       }
       for (const row of panel.rows) {
@@ -2384,7 +2549,16 @@ function getMenuHoverTarget(state, mouseX, mouseY) {
                   [row.entry.mode === "buyback" ? `Recover for ${row.entry.price} silver` : `Price ${row.entry.price} silver`],
                   state.progression
                 )
-              : { title: row.entry.title, lines: [row.entry.description, formatActionCost(row.entry)], accent: row.entry.affordable ? "#a6e28c" : "#c67d72" };
+              : {
+                  title: row.entry.title || row.entry.name,
+                  lines: [
+                    row.entry.description,
+                    panel.service.kind === "crafting"
+                      ? formatRecipeCost(row.entry)
+                      : formatActionCost(row.entry),
+                  ],
+                  accent: row.entry.affordable ? "#a6e28c" : "#c67d72",
+                };
           return {
             action: "service-select",
             index: row.index,
@@ -2500,25 +2674,25 @@ function getHudHoverOnlyTarget(state, mouseX, mouseY) {
 
 function getBottomHudInteractionData(state) {
   const { width, height } = state.viewport;
-  const panelW = 760;
-  const panelH = 132;
+  const panelW = 680;
+  const panelH = 108;
   const x = width / 2 - panelW / 2;
-  const y = height - panelH - 16;
+  const y = height - panelH - 12;
   const abilities = getHudAbilitySpecs();
-  const abilityRowWidth = abilities.length * 76 + (abilities.length - 1) * 10;
+  const abilityRowWidth = abilities.length * 64 + (abilities.length - 1) * 8;
   const abilityStartX = x + panelW / 2 - abilityRowWidth / 2;
-  const actionStartX = x + panelW / 2 - 147;
+  const actionStartX = x + panelW / 2 - 127;
   const actionSlots = getActionSlotEntries(state.progression);
   return {
     abilitySlots: abilities.map(([name, color], index) => ({
       name,
       color,
       info: state.player.abilityInfo[name],
-      rect: rect(abilityStartX + index * 86, y + 18, 76, 54),
+      rect: rect(abilityStartX + index * 72, y + 16, 64, 46),
     })),
     actionSlots: actionSlots.map((slot, index) => ({
       ...slot,
-      rect: rect(actionStartX + index * 102, y + 82, 90, 34),
+      rect: rect(actionStartX + index * 88, y + 70, 78, 28),
     })),
     quickItems: [
       {
@@ -2527,7 +2701,7 @@ function getBottomHudInteractionData(state) {
         count: state.progression.inventory.health_potion || 0,
         itemId: "health_potion",
         color: "#df6a67",
-        rect: rect(x + 18, y + 98, 92, 22),
+        rect: rect(x + 12, y + 82, 74, 18),
       },
       {
         key: "6",
@@ -2535,7 +2709,7 @@ function getBottomHudInteractionData(state) {
         count: state.progression.inventory.spirit_tonic || 0,
         itemId: "spirit_tonic",
         color: "#6ecff7",
-        rect: rect(x + panelW - 110, y + 98, 92, 22),
+        rect: rect(x + panelW - 86, y + 82, 74, 18),
       },
     ],
   };

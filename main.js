@@ -75,12 +75,18 @@ import {
   createStoryState,
   getActiveQuestEntries,
   getNearestInteractionTarget,
+  getHoveredInteractionTarget,
   moveQuestPanelSelection,
   refreshQuestStates,
   shiftQuestPanelFocus,
   updateQuestAvailability,
   updateStoryRuntime,
 } from "./systems/story.js";
+import {
+  markCorruptionEchoCompleted,
+  markRegionSceneCleared,
+  shouldStartCorruptionEcho,
+} from "./systems/regions.js";
 import {
   createFrontendState,
   getFrontendEntries,
@@ -135,7 +141,8 @@ function createState(currentProgression, saveData = null, runtime = {}) {
     currentEntryId,
     currentProgression,
     sceneProgress,
-    saveData?.playerVitals || null
+    saveData?.playerVitals || null,
+    saveData?.clock?.day || 1
   );
 
   return {
@@ -163,6 +170,7 @@ function createState(currentProgression, saveData = null, runtime = {}) {
     settings: runtime.settings || settings,
     mode: runtime.mode || GAME_MODES.PLAYING,
     frontend: runtime.frontend || createFrontendState(),
+    debugCollision: Boolean(runtime.debugCollision),
   };
 }
 
@@ -224,11 +232,13 @@ function readDebugBootConfig() {
     forceGameOver: modeKey?.toLowerCase?.() === "gameover",
     overlay: params.get("debugUi")?.toLowerCase?.() || null,
     questNpc: params.get("debugNpc")?.toLowerCase?.() || null,
+    collision: params.get("debugCollision") === "1",
   };
 }
 
 function applyDebugBootState(nextState, debugConfig) {
-  if (!debugConfig?.mode && !debugConfig?.overlay) return;
+  if (!debugConfig?.mode && !debugConfig?.overlay && !debugConfig?.collision) return;
+  nextState.debugCollision = Boolean(debugConfig.collision);
 
   if (debugConfig.mode === GAME_MODES.OPTIONS) {
     nextState.frontend.optionsReturnMode = GAME_MODES.START_MENU;
@@ -291,6 +301,7 @@ function createRuntimeState(mode = GAME_MODES.PLAYING) {
     settings: state?.settings || settings,
     mode,
     frontend,
+    debugCollision: Boolean(state?.debugCollision),
   };
 }
 
@@ -451,7 +462,7 @@ function buildSaveData() {
   const runtimeSnapshot = buildRuntimeSnapshot();
 
   return {
-    version: "0.2.0",
+    version: "0.3.0",
     player: {
       ...runtimeSnapshot.playerVitals,
       level: state.progression.level,
@@ -532,7 +543,7 @@ async function setFullscreenPreference(enabled) {
   updateSettings({ fullscreen: Boolean(document.fullscreenElement) });
 }
 
-function buildSceneState(sceneId, entryId, currentProgression, sceneProgress, vitals = null) {
+function buildSceneState(sceneId, entryId, currentProgression, sceneProgress, vitals = null, day = 1) {
   const scene = SCENES[sceneId];
   const arena = createArena({
     ...scene,
@@ -543,7 +554,7 @@ function buildSceneState(sceneId, entryId, currentProgression, sceneProgress, vi
 
   if (savedSceneState?.objectStates) {
     for (const interactable of arena.interactables) {
-      if (savedSceneState.objectStates[interactable.id]) {
+      if (savedSceneState.objectStates[interactable.id] && !interactable.repeatable) {
         interactable.disabled = true;
       }
     }
@@ -552,7 +563,12 @@ function buildSceneState(sceneId, entryId, currentProgression, sceneProgress, vi
   const spawn = arena.entrySpawns?.[entryId] || arena.entrySpawns?.default || arena.playerSpawn;
   const encounter = createEncounterState(arena, scene);
 
-  if (savedSceneState?.cleared) {
+  if (
+    savedSceneState?.cleared &&
+    shouldStartCorruptionEcho(currentProgression, sceneProgress, sceneId, day)
+  ) {
+    activateCorruptionEcho(encounter);
+  } else if (savedSceneState?.cleared) {
     deactivateEncounter(encounter);
   }
 
@@ -585,6 +601,7 @@ function restorePlayerVitals(player, vitals, arena) {
   }
   player.hp = clamp(vitals.hp ?? player.maxHp, 1, player.maxHp);
   player.spirit = clamp(vitals.spirit ?? player.maxSpirit, 0, player.maxSpirit);
+  player.heartCharge = clamp(vitals.heartCharge ?? 0, 0, 100);
 }
 
 function capturePlayerVitals(player) {
@@ -595,7 +612,22 @@ function capturePlayerVitals(player) {
     maxHp: player.maxHp,
     spirit: player.spirit,
     maxSpirit: player.maxSpirit,
+    heartCharge: player.heartCharge || 0,
   };
+}
+
+function activateCorruptionEcho(encounter) {
+  const echoPlan = encounter.wavePlans.at(-1) || encounter.wavePlans[0] || [];
+  encounter.phase = "waveIntro";
+  encounter.waveIndex = -1;
+  encounter.wavePlans = [echoPlan];
+  encounter.totalWaves = 1;
+  encounter.spawnQueue = [];
+  encounter.phaseTimer = 0.5;
+  encounter.bannerText = "Corruption Echo";
+  encounter.bannerTimer = 1.8;
+  encounter.bossEnabled = false;
+  encounter.isCorruptionEcho = true;
 }
 
 function deactivateEncounter(encounter) {
@@ -622,7 +654,14 @@ function ensureSceneProgress(sceneId) {
 
 function applySceneState(sceneId, entryId, options = {}) {
   const vitals = options.restoreFull ? null : capturePlayerVitals(state.player);
-  const next = buildSceneState(sceneId, entryId, state.progression, state.sceneProgress, vitals);
+  const next = buildSceneState(
+    sceneId,
+    entryId,
+    state.progression,
+    state.sceneProgress,
+    vitals,
+    state.clock?.day || 1
+  );
 
   state.scene = next.scene;
   state.arena = next.arena;
@@ -771,6 +810,7 @@ function updateTransition(dt) {
       if (transition.kind === "sleep") {
         const previousDay = state.clock.day;
         startNextDay(state.clock);
+        state.progression.activePreparation = null;
         const farmResult = advanceFarmPlots(
           ensureSceneProgress("ayla_homestead"),
           previousDay
@@ -806,12 +846,35 @@ function updateTransition(dt) {
 
 function handleSceneCleared() {
   const sceneProgress = ensureSceneProgress(state.currentSceneId);
+  if (state.encounter.isCorruptionEcho) {
+    markCorruptionEchoCompleted(
+      state.progression,
+      state.currentSceneId,
+      state.clock.day
+    );
+    state.areaCleared = false;
+    state.enemies = [];
+    state.hostileProjectiles = [];
+    state.eruptions = [];
+    deactivateEncounter(state.encounter);
+    state.encounter.bannerText = "Corruption Echo Silenced";
+    state.encounter.bannerTimer = 2;
+    saveCurrentGame();
+    return;
+  }
+
   if (sceneProgress.cleared) {
     state.areaCleared = false;
     return;
   }
 
   sceneProgress.cleared = true;
+  markRegionSceneCleared(
+    state.progression,
+    state.sceneProgress,
+    state.currentSceneId,
+    state.clock.day
+  );
   state.areaCleared = false;
   state.boss = null;
   state.enemies = [];
@@ -873,11 +936,15 @@ function updateInteractionState() {
 
   if (state.story.dialogue || state.story.questPanel) {
     state.story.focus = null;
+    state.story.hovered = null;
     state.story.prompt = "";
+    canvas.style.cursor = "default";
     return;
   }
 
   getNearestInteractionTarget(state);
+  getHoveredInteractionTarget(state, state.mouseWorld.x, state.mouseWorld.y);
+  canvas.style.cursor = state.story.hovered ? "pointer" : "default";
 }
 
 function handleInteractionAction(interaction) {
@@ -963,6 +1030,18 @@ function handleInteractionInput() {
   }
 
   if (isUiOpen()) {
+    return true;
+  }
+
+  if (input.mouse.leftPressed && state.story.hovered) {
+    const hovered = state.story.hovered;
+    const interactionRadius = hovered.data.interactionRadius || 60;
+    if (hovered.distance > interactionRadius) {
+      setToast(`Move closer to ${hovered.label}.`, 1.5);
+      return true;
+    }
+    const interaction = beginInteraction(state, hovered);
+    handleInteractionAction(interaction);
     return true;
   }
 
@@ -1284,7 +1363,7 @@ function clampInventorySelection() {
 function clampServiceSelection() {
   if (state.ui.activeServiceId) {
     const active = getActiveService(state);
-    if (active?.kind === "shop") {
+    if (active?.kind !== "stash") {
       clampSelection("selectedServiceIndex", getServiceEntries(state).length);
       return;
     }
@@ -1311,6 +1390,26 @@ function tryUseBoundActionSlot(slotIndex) {
 
 function showUseItemToast(result) {
   if (!result?.used) return;
+  if (result.item.effect?.preparation) {
+    state.player.heartCharge = Math.min(
+      100,
+      state.player.heartCharge +
+        (state.player.abilityInfo.preparationHeartChargeBonus || 0)
+    );
+  }
+  if (state.player.abilityInfo.fieldRemedy) {
+    state.roots.push({
+      x: state.player.x,
+      y: state.player.y,
+      radius: 62,
+      life: 4,
+      maxLife: 4,
+      pulse: 0,
+      damagePerSecond: 0,
+      damageTimer: 0.5,
+      healing: true,
+    });
+  }
   queueAudio(state, "use-item");
   if (result.healed > 0) {
     setToast(`${result.item.name} restored ${result.healed} HP`, 1.8);

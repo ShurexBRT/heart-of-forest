@@ -1,3 +1,5 @@
+import { getBiomeFloorTexture } from "./atlasAssets.js";
+
 const PATH_GROUNDS = new Set(["path", "ashPath", "snowPath"]);
 const WATER_GROUNDS = new Set(["water", "ice"]);
 
@@ -20,6 +22,7 @@ export function drawTerrainTile(ctx, options) {
 
   drawDiamond(ctx, x, y, halfW, halfH, palette.base);
   drawTerrainFacets(ctx, x, y, halfW, halfH, tile.ground, palette, seed);
+  drawAtlasFloorTexture(ctx, x, y, halfW, halfH, tile, sceneStyle, tx, ty);
 
   ctx.save();
   clipDiamond(ctx, x, y, halfW - 1, halfH - 1);
@@ -28,6 +31,33 @@ export function drawTerrainTile(ctx, options) {
 
   drawTerrainEdges(ctx, x, y, halfW, halfH, tile.ground, palette, neighbors);
   drawTerrainOverlay(ctx, x, y, tile.overlay, palette, seed);
+}
+
+function drawAtlasFloorTexture(ctx, x, y, halfW, halfH, tile, sceneStyle, tx, ty) {
+  const texture = getBiomeFloorTexture(
+    sceneStyle,
+    tile.ground,
+    tile.variant + hashTile(tx >> 1, ty >> 1, 0, sceneStyle)
+  );
+  if (!texture) return;
+
+  const alpha =
+    tile.ground === "water" || tile.ground === "ice"
+      ? 0.2
+      : tile.ground === "path" ||
+          tile.ground === "ashPath" ||
+          tile.ground === "snowPath" ||
+          tile.ground === "ruinStone"
+        ? 0.16
+        : tile.ground === "ember"
+          ? 0.24
+          : 0.12;
+
+  ctx.save();
+  clipDiamond(ctx, x, y, halfW - 1, halfH - 1);
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(texture, x - halfW, y - halfH, halfW * 2, halfH * 2);
+  ctx.restore();
 }
 
 export function getTerrainFamily(ground) {

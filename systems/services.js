@@ -8,13 +8,13 @@ import {
   getItemCount,
   getStashEntries,
   hasWorldFlag,
-  removeItem,
   resetTalents,
   sellInventoryItem,
   stashInventoryItem,
   spendCurrency,
   withdrawStashItem,
 } from "./progression.js";
+import { craftRecipe, getRecipeView, getUnlockedRecipes } from "./alchemy.js";
 
 function isQuestDone(progression, questId) {
   const status = progression.questStates?.[questId];
@@ -102,6 +102,13 @@ export function getServiceEntries(state) {
     }));
   }
 
+  if (service.kind === "crafting") {
+    return getUnlockedRecipes(state.progression).map((recipe) => ({
+      ...getRecipeView(state.progression, recipe.id),
+      kind: "recipe",
+    }));
+  }
+
   return [];
 }
 
@@ -163,15 +170,6 @@ export function performSelectedServiceAction(state) {
       return { success: true, text: "Ayla's vigor returns to full." };
     }
 
-    if (action.id === "attune_shard") {
-      spendCurrency(state.progression, action.costSilver || 0);
-      for (const [itemId, amount] of Object.entries(action.costItems || {})) {
-        removeItem(state.progression, itemId, amount);
-      }
-      state.progression.talentPoints += 1;
-      return { success: true, text: "The waystone grants 1 Talent Point." };
-    }
-
     if (action.id === "respec") {
       const refunded = Object.keys(state.progression.talents).length;
       if (refunded <= 0) {
@@ -181,6 +179,22 @@ export function performSelectedServiceAction(state) {
       resetTalents(state.progression);
       return { success: true, text: `Talents refocused. ${refunded} point(s) refunded.` };
     }
+  }
+
+  if (service.kind === "crafting") {
+    const recipe = getServiceEntries(state)[state.ui.selectedServiceIndex];
+    if (!recipe) return { success: false };
+    const result = craftRecipe(state.progression, recipe.id);
+    if (!result.crafted) {
+      return { success: false, reason: result.reason };
+    }
+    if (recipe.id === "barkskin_draught") {
+      state.storyEvents.push({ type: "collect", key: "barkskinBrewed", amount: 1 });
+    }
+    return {
+      success: true,
+      text: `Brewed ${result.recipe.name} for ${result.recipe.costSilver} silver`,
+    };
   }
 
   return { success: false };

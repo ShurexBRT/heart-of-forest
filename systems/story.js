@@ -22,6 +22,7 @@ export function createStoryState() {
     prompt: "",
     dialogue: null,
     questPanel: null,
+    hovered: null,
     toastText: "",
     toastTimer: 0,
   };
@@ -67,6 +68,10 @@ export function consumeStoryEvents(state) {
     }
 
     if (event.type === "enemyDefeated") {
+      if (event.enemyType === "thornling" || event.enemyType === "barkling") {
+        incrementQuestCounter(state.progression, "gateThreatsDefeated", 1);
+      }
+
       if (THORNLING_QUEST_TYPES.has(event.enemyType)) {
         incrementQuestCounter(state.progression, "thornlingsDefeated", 1);
       }
@@ -78,6 +83,10 @@ export function consumeStoryEvents(state) {
 
     if (event.type === "bossDefeated" && event.bossId === "elder_hollow") {
       incrementQuestCounter(state.progression, "elderHollowDefeated", 1);
+    }
+
+    if (event.type === "bossDefeated" && event.bossId === "rootwarden") {
+      incrementQuestCounter(state.progression, "rootwardenDefeated", 1);
     }
 
     if (event.type === "bossDefeated" && event.bossId === "rootbound_custodian") {
@@ -163,6 +172,33 @@ export function getNearestInteractionTarget(state) {
   state.story.focus = target;
   state.story.prompt = target.label;
   return target;
+}
+
+export function getHoveredInteractionTarget(state, worldX, worldY) {
+  const candidates = (state.arena.interactables || [])
+    .filter((interactable) => !interactable.disabled)
+    .filter((interactable) => {
+      const halfW = Math.max(14, (interactable.w || 18) * 0.5);
+      const halfH = Math.max(14, (interactable.h || 18) * 0.5);
+      return (
+        worldX >= interactable.x - halfW &&
+        worldX <= interactable.x + halfW &&
+        worldY >= interactable.y - halfH &&
+        worldY <= interactable.y + halfH
+      );
+    })
+    .map((interactable) => ({
+      kind: "object",
+      data: interactable,
+      label: interactable.promptLabel,
+      x: interactable.x,
+      y: interactable.y,
+      distance: distance(state.player.x, state.player.y, interactable.x, interactable.y),
+    }))
+    .sort((a, b) => a.distance - b.distance);
+
+  state.story.hovered = candidates[0] || null;
+  return state.story.hovered;
 }
 
 export function beginInteraction(state, target) {
@@ -676,6 +712,9 @@ function describeRewards(rewards) {
   if (rewards.talentPoints) parts.push(`${rewards.talentPoints} Talent Point${rewards.talentPoints > 1 ? "s" : ""}`);
   for (const [itemId, amount] of Object.entries(rewards.items || {})) {
     parts.push(`${amount}x ${itemId}`);
+  }
+  for (const recipeId of rewards.recipes || []) {
+    parts.push(`Recipe: ${recipeId}`);
   }
   return parts.length > 0 ? parts.join("  |  ") : "No rewards.";
 }

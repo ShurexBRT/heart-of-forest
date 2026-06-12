@@ -11,6 +11,7 @@ const ATLAS_PATHS = {
 
 const ATLAS_WORLD_ART_ENABLED = true;
 const ATLAS_TILE_PATTERNS_ENABLED = false;
+const ATLAS_FLOOR_TEXTURES_ENABLED = true;
 const ATLAS_PLAYER_ENABLED = false;
 
 const SCENE_ATLAS_KEYS = {
@@ -23,6 +24,21 @@ const SCENE_ATLAS_KEYS = {
   blightedWoods: "blighted-woods",
   ancientHeart: "ancient-heart",
   verdantSanctum: "verdant-grove",
+};
+
+const FLOOR_SCENE_ATLAS_KEYS = {
+  aylaHomestead: "mossy-ruins",
+  whisperingWoods: "mossy-ruins",
+  mossrootMarsh: "moonlit-marsh",
+  mossyRuins: "mossy-ruins",
+  emberpineGrove: "ember-hollow",
+  frostveilTundra: "frostpine-tundra",
+  blightedWoods: "blighted-woods",
+  hollowheartRuins: "blighted-woods",
+  ancientHeart: "ancient-heart",
+  starfallSanctum: "ancient-heart",
+  sunkenReliquary: "ancient-heart",
+  chapelOfTides: "moonlit-marsh",
 };
 
 const DISABLED_WORLD_ATLASES = new Set(["blighted-woods", "verdant-grove"]);
@@ -120,6 +136,79 @@ const BIOME_PROP_RECTS = {
   },
 };
 
+const FLOOR_SOURCE_RECTS = {
+  ground: [
+    { x: 25, y: 99, w: 76, h: 78 },
+    { x: 110, y: 99, w: 74, h: 78 },
+    { x: 197, y: 99, w: 72, h: 78 },
+    { x: 282, y: 99, w: 74, h: 78 },
+    { x: 370, y: 99, w: 74, h: 78 },
+    { x: 456, y: 99, w: 76, h: 78 },
+    { x: 548, y: 99, w: 72, h: 78 },
+    { x: 635, y: 99, w: 72, h: 78 },
+    { x: 722, y: 99, w: 73, h: 78 },
+    { x: 807, y: 99, w: 74, h: 78 },
+    { x: 894, y: 99, w: 80, h: 78 },
+  ],
+  path: [
+    { x: 25, y: 220, w: 74, h: 78 },
+    { x: 110, y: 220, w: 74, h: 78 },
+    { x: 197, y: 220, w: 72, h: 78 },
+    { x: 282, y: 220, w: 74, h: 78 },
+    { x: 370, y: 220, w: 74, h: 78 },
+    { x: 456, y: 220, w: 76, h: 78 },
+    { x: 548, y: 220, w: 72, h: 78 },
+    { x: 635, y: 220, w: 72, h: 78 },
+    { x: 722, y: 220, w: 73, h: 78 },
+    { x: 807, y: 220, w: 74, h: 78 },
+  ],
+  liquid: [
+    { x: 25, y: 344, w: 74, h: 78 },
+    { x: 110, y: 344, w: 74, h: 78 },
+    { x: 197, y: 344, w: 72, h: 78 },
+    { x: 282, y: 344, w: 74, h: 78 },
+  ],
+};
+
+const BIOME_FLOOR_SELECTIONS = {
+  "mossy-ruins": {
+    natural: [0, 1, 2, 9],
+    stone: [3, 4, 5, 6, 7, 8],
+    path: [0, 1, 2, 4, 5, 7],
+    liquid: [0, 1],
+  },
+  "moonlit-marsh": {
+    natural: [0, 1, 2, 3, 8, 9],
+    stone: [4, 5, 6],
+    path: [0, 1, 2, 4, 5, 7],
+    liquid: [0, 1],
+  },
+  "frostpine-tundra": {
+    natural: [0, 1, 2, 3, 8, 9],
+    stone: [4, 5, 6, 7],
+    path: [0, 1, 2, 4, 5, 7],
+    liquid: [0, 1],
+  },
+  "ember-hollow": {
+    natural: [0, 1, 2, 3, 4, 8],
+    stone: [5, 6, 7],
+    path: [0, 1, 2, 4, 5, 7],
+    liquid: [0, 1],
+  },
+  "ancient-heart": {
+    natural: [0, 1, 2, 8, 9],
+    stone: [3, 4, 5, 6, 7],
+    path: [0, 1, 2, 4, 5, 7],
+    liquid: [0, 1],
+  },
+  "blighted-woods": {
+    natural: [0, 1, 2, 3, 6, 8],
+    stone: [4, 5, 7],
+    path: [0, 1, 2, 4, 5, 7],
+    liquid: [0, 1],
+  },
+};
+
 const atlasState = {
   ready: false,
   failed: false,
@@ -191,6 +280,28 @@ export function getBiomeArt(sceneStyle) {
 
 export function getAylaPortrait() {
   return atlasState.aylaPortrait;
+}
+
+export function getBiomeFloorTexture(sceneStyle, ground, variant = 0) {
+  if (!ATLAS_FLOOR_TEXTURES_ENABLED || !atlasState.ready) return null;
+  const atlasKey = FLOOR_SCENE_ATLAS_KEYS[sceneStyle];
+  const floorArt = atlasKey ? atlasState.biomeArt[atlasKey]?.floors : null;
+  if (!floorArt) return null;
+
+  const bucket =
+    ground === "water" || ground === "ice" || ground === "ember"
+      ? floorArt.liquid
+      : ground === "path" ||
+          ground === "ashPath" ||
+          ground === "snowPath" ||
+          ground === "planks" ||
+          ground === "soil"
+        ? floorArt.path
+        : ground === "ruinStone"
+          ? floorArt.stone
+          : floorArt.natural;
+
+  return bucket.length > 0 ? bucket[variant % bucket.length] : null;
 }
 
 export function drawAylaAtlasSprite(ctx, x, y, facing, frame, pose, options = {}) {
@@ -283,7 +394,7 @@ function loadAtlases() {
 
       for (const key of Object.keys(SCENE_ATLAS_KEYS)) {
         const atlasKey = SCENE_ATLAS_KEYS[key];
-        if (!atlasState.biomeArt[atlasKey] && !DISABLED_WORLD_ATLASES.has(atlasKey)) {
+        if (!atlasState.biomeArt[atlasKey] && atlasKey !== "verdant-grove") {
           atlasState.biomeArt[atlasKey] = buildBiomeArt(atlasState.images[atlasKey], atlasKey);
         }
       }
@@ -335,9 +446,11 @@ function buildAylaFrames(image) {
 function buildBiomeArt(image, atlasKey) {
   if (!image) return null;
   const propRects = BIOME_PROP_RECTS[atlasKey];
-  if (!propRects) return null;
+  const floorSelections = BIOME_FLOOR_SELECTIONS[atlasKey];
+  if (!propRects && !floorSelections) return null;
 
   return {
+    floors: floorSelections ? buildBiomeFloorArt(image, floorSelections) : null,
     patterns: {
       ground: buildPatternRow(image, { x: 28, y: 78, step: 66, count: 6 }),
       path: buildPatternRow(image, { x: 28, y: 188, step: 66, count: 6 }),
@@ -347,16 +460,54 @@ function buildBiomeArt(image, atlasKey) {
       blight: buildPatternRow(image, { x: 410, y: 78, step: 66, count: 4 }),
     },
     sprites: {
-      trees: extractBiomeSprites(image, BIOME_TREE_RECTS[atlasKey], "largest"),
-      rocks: extractBiomeSprites(image, SHARED_ROCK_RECTS, "largest"),
-      ruins: extractBiomeSprites(image, SHARED_RUIN_RECTS, "largest"),
+      trees: propRects ? extractBiomeSprites(image, BIOME_TREE_RECTS[atlasKey], "largest") : [],
+      rocks: propRects ? extractBiomeSprites(image, SHARED_ROCK_RECTS, "largest") : [],
+      ruins: propRects ? extractBiomeSprites(image, SHARED_RUIN_RECTS, "largest") : [],
       bridges: [],
-      lanterns: extractBiomeSprites(image, propRects.lanterns, "cluster"),
+      lanterns: propRects ? extractBiomeSprites(image, propRects.lanterns, "cluster") : [],
       fences: [],
-      signposts: extractBiomeSprites(image, propRects.signposts, "largest"),
+      signposts: propRects ? extractBiomeSprites(image, propRects.signposts, "largest") : [],
       details: [],
     },
   };
+}
+
+function buildBiomeFloorArt(image, selections) {
+  return {
+    natural: buildFloorBucket(image, FLOOR_SOURCE_RECTS.ground, selections.natural),
+    stone: buildFloorBucket(image, FLOOR_SOURCE_RECTS.ground, selections.stone),
+    path: buildFloorBucket(image, FLOOR_SOURCE_RECTS.path, selections.path),
+    liquid: buildFloorBucket(image, FLOOR_SOURCE_RECTS.liquid, selections.liquid),
+  };
+}
+
+function buildFloorBucket(image, sourceRects, selection) {
+  return selection
+    .map((index) => sourceRects[index])
+    .filter(Boolean)
+    .map((rect) => extractFloorTexture(image, rect));
+}
+
+function extractFloorTexture(image, rect) {
+  const insetX = Math.max(8, Math.round(rect.w * 0.16));
+  const insetY = Math.max(8, Math.round(rect.h * 0.16));
+  const canvas = document.createElement("canvas");
+  canvas.width = 24;
+  canvas.height = 12;
+  const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(
+    image,
+    rect.x + insetX,
+    rect.y + insetY,
+    rect.w - insetX * 2,
+    rect.h - insetY * 2,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+  return canvas;
 }
 
 function extractBiomeSprites(image, rects, component) {

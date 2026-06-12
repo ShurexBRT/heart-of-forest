@@ -10,7 +10,7 @@ export const FARM_CROP = {
   name: "Moonleaf",
   seedItemId: "moonleaf_seed",
   harvestItemId: "moonleaf",
-  matureStage: 2,
+  matureStage: 1,
   harvestAmount: 2,
   returnedSeeds: 1,
   questCounterKey: "moonleafBundles",
@@ -96,6 +96,7 @@ export function interactWithFarmPlot(sceneProgress, plotId, progression, clock) 
     addItem(progression, FARM_CROP.harvestItemId, FARM_CROP.harvestAmount);
     addItem(progression, FARM_CROP.seedItemId, FARM_CROP.returnedSeeds);
     incrementQuestCounter(progression, FARM_CROP.questCounterKey, 1);
+    incrementQuestCounter(progression, "moonleafHarvested", 1);
     delete plots[plotId];
     return {
       changed: true,

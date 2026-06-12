@@ -247,7 +247,8 @@ function updateHostileProjectiles(state, dt) {
         projectile.damage,
         projectile.x,
         projectile.y,
-        projectile.knockback
+        projectile.knockback,
+        projectile.type
       );
 
       projectile.life = 0;
@@ -295,7 +296,7 @@ function updateEruptions(state, dt) {
         hazard.radius + state.player.radius
     ) {
       hazard.hitPlayer = true;
-      damagePlayer(state, hazard.damage, hazard.x, hazard.y, 220);
+      damagePlayer(state, hazard.damage, hazard.x, hazard.y, 220, hazard.type);
     }
   }
 

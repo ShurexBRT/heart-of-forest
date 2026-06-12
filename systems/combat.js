@@ -8,6 +8,7 @@ import {
 } from "../core/math.js";
 import { getMovementVector, wasPressed } from "../core/input.js";
 import { getItemDef } from "../data/gameData.js";
+import { normalizeDamageType } from "../data/regionData.js";
 import { getPlayerBonuses, awardEliteBonusLoot, awardEnemyLoot, grantExperience } from "./progression.js";
 import { collidesWithObstacle } from "./collision.js";
 import { queueAudio } from "./audio.js";
@@ -49,7 +50,7 @@ export function handlePlayerAbilities(state, input) {
   if (input.mouse.rightPressed) castSpiritBolt(state);
   if (wasPressed(input, " ", "Space")) castDash(state, input);
   if (wasPressed(input, "1", "Digit1")) castRootSnare(state);
-  if (wasPressed(input, "r", "KeyR")) castVerdantPulse(state);
+  if (wasPressed(input, "r", "KeyR")) castSignatureAbility(state);
 }
 
 export function updateCombatEffects(state, dt) {
@@ -64,7 +65,7 @@ export function markCombat(state, duration = COMBAT_TAG_DURATION) {
   state.combatTimer = Math.max(state.combatTimer || 0, duration);
 }
 
-export function damagePlayer(state, amount, sourceX, sourceY, knockback) {
+export function damagePlayer(state, amount, sourceX, sourceY, knockback, damageType = "physical") {
   const player = state.player;
 
   if (state.gameOver || player.isInvulnerable()) {
@@ -73,7 +74,29 @@ export function damagePlayer(state, amount, sourceX, sourceY, knockback) {
 
   const direction = normalize(player.x - sourceX, player.y - sourceY);
 
-  const actualDamage = Math.round(amount * (player.incomingDamageMult || 1));
+  const normalizedType = normalizeDamageType(damageType);
+  const preparation = state.progression.activePreparation;
+  const preparationReduction =
+    preparation?.damageType === normalizedType
+      ? Math.min(
+          0.4,
+          (preparation.damageReduction || 0.25) +
+            (player.abilityInfo.preparationReductionBonus || 0)
+        )
+      : 0;
+  const closeReduction =
+    distance(player.x, player.y, sourceX, sourceY) <= 120
+      ? player.abilityInfo.closeDamageReduction || 0
+      : 0;
+  const actualDamage = Math.max(
+    1,
+    Math.round(
+      amount *
+        (player.incomingDamageMult || 1) *
+        (1 - preparationReduction) *
+        (1 - closeReduction)
+    )
+  );
   player.hp = Math.max(0, player.hp - actualDamage);
   player.hurtFlash = 0.18;
   player.invulnerable = 0.48;
@@ -81,6 +104,7 @@ export function damagePlayer(state, amount, sourceX, sourceY, knockback) {
   player.vy += direction.y * knockback;
   state.shake = Math.max(state.shake, actualDamage >= 20 ? 8 : 5);
   markCombat(state);
+  state.lastDamageType = normalizedType;
   queueAudio(state, "player-hit");
 
   spawnBurst(state, player.x, player.y, {
@@ -140,12 +164,16 @@ function castStaffStrike(state) {
   player.playPose("attack", 0.16);
   markCombat(state);
   queueAudio(state, "staff");
+  const range = STAFF_RANGE + (player.abilityInfo.staffRangeBonus || 0);
+  const arc = STAFF_ARC + (player.abilityInfo.staffArcBonus || 0);
+  const primedDamage = player.dashStaffPrimed > 0 ? player.abilityInfo.dashStaffBonus || 0 : 0;
+  player.dashStaffPrimed = 0;
   state.swings.push({
     x: player.x,
     y: player.y,
     angle: player.aimAngle,
-    range: STAFF_RANGE,
-    arc: STAFF_ARC,
+    range,
+    arc,
     life: 0.14,
     maxLife: 0.14,
   });
@@ -159,10 +187,10 @@ function castStaffStrike(state) {
 
     const enemyDistance = distance(player.x, player.y, enemy.x, enemy.y);
     const enemyAngle = angleTo(player.x, player.y, enemy.x, enemy.y);
-    const isInArc = Math.abs(angleDifference(enemyAngle, player.aimAngle)) <= STAFF_ARC / 2;
+    const isInArc = Math.abs(angleDifference(enemyAngle, player.aimAngle)) <= arc / 2;
 
-    if (enemyDistance <= STAFF_RANGE + enemy.radius && isInArc) {
-      const result = applyStaffHit(state, enemy, info.damage);
+    if (enemyDistance <= range + enemy.radius && isInArc) {
+      const result = applyStaffHit(state, enemy, info.damage + primedDamage);
       hit = hit || result.hit;
       spiritGain += result.spiritGain;
       openedBloom = openedBloom || result.openedBloom;
@@ -173,10 +201,10 @@ function castStaffStrike(state) {
   if (boss) {
     const bossDistance = distance(player.x, player.y, boss.x, boss.y);
     const bossAngle = angleTo(player.x, player.y, boss.x, boss.y);
-    const isBossInArc = Math.abs(angleDifference(bossAngle, player.aimAngle)) <= STAFF_ARC / 2;
+    const isBossInArc = Math.abs(angleDifference(bossAngle, player.aimAngle)) <= arc / 2;
 
-    if (bossDistance <= STAFF_RANGE + boss.radius && isBossInArc) {
-      const result = applyStaffHit(state, boss, info.damage);
+    if (bossDistance <= range + boss.radius && isBossInArc) {
+      const result = applyStaffHit(state, boss, info.damage + primedDamage);
       hit = hit || result.hit;
       spiritGain += result.spiritGain;
       openedBloom = openedBloom || result.openedBloom;
@@ -230,6 +258,8 @@ function castSpiritBolt(state) {
     life: 0.9,
     damage: info.damage,
     distanceLeft: info.range,
+    pierce: player.abilityInfo.boltPierce || 0,
+    hitTargets: new Set(),
   });
 
   spawnBurst(state, player.x + direction.x * 18, player.y + direction.y * 18, {
@@ -266,6 +296,7 @@ function castDash(state, input) {
   queueAudio(state, "dash");
   player.vx = direction.x * 760;
   player.vy = direction.y * 760;
+  player.dashStaffPrimed = player.abilityInfo.dashStaffBonus > 0 ? 3 : 0;
   state.shake = Math.max(state.shake, 2);
 
   spawnBurst(state, player.x - direction.x * 8, player.y - direction.y * 8, {
@@ -277,6 +308,22 @@ function castDash(state, input) {
     spread: Math.PI * 0.8,
     angle: Math.atan2(-direction.y, -direction.x),
   });
+
+  if (player.abilityInfo.counterbloom) {
+    state.pulses.push({
+      x: player.x,
+      y: player.y,
+      radius: 64,
+      life: 0.2,
+      maxLife: 0.2,
+      color: "#e7cf78",
+    });
+    for (const target of [...state.enemies, getActiveBoss(state)].filter(Boolean)) {
+      if (!target.dead && distance(player.x, player.y, target.x, target.y) <= 64 + target.radius) {
+        damageHostile(state, target, 12, player.x, player.y, 150, 0.08);
+      }
+    }
+  }
 }
 
 function castRootSnare(state) {
@@ -314,6 +361,8 @@ function castRootSnare(state) {
     life: 1.15,
     maxLife: 1.15,
     pulse: Math.random() * TAU,
+    damagePerSecond: player.abilityInfo.rootDamagePerSecond || 0,
+    damageTimer: 0.5,
   });
 
   for (const enemy of state.enemies) {
@@ -337,6 +386,104 @@ function castRootSnare(state) {
     speed: 170,
     size: [2, 5],
     life: [0.18, 0.55],
+  });
+  gainHeartCharge(state, 6 + (player.abilityInfo.rootHeartChargeBonus || 0));
+}
+
+function castSignatureAbility(state) {
+  const signature = state.player.abilityInfo.signatureAbility;
+  if (!signature) {
+    castVerdantPulse(state);
+    return;
+  }
+
+  castUltimate(state, signature);
+}
+
+function castUltimate(state, signature) {
+  const player = state.player;
+  if (player.cooldowns.pulse > 0 || player.heartCharge < 100) return;
+
+  player.heartCharge = 0;
+  player.cooldowns.pulse = 5.5;
+  player.playPose("cast", 0.42);
+  markCombat(state);
+  queueAudio(state, "pulse");
+
+  const specs = {
+    heartwood_tempest: {
+      radius: 158,
+      damage: 72,
+      root: 0.35,
+      heal: 0,
+      color: "#e7c66f",
+      clearProjectiles: false,
+    },
+    verdant_nova: {
+      radius: 224,
+      damage: 78,
+      root: 0.25,
+      heal: 0,
+      color: "#78ddf5",
+      clearProjectiles: true,
+    },
+    awaken_the_grove: {
+      radius: 210,
+      damage: 48,
+      root: 3,
+      heal: 24,
+      color: "#91e07a",
+      clearProjectiles: false,
+    },
+  };
+  const spec = specs[signature];
+  if (!spec) return;
+
+  state.pulses.push({
+    x: player.x,
+    y: player.y,
+    radius: spec.radius,
+    life: 0.7,
+    maxLife: 0.7,
+    color: spec.color,
+    ultimate: true,
+  });
+
+  for (const target of [...state.enemies, getActiveBoss(state)].filter(Boolean)) {
+    if (target.dead || distance(player.x, player.y, target.x, target.y) > spec.radius + target.radius) {
+      continue;
+    }
+    const bloomDamage = target.bloom > 0 && signature === "verdant_nova" ? 24 : 0;
+    target.bloom = 0;
+    target.rooted = Math.max(target.rooted, target.isBoss ? Math.min(1.2, spec.root) : spec.root);
+    damageHostile(state, target, spec.damage + bloomDamage, player.x, player.y, 310, 0.18);
+  }
+
+  if (spec.clearProjectiles) {
+    state.hostileProjectiles = [];
+  }
+  if (spec.heal > 0) {
+    player.hp = Math.min(player.maxHp, player.hp + spec.heal);
+    state.roots.push({
+      x: player.x,
+      y: player.y,
+      radius: spec.radius,
+      life: 4,
+      maxLife: 4,
+      pulse: 0,
+      damagePerSecond: 0,
+      damageTimer: 0.5,
+      healing: true,
+    });
+  }
+
+  state.shake = Math.max(state.shake, 10);
+  spawnBurst(state, player.x, player.y, {
+    count: 52,
+    colors: [spec.color, "#f5efb0", "#efffff"],
+    speed: 340,
+    size: [2, 7],
+    life: [0.22, 0.78],
   });
 }
 
@@ -383,7 +530,15 @@ function castVerdantPulse(state) {
     }
 
     target.rooted = Math.max(target.rooted, info.rootDuration * rootMultiplier);
-    damageHostile(state, target, info.damage + bonusDamage, player.x, player.y, 205, 0.12);
+    const bossBonus =
+      (target.isBoss || target.elite) && player.abilityInfo.bossSpellDamageBonus
+        ? Math.round((info.damage + bonusDamage) * player.abilityInfo.bossSpellDamageBonus)
+        : 0;
+    damageHostile(state, target, info.damage + bonusDamage + bossBonus, player.x, player.y, 205, 0.12);
+    gainHeartCharge(state, 3 + (bloomed ? player.abilityInfo.bloomHeartChargeBonus || 0 : 0));
+    if (player.abilityInfo.pulseEcho && !target.dead) {
+      damageHostile(state, target, Math.round(info.damage * 0.45), player.x, player.y, 80, 0.04);
+    }
     hits += 1;
   };
 
@@ -486,6 +641,7 @@ function updateProjectiles(state, dt) {
       boss &&
       distance(projectile.x, projectile.y, boss.x, boss.y) <= projectile.radius + boss.radius
     ) {
+      if (projectile.hitTargets?.has(boss)) continue;
       const bloomBonus = boss.bloom > 0 ? BLOOM_BOLT_BONUS + (state.player.abilityInfo.bloomBonus || 0) : 0;
 
       if (bloomBonus > 0) {
@@ -501,8 +657,20 @@ function updateProjectiles(state, dt) {
         });
       }
 
-      damageHostile(state, boss, projectile.damage + bloomBonus, projectile.x, projectile.y, 235, 0.12);
-      impactProjectile(state, projectile);
+      const bossBonus = Math.round(
+        (projectile.damage + bloomBonus) * (state.player.abilityInfo.bossSpellDamageBonus || 0)
+      );
+      damageHostile(state, boss, projectile.damage + bloomBonus + bossBonus, projectile.x, projectile.y, 235, 0.12);
+      gainHeartCharge(
+        state,
+        4 + (bloomBonus > 0 ? state.player.abilityInfo.bloomHeartChargeBonus || 0 : 0)
+      );
+      projectile.hitTargets?.add(boss);
+      if (projectile.pierce > 0) {
+        projectile.pierce -= 1;
+      } else {
+        impactProjectile(state, projectile);
+      }
       continue;
     }
 
@@ -510,6 +678,7 @@ function updateProjectiles(state, dt) {
       if (enemy.dead) continue;
 
       if (distance(projectile.x, projectile.y, enemy.x, enemy.y) <= projectile.radius + enemy.radius) {
+        if (projectile.hitTargets?.has(enemy)) continue;
         const bloomBonus = enemy.bloom > 0 ? BLOOM_BOLT_BONUS + (state.player.abilityInfo.bloomBonus || 0) : 0;
 
         if (bloomBonus > 0) {
@@ -525,8 +694,23 @@ function updateProjectiles(state, dt) {
           });
         }
 
-        damageHostile(state, enemy, projectile.damage + bloomBonus, projectile.x, projectile.y, 235, 0.12);
-        impactProjectile(state, projectile);
+        const eliteBonus = enemy.elite
+          ? Math.round(
+              (projectile.damage + bloomBonus) *
+                (state.player.abilityInfo.bossSpellDamageBonus || 0)
+            )
+          : 0;
+        damageHostile(state, enemy, projectile.damage + bloomBonus + eliteBonus, projectile.x, projectile.y, 235, 0.12);
+        gainHeartCharge(
+          state,
+          4 + (bloomBonus > 0 ? state.player.abilityInfo.bloomHeartChargeBonus || 0 : 0)
+        );
+        projectile.hitTargets?.add(enemy);
+        if (projectile.pierce > 0) {
+          projectile.pierce -= 1;
+        } else {
+          impactProjectile(state, projectile);
+        }
         break;
       }
     }
@@ -538,14 +722,32 @@ function updateProjectiles(state, dt) {
 function updateRoots(state, dt) {
   for (const root of state.roots) {
     root.life -= dt;
+    root.damageTimer = (root.damageTimer || 0.5) - dt;
 
     for (const enemy of state.enemies) {
       if (enemy.dead) continue;
 
       if (distance(root.x, root.y, enemy.x, enemy.y) <= root.radius + enemy.radius) {
         enemy.rooted = Math.max(enemy.rooted, 0.32 * (enemy.config.rootMultiplier || 1));
+        if (root.damagePerSecond > 0 && root.damageTimer <= 0) {
+          damageHostile(state, enemy, root.damagePerSecond * 0.5, root.x, root.y, 20, 0);
+        }
       }
     }
+    const boss = getActiveBoss(state);
+    if (
+      boss &&
+      distance(root.x, root.y, boss.x, boss.y) <= root.radius + boss.radius &&
+      root.damagePerSecond > 0 &&
+      root.damageTimer <= 0
+    ) {
+      damageHostile(state, boss, root.damagePerSecond * 0.5, root.x, root.y, 10, 0);
+    }
+
+    if (root.healing && distance(root.x, root.y, state.player.x, state.player.y) <= root.radius) {
+      state.player.hp = Math.min(state.player.maxHp, state.player.hp + 2 * dt);
+    }
+    if (root.damageTimer <= 0) root.damageTimer = 0.5;
   }
 
   state.roots = state.roots.filter((root) => root.life > 0);
@@ -595,6 +797,7 @@ function getActiveBoss(state) {
 function applyStaffHit(state, target, damage) {
   const wasRooted = target.rooted > 0;
   damageHostile(state, target, damage, state.player.x, state.player.y, 285, 0.18);
+  gainHeartCharge(state, 5 + (state.player.abilityInfo.staffHeartChargeBonus || 0));
 
   if (wasRooted && !target.dead) {
     target.bloom = Math.max(target.bloom, target.isBoss ? 0.9 : BLOOM_WINDOW);
@@ -728,7 +931,28 @@ function damageHostile(state, target, amount, sourceX, sourceY, knockback, stun)
         life: [0.24, 0.7],
       });
     }
+
+    if (
+      !target.isBoss &&
+      target.rooted > 0 &&
+      state.player.abilityInfo.spreadingRoots
+    ) {
+      for (const enemy of state.enemies) {
+        if (
+          enemy !== target &&
+          !enemy.dead &&
+          distance(target.x, target.y, enemy.x, enemy.y) <= 92
+        ) {
+          enemy.rooted = Math.max(enemy.rooted, 0.8 * (enemy.config.rootMultiplier || 1));
+        }
+      }
+    }
   }
+}
+
+function gainHeartCharge(state, amount) {
+  const player = state.player;
+  player.heartCharge = Math.min(100, (player.heartCharge || 0) + Math.max(0, amount || 0));
 }
 
 function formatItemName(itemId) {

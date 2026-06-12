@@ -152,12 +152,7 @@ function bush(x, y, w, h, style = "forest") {
     y,
     w,
     h,
-    {
-      x: x + 4,
-      y: y + 10,
-      w: w - 8,
-      h: h - 14,
-    },
+    false,
     { style }
   );
 }
@@ -403,6 +398,7 @@ function createBaseArena(context, tiles, props) {
 }
 
 function buildAylaHomestead(context, rng) {
+  const flags = context.worldFlags || {};
   const tiles = createTiles(rng);
   const plotWidth = 9;
   const plotHeight = 7;
@@ -427,6 +423,29 @@ function buildAylaHomestead(context, rng) {
   scatterOverlay(tiles, rng, 86, 8, 10, 14, 18, "flowersCool");
 
   const interactables = [
+    interactable("hearthroot-shrine", "shrine", 742, 396, {
+      name: "Hearthroot Shrine",
+      promptLabel: flags.hearthroot_awake ? "Listen to the Hearthroot" : "Wake the Hearthroot",
+      collectKey: flags.hearthroot_awake ? null : "hearthrootAwakened",
+      toastText: flags.hearthroot_awake
+        ? "The Hearthroot hums with a patient, familiar pulse."
+        : "The old root answers Ayla and warmth returns to the homestead.",
+      repeatable: Boolean(flags.hearthroot_awake),
+      interactionRadius: 78,
+      w: 54,
+      h: 54,
+      sortY: 418,
+    }),
+    interactable("hearthroot-cauldron", "shrine", 812, 424, {
+      name: "Hearthroot Cauldron",
+      promptLabel: "Open Brewing",
+      serviceId: "hearthroot_cauldron",
+      repeatable: true,
+      interactionRadius: 76,
+      w: 46,
+      h: 42,
+      sortY: 442,
+    }),
     interactable("ayla-bed", "bed", 430, 322, {
       name: "Ayla's Bed",
       promptLabel: "Sleep until morning",
@@ -494,7 +513,9 @@ function buildAylaHomestead(context, rng) {
       rock(620, 144, 74, 44),
       rock(1430, 604, 70, 42),
     ],
-    npcs: [],
+    npcs: flags.heartwood_restored
+      ? [npc("elder_rowan", 716, 470), npc("tamsin", 842, 486), npc("lysa", 924, 454)]
+      : [],
     interactables,
     hazards: [],
   });

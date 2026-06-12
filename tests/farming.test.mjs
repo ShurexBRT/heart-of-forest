@@ -29,26 +29,19 @@ test("Moonleaf follows a persistent plant, water, grow, and harvest loop", () =>
   assert.equal(watered.event, "watered");
 
   const firstGrowth = advanceFarmPlots(sceneProgress, 1);
-  assert.deepEqual(firstGrowth, { grownPlots: 1, maturePlots: 0 });
+  assert.deepEqual(firstGrowth, { grownPlots: 1, maturePlots: 1 });
   assert.equal(sceneProgress.farmPlots[plotId].stage, 1);
-
-  const missedWatering = advanceFarmPlots(sceneProgress, 2);
-  assert.deepEqual(missedWatering, { grownPlots: 0, maturePlots: 0 });
-  assert.equal(sceneProgress.farmPlots[plotId].stage, 1);
-
-  interactWithFarmPlot(sceneProgress, plotId, progression, { day: 3 });
-  const matureGrowth = advanceFarmPlots(sceneProgress, 3);
-  assert.deepEqual(matureGrowth, { grownPlots: 1, maturePlots: 1 });
   assert.equal(
-    getFarmPlotView(sceneProgress, plotId, progression, { day: 4 }).promptLabel,
+    getFarmPlotView(sceneProgress, plotId, progression, { day: 2 }).promptLabel,
     "Harvest Moonleaf"
   );
 
-  const harvested = interactWithFarmPlot(sceneProgress, plotId, progression, { day: 4 });
+  const harvested = interactWithFarmPlot(sceneProgress, plotId, progression, { day: 2 });
   assert.equal(harvested.event, "harvested");
   assert.equal(getItemCount(progression, "moonleaf"), 3);
   assert.equal(getItemCount(progression, "moonleaf_seed"), 6);
   assert.equal(getQuestCounter(progression, "moonleafBundles"), 1);
+  assert.equal(getQuestCounter(progression, "moonleafHarvested"), 1);
   assert.equal(sceneProgress.farmPlots[plotId], undefined);
 });
 

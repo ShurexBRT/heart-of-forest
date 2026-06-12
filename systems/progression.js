@@ -11,24 +11,25 @@ import {
 import { QUEST_DEFS } from "../data/storyData.js";
 
 const ACTION_SLOT_COUNT = 3;
+const MAX_CAMPAIGN_TALENT_POINTS = 8;
 
 const ENEMY_LOOT_RULES = {
-  thornling: { lootIndex: 0, silver: 5, bonusChance: 0.12, bonusItem: "health_potion" },
-  barkling: { primaryItemId: "ironbark", silver: 6, bonusChance: 0.14, bonusItem: "health_potion" },
-  blight_hound: { primaryItemId: "cinder_resin", silver: 9, bonusChance: 0.16, bonusItem: "health_potion" },
-  wisp_archer: { lootIndex: 1, silver: 7, bonusChance: 0.18, bonusItem: "spirit_tonic" },
-  mire_spitter: { primaryItemId: "bog_amber", silver: 8, bonusChance: 0.18, bonusItem: "spirit_tonic" },
-  cinder_imp: { primaryItemId: "cinder_resin", silver: 9, bonusChance: 0.18, bonusItem: "health_potion" },
-  frost_wisp: { primaryItemId: "stonebloom", silver: 10, bonusChance: 0.18, bonusItem: "spirit_tonic" },
-  starbound_archer: { primaryItemId: "relic_shard", silver: 12, bonusChance: 0.22, bonusItem: "spirit_tonic" },
-  thorn_weaver: { lootIndex: 3, silver: 9, bonusChance: 0.22, bonusItem: "ward_elixir" },
-  root_stalker: { primaryItemId: "moonleaf", silver: 8, bonusChance: 0.18, bonusItem: "health_potion" },
-  rot_weaver: { primaryItemId: "heartseed", silver: 11, bonusChance: 0.22, bonusItem: "ward_elixir" },
-  mire_brute: { lootIndex: 2, silver: 11, bonusChance: 0.28, bonusItem: "health_potion" },
-  bog_lurker: { primaryItemId: "bog_amber", silver: 10, bonusChance: 0.2, bonusItem: "spirit_tonic" },
-  ash_brute: { primaryItemId: "relic_shard", silver: 13, bonusChance: 0.3, bonusItem: "greater_health_potion" },
-  icebound_guardian: { primaryItemId: "relic_shard", silver: 14, bonusChance: 0.24, bonusItem: "spirit_tonic" },
-  relic_sentinel: { primaryItemId: "relic_shard", silver: 15, bonusChance: 0.28, bonusItem: "ward_elixir" },
+  thornling: { lootIndex: 0, silver: 1, bonusChance: 0.08, bonusItem: "health_potion" },
+  barkling: { primaryItemId: "ironbark", silver: 1, bonusChance: 0.09, bonusItem: "health_potion" },
+  blight_hound: { primaryItemId: "cinder_resin", silver: 2, bonusChance: 0.1, bonusItem: "health_potion" },
+  wisp_archer: { lootIndex: 1, silver: 2, bonusChance: 0.11, bonusItem: "spirit_tonic" },
+  mire_spitter: { primaryItemId: "bog_amber", silver: 2, bonusChance: 0.11, bonusItem: "spirit_tonic" },
+  cinder_imp: { primaryItemId: "cinder_resin", silver: 2, bonusChance: 0.11, bonusItem: "health_potion" },
+  frost_wisp: { primaryItemId: "stonebloom", silver: 2, bonusChance: 0.11, bonusItem: "spirit_tonic" },
+  starbound_archer: { primaryItemId: "relic_shard", silver: 3, bonusChance: 0.14, bonusItem: "spirit_tonic" },
+  thorn_weaver: { lootIndex: 3, silver: 2, bonusChance: 0.14, bonusItem: "ward_elixir" },
+  root_stalker: { primaryItemId: "moonleaf", silver: 2, bonusChance: 0.11, bonusItem: "health_potion" },
+  rot_weaver: { primaryItemId: "heartseed", silver: 3, bonusChance: 0.14, bonusItem: "ward_elixir" },
+  mire_brute: { lootIndex: 2, silver: 3, bonusChance: 0.16, bonusItem: "health_potion" },
+  bog_lurker: { primaryItemId: "bog_amber", silver: 2, bonusChance: 0.12, bonusItem: "spirit_tonic" },
+  ash_brute: { primaryItemId: "relic_shard", silver: 3, bonusChance: 0.18, bonusItem: "greater_health_potion" },
+  icebound_guardian: { primaryItemId: "relic_shard", silver: 3, bonusChance: 0.15, bonusItem: "spirit_tonic" },
+  relic_sentinel: { primaryItemId: "relic_shard", silver: 3, bonusChance: 0.16, bonusItem: "ward_elixir" },
 };
 
 function createQuestCounterDefaults() {
@@ -74,6 +75,23 @@ function normalizeFlags(rawFlags = {}) {
     normalized[key] = Boolean(value);
   }
   return normalized;
+}
+
+function normalizeTalents(rawTalents = {}) {
+  const validIds = new Set(TALENT_DEFS.map((talent) => talent.id));
+  return Object.fromEntries(
+    Object.entries(rawTalents || {})
+      .filter(([talentId, value]) => validIds.has(talentId) && value)
+      .map(([talentId]) => [talentId, 1])
+  );
+}
+
+function normalizeRecipes(rawRecipes = {}) {
+  return Object.fromEntries(
+    Object.entries(rawRecipes || {})
+      .filter(([, value]) => value)
+      .map(([recipeId]) => [recipeId, true])
+  );
 }
 
 function normalizeActionSlots(rawActionSlots = []) {
@@ -203,15 +221,18 @@ export function createProgression(snapshot = null) {
       relic: null,
     },
     actionSlots: ["health_potion", "spirit_tonic", null],
-    talentPoints: 1,
+    talentPoints: 0,
     talents: {},
+    unlockedRecipes: {},
+    activePreparation: null,
+    regionProgress: {},
     journal: [],
     buyback: [],
     questStates,
     questCounters: createQuestCounterDefaults(),
     conversationFlags: {},
     worldFlags: {},
-    silver: 64,
+    silver: 28,
     level: 1,
     xp: 0,
     nextLevelXp: getLevelTarget(1),
@@ -226,8 +247,24 @@ export function createProgression(snapshot = null) {
   merged.stash = normalizeInventory({ ...merged.stash, ...(snapshot.stash || {}) });
   merged.equipment = { ...merged.equipment, ...(snapshot.equipment || {}) };
   merged.actionSlots = normalizeActionSlots(snapshot.actionSlots || merged.actionSlots);
-  merged.talentPoints = snapshot.talentPoints ?? merged.talentPoints;
-  merged.talents = { ...merged.talents, ...(snapshot.talents || {}) };
+  merged.talents = normalizeTalents(snapshot.talents || {});
+  const spentTalents = Object.keys(merged.talents).length;
+  merged.talentPoints = Math.max(
+    0,
+    Math.min(
+      MAX_CAMPAIGN_TALENT_POINTS - spentTalents,
+      Math.max(0, Math.floor(snapshot.talentPoints ?? merged.talentPoints))
+    )
+  );
+  merged.unlockedRecipes = normalizeRecipes(snapshot.unlockedRecipes || {});
+  merged.activePreparation =
+    snapshot.activePreparation?.itemId && getItemDef(snapshot.activePreparation.itemId)
+      ? { ...snapshot.activePreparation }
+      : null;
+  merged.regionProgress =
+    snapshot.regionProgress && typeof snapshot.regionProgress === "object"
+      ? deepClone(snapshot.regionProgress)
+      : {};
   merged.journal = Array.isArray(snapshot.journal) ? [...snapshot.journal] : merged.journal;
   merged.buyback = normalizeBuyback(snapshot.buyback || merged.buyback);
   merged.questStates = { ...merged.questStates, ...(snapshot.questStates || {}) };
@@ -297,7 +334,19 @@ export function awardRewards(progression, rewards) {
 
   for (const [key, amount] of Object.entries(rewards)) {
     if (key === "talentPoints") {
-      progression.talentPoints += amount;
+      const spent = Object.keys(progression.talents || {}).length;
+      progression.talentPoints = Math.min(
+        MAX_CAMPAIGN_TALENT_POINTS - spent,
+        progression.talentPoints + amount
+      );
+      continue;
+    }
+
+    if (key === "recipes" && Array.isArray(amount)) {
+      progression.unlockedRecipes = progression.unlockedRecipes || {};
+      for (const recipeId of amount) {
+        progression.unlockedRecipes[recipeId] = true;
+      }
       continue;
     }
 
@@ -466,7 +515,10 @@ export function useConsumable(progression, itemId, player) {
   const healed = Math.min(heal, player.maxHp - player.hp);
   const restored = Math.min(spirit, player.maxSpirit - player.spirit);
   const canApplyBuff = Boolean(
-    item.effect?.wardDuration || item.effect?.speedDuration || item.effect?.spiritRegenBonus
+    item.effect?.wardDuration ||
+      item.effect?.speedDuration ||
+      item.effect?.spiritRegenBonus ||
+      item.effect?.preparation
   );
 
   if (healed <= 0 && restored <= 0 && !canApplyBuff) {
@@ -476,7 +528,18 @@ export function useConsumable(progression, itemId, player) {
   removeItem(progression, itemId, 1);
   if (healed > 0) player.hp = Math.min(player.maxHp, player.hp + healed);
   if (restored > 0) player.spirit = Math.min(player.maxSpirit, player.spirit + restored);
-  const buffApplied = (canApplyBuff && player.applyConsumableEffect?.(item.effect || {})) || false;
+  let buffApplied = false;
+  if (item.effect?.preparation) {
+    progression.activePreparation = {
+      itemId,
+      label: item.effect.preparationLabel || item.name,
+      damageType: item.effect.damageType,
+      damageReduction: item.effect.damageReduction || 0.25,
+    };
+    buffApplied = true;
+  } else {
+    buffApplied = (canApplyBuff && player.applyConsumableEffect?.(item.effect || {})) || false;
+  }
 
   return {
     used: true,
@@ -498,7 +561,6 @@ export function grantExperience(progression, amount) {
   while (progression.xp >= progression.nextLevelXp) {
     progression.xp -= progression.nextLevelXp;
     progression.level += 1;
-    progression.talentPoints += 1;
     progression.nextLevelXp = getLevelTarget(progression.level);
     levelsGained += 1;
   }
@@ -511,13 +573,74 @@ export function grantExperience(progression, amount) {
 }
 
 export function unlockTalent(progression, talentId) {
-  if (progression.talentPoints <= 0 || progression.talents[talentId]) {
+  const talent = TALENT_DEFS.find((entry) => entry.id === talentId);
+  if (!talent || progression.talentPoints <= 0 || progression.talents[talentId]) {
+    return false;
+  }
+
+  if ((talent.requires || []).some((requiredId) => !progression.talents[requiredId])) {
+    return false;
+  }
+
+  const branchPoints = TALENT_DEFS.filter(
+    (entry) => entry.branch === talent.branch && progression.talents[entry.id]
+  ).length;
+  if ((talent.requiresBranchPoints || 0) > branchPoints) {
+    return false;
+  }
+
+  if (
+    talent.exclusiveGroup &&
+    TALENT_DEFS.some(
+      (entry) =>
+        entry.exclusiveGroup === talent.exclusiveGroup &&
+        entry.id !== talent.id &&
+        progression.talents[entry.id]
+    )
+  ) {
+    return false;
+  }
+
+  if (Object.keys(progression.talents || {}).length >= MAX_CAMPAIGN_TALENT_POINTS) {
     return false;
   }
 
   progression.talents[talentId] = 1;
   progression.talentPoints -= 1;
   return true;
+}
+
+export function getTalentUnlockState(progression, talentId) {
+  const talent = TALENT_DEFS.find((entry) => entry.id === talentId);
+  if (!talent) return { unlockable: false, reason: "Unknown talent." };
+  if (progression.talents[talentId]) return { unlockable: false, reason: "Already learned." };
+  if (progression.talentPoints <= 0) return { unlockable: false, reason: "No talent points available." };
+  const missing = (talent.requires || []).find((requiredId) => !progression.talents[requiredId]);
+  if (missing) return { unlockable: false, reason: "Learn the previous talent first." };
+
+  const branchPoints = TALENT_DEFS.filter(
+    (entry) => entry.branch === talent.branch && progression.talents[entry.id]
+  ).length;
+  if ((talent.requiresBranchPoints || 0) > branchPoints) {
+    return {
+      unlockable: false,
+      reason: `Requires ${talent.requiresBranchPoints} points in ${talent.tree}.`,
+    };
+  }
+
+  if (
+    talent.exclusiveGroup &&
+    TALENT_DEFS.some(
+      (entry) =>
+        entry.exclusiveGroup === talent.exclusiveGroup &&
+        entry.id !== talent.id &&
+        progression.talents[entry.id]
+    )
+  ) {
+    return { unlockable: false, reason: "Another Signature ultimate is already active." };
+  }
+
+  return { unlockable: true, reason: "" };
 }
 
 export function getUnlockedTalentList(progression) {
@@ -537,18 +660,23 @@ export function getPlayerBonuses(progression) {
     dashCooldownBonus: 0,
     rootDurationBonus: 0,
     bloomBonus: 0,
-    pulseUnlocked: 0,
+    pulseUnlocked: 1,
     pulseDamageBonus: 0,
     pulseRadiusBonus: 0,
     pulseCooldownBonus: 0,
     incomingDamageReductionBonus: 0,
     moveSpeedBonus: 0,
+    signatureAbility: null,
   };
 
   for (const talent of TALENT_DEFS) {
     if (!progression.talents[talent.id]) continue;
     for (const [key, value] of Object.entries(talent.apply)) {
-      bonuses[key] = (bonuses[key] || 0) + value;
+      if (typeof value === "number") {
+        bonuses[key] = (bonuses[key] || 0) + value;
+      } else {
+        bonuses[key] = value;
+      }
     }
   }
 
@@ -604,12 +732,12 @@ export function awardEnemyLoot(progression, enemyType, biomeId, source = {}) {
 
     silver =
       source?.id === "veil_seraph"
-        ? 154
+        ? 80
         : biomeId === "ancient"
-          ? 145
+          ? 78
           : biomeId === "blight"
-            ? 132
-            : 108;
+            ? 72
+            : 60;
     addCurrency(progression, silver);
     return { items: grants, silver };
   }
@@ -636,7 +764,7 @@ export function awardEnemyLoot(progression, enemyType, biomeId, source = {}) {
 
 export function awardEliteBonusLoot(progression, biomeId, enemy = null) {
   const table = BIOME_ITEM_BASES[biomeId] || ["health_potion", "spirit_tonic"];
-  const guaranteedSilver = 18;
+  const guaranteedSilver = 10;
   const roll = Math.random();
   let itemId;
 
@@ -683,13 +811,13 @@ export function sellInventoryItem(progression, itemId, amount = 1) {
     return { sold: false, value: 0 };
   }
 
-  const payout = Math.max(1, Math.floor(value * 0.55)) * amount;
+  const payout = Math.max(1, Math.floor(value * 0.25)) * amount;
   addCurrency(progression, payout);
   progression.buyback = normalizeBuyback([
     {
       itemId,
       amount,
-      price: Math.max(1, Math.floor(value * 0.7)) * amount,
+      price: Math.max(1, Math.floor(value * 0.4)) * amount,
       soldAt: Date.now(),
     },
     ...(progression.buyback || []),

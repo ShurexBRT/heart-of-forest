@@ -67,7 +67,7 @@ test("legacy 0.1 save gains a normalized day clock", () => {
   assert.deepEqual(save.runtimeSnapshot.clock, save.calendar);
 });
 
-test("saving writes version 0.2.0 and keeps clock progress", () => {
+test("saving writes version 0.3.0 and keeps clock progress", () => {
   const legacy = loadSave();
   legacy.calendar = { day: 3, minuteOfDay: 1080, realDaySeconds: 900 };
   legacy.runtimeSnapshot.clock = legacy.calendar;
@@ -75,7 +75,7 @@ test("saving writes version 0.2.0 and keeps clock progress", () => {
   assert.equal(saveGame(legacy), true);
 
   const saved = JSON.parse(storage.get("heart-of-forest-save"));
-  assert.equal(saved.version, "0.2.0");
+  assert.equal(saved.version, "0.3.0");
   assert.equal(saved.calendar.day, 3);
   assert.equal(saved.runtimeSnapshot.clock.minuteOfDay, 1080);
 });

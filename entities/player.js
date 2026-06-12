@@ -67,6 +67,8 @@ export class Player {
       spirit: 0,
       spiritRegenBonus: 0,
     };
+    this.heartCharge = 0;
+    this.dashStaffPrimed = 0;
     this.abilityInfo = buildAbilityInfo(modifiers);
     this.refreshFromModifiers(modifiers, { preserveVitals: false });
     this.reset(spawn);
@@ -103,6 +105,8 @@ export class Player {
       root: 0,
       pulse: 0,
     };
+    this.heartCharge = 0;
+    this.dashStaffPrimed = 0;
   }
 
   tick(dt) {
@@ -110,6 +114,7 @@ export class Player {
     this.invulnerable = Math.max(0, this.invulnerable - dt);
     this.hurtFlash = Math.max(0, this.hurtFlash - dt);
     this.dashTime = Math.max(0, this.dashTime - dt);
+    this.dashStaffPrimed = Math.max(0, this.dashStaffPrimed - dt);
     this.poseTimer = Math.max(0, this.poseTimer - dt);
     this.activeBuffs.ward = Math.max(0, this.activeBuffs.ward - dt);
     this.activeBuffs.speed = Math.max(0, this.activeBuffs.speed - dt);
@@ -270,11 +275,38 @@ function buildAbilityInfo(modifiers) {
     pulse: {
       ...PLAYER_ABILITY_INFO.pulse,
       unlocked: Boolean(modifiers.pulseUnlocked),
+      label:
+        modifiers.signatureAbility === "heartwood_tempest"
+          ? "Heartwood Tempest"
+          : modifiers.signatureAbility === "verdant_nova"
+            ? "Verdant Nova"
+            : modifiers.signatureAbility === "awaken_the_grove"
+              ? "Awaken the Grove"
+              : PLAYER_ABILITY_INFO.pulse.label,
+      shortLabel: modifiers.signatureAbility ? "Ultimate" : PLAYER_ABILITY_INFO.pulse.shortLabel,
       damage: PLAYER_ABILITY_INFO.pulse.damage + (modifiers.pulseDamageBonus || 0),
       radius: PLAYER_ABILITY_INFO.pulse.radius + (modifiers.pulseRadiusBonus || 0),
       cooldown: Math.max(1.8, PLAYER_ABILITY_INFO.pulse.cooldown - (modifiers.pulseCooldownBonus || 0)),
       rootDuration: PLAYER_ABILITY_INFO.pulse.rootDuration + (modifiers.rootDurationBonus || 0) * 0.4,
+      signatureAbility: modifiers.signatureAbility || null,
     },
     bloomBonus: modifiers.bloomBonus || 0,
+    staffRangeBonus: modifiers.staffRangeBonus || 0,
+    staffArcBonus: modifiers.staffArcBonus || 0,
+    dashStaffBonus: modifiers.dashStaffBonus || 0,
+    counterbloom: Boolean(modifiers.counterbloom),
+    closeDamageReduction: modifiers.closeDamageReduction || 0,
+    staffHeartChargeBonus: modifiers.staffHeartChargeBonus || 0,
+    boltPierce: modifiers.boltPierce || 0,
+    bloomHeartChargeBonus: modifiers.bloomHeartChargeBonus || 0,
+    pulseEcho: Boolean(modifiers.pulseEcho),
+    bossSpellDamageBonus: modifiers.bossSpellDamageBonus || 0,
+    rootDamagePerSecond: modifiers.rootDamagePerSecond || 0,
+    spreadingRoots: Boolean(modifiers.spreadingRoots),
+    preparationReductionBonus: modifiers.preparationReductionBonus || 0,
+    fieldRemedy: Boolean(modifiers.fieldRemedy),
+    rootHeartChargeBonus: modifiers.rootHeartChargeBonus || 0,
+    preparationHeartChargeBonus: modifiers.preparationHeartChargeBonus || 0,
+    signatureAbility: modifiers.signatureAbility || null,
   };
 }

@@ -3,7 +3,7 @@ import { createClock, serializeClock } from "./clock.js";
 
 const SAVE_KEY = "heart-of-forest-save";
 const SETTINGS_KEY = "heart-of-forest-settings";
-const SAVE_VERSION = "0.2.0";
+const SAVE_VERSION = "0.3.0";
 let invalidSaveWarned = false;
 
 export function getDefaultSettings() {
@@ -26,6 +26,7 @@ export function createDefaultSave() {
       maxSpirit: 65,
       level: 1,
       xp: 0,
+      heartCharge: 0,
     },
     world: {
       currentMap: INITIAL_SCENE_ID,
@@ -259,6 +260,7 @@ function normalizePlayer(rawPlayer, defaults) {
     maxSpirit: Math.max(0, numberOr(rawPlayer.maxSpirit, defaults.maxSpirit)),
     level: Math.max(1, integerOr(rawPlayer.level, defaults.level)),
     xp: Math.max(0, integerOr(rawPlayer.xp, defaults.xp)),
+    heartCharge: Math.max(0, Math.min(100, numberOr(rawPlayer.heartCharge, defaults.heartCharge || 0))),
   };
 }
 
@@ -322,6 +324,7 @@ function normalizeRuntimeSnapshot(runtimeSnapshot, player, world, inventory, cal
       spirit: player.spirit,
       maxHp: player.maxHp,
       maxSpirit: player.maxSpirit,
+      heartCharge: player.heartCharge || 0,
     },
     clock: serializeClock(createClock(calendar)),
     ui: isObject(rawSave.ui) ? rawSave.ui : null,

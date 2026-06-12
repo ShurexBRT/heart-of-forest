@@ -5,7 +5,62 @@ import { spawnBurst } from "../systems/particles.js";
 import { Enemy } from "./enemy.js";
 
 const BOSS_IDENTITY = {
+  rootwarden: {
+    damageType: "thorn",
+    hazardType: "thorn",
+    volleyProjectileType: "thorn",
+    eruptionDamage: [16, 20],
+    volleyDamage: [12, 16],
+    eruptionColors: ["#91dc70", "#c8e987", "#f0d887"],
+    slamColors: ["#a9e27f", "#e9c66f", "#f6edb0"],
+    volleyColors: ["#8fdb70", "#d5e88d", "#f2d078"],
+    eruptionBurstColors: ["#92df71", "#e6c86f", "#f5efb1"],
+    summonPhase2: ["thornling", "barkling", "root_stalker"],
+    summonPhase3: [{ type: "thorn_weaver", elite: true, affixes: ["bulwark"] }, "barkling", "root_stalker"],
+    summonBanner: "The Old Roots Rise",
+    phaseBanners: ["Rootwarden Stirs", "Heartwood Unbound"],
+    summonBurstColors: ["#9ce77a", "#e3ca73", "#d8f0a0"],
+    slamTelegraphColor: "#c5e684",
+    volleyTelegraphColor: "#9ddd79",
+  },
+  cinder_warden: {
+    damageType: "fire",
+    hazardType: "ember",
+    volleyProjectileType: "ember",
+    eruptionDamage: [18, 23],
+    volleyDamage: [14, 18],
+    eruptionColors: ["#ff9a5f", "#e96543", "#ffd18b"],
+    slamColors: ["#ffad66", "#ef6d48", "#ffe1a1"],
+    volleyColors: ["#ff9a5d", "#ffd078", "#ed6947"],
+    eruptionBurstColors: ["#ff9e61", "#f06f49", "#ffd691"],
+    summonPhase2: ["cinder_imp", "ash_brute", "thornling"],
+    summonPhase3: [{ type: "cinder_imp", elite: true, affixes: ["spiteful"] }, "ash_brute", "cinder_imp"],
+    summonBanner: "The Cinders Answer",
+    phaseBanners: ["Firewatch Broken", "Cinderheart Fury"],
+    summonBurstColors: ["#ff9a5f", "#f4c875", "#e86c48"],
+    slamTelegraphColor: "#ffad6c",
+    volleyTelegraphColor: "#ffc679",
+  },
+  veil_seraph: {
+    damageType: "frost",
+    hazardType: "frost",
+    volleyProjectileType: "frost",
+    eruptionDamage: [18, 22],
+    volleyDamage: [15, 19],
+    eruptionColors: ["#b5e3ff", "#83bfe3", "#effaff"],
+    slamColors: ["#c8ecff", "#8fc9ec", "#f7fdff"],
+    volleyColors: ["#bce7ff", "#dff6ff", "#83bee5"],
+    eruptionBurstColors: ["#b6e5ff", "#8bc7e8", "#f2fbff"],
+    summonPhase2: ["frost_wisp", "icebound_guardian", "wisp_archer"],
+    summonPhase3: [{ type: "frost_wisp", elite: true, affixes: ["swift"] }, "icebound_guardian", "frost_wisp"],
+    summonBanner: "The White Veil Falls",
+    phaseBanners: ["Seraph Descends", "Winter Without End"],
+    summonBurstColors: ["#bce9ff", "#91cae8", "#f2fbff"],
+    slamTelegraphColor: "#c8edff",
+    volleyTelegraphColor: "#a9dcfa",
+  },
   elder_hollow: {
+    damageType: "corruption",
     hazardType: "blight",
     volleyProjectileType: "blight",
     eruptionDamage: [18, 22],
@@ -23,6 +78,7 @@ const BOSS_IDENTITY = {
     volleyTelegraphColor: "#dda4ff",
   },
   bog_matron: {
+    damageType: "mire",
     hazardType: "mire",
     volleyProjectileType: "mire",
     eruptionDamage: [16, 20],
@@ -40,6 +96,7 @@ const BOSS_IDENTITY = {
     volleyTelegraphColor: "#b8f0ff",
   },
   rootbound_custodian: {
+    damageType: "astral",
     hazardType: "ancient",
     volleyProjectileType: "ancient",
     eruptionDamage: [18, 22],
@@ -57,6 +114,7 @@ const BOSS_IDENTITY = {
     volleyTelegraphColor: "#d7b7ff",
   },
   starwoken_sentinel: {
+    damageType: "astral",
     hazardType: "ancient",
     volleyProjectileType: "ancient",
     eruptionDamage: [15, 19],
@@ -297,7 +355,14 @@ export class Boss {
       distance(attack.targetX, attack.targetY, state.player.x, state.player.y) <=
       attack.radius + state.player.radius
     ) {
-      damagePlayer(state, this.phase >= 2 ? 34 : 28, attack.targetX, attack.targetY, 330);
+      damagePlayer(
+        state,
+        this.phase >= 2 ? 34 : 28,
+        attack.targetX,
+        attack.targetY,
+        330,
+        this.identity.damageType
+      );
       state.shake = Math.max(state.shake, 10);
     } else {
       state.shake = Math.max(state.shake, 6);

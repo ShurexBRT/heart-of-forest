@@ -46,6 +46,7 @@ export function renderGame(ctx, state, options = {}) {
   drawExitMarkers(ctx, state, origin);
   drawProjectiles(ctx, state, origin);
   drawSortedWorld(ctx, state, origin);
+  if (state.debugCollision) drawCollisionDebug(ctx, state, origin);
   drawHostileProjectiles(ctx, state, origin);
   drawSwings(ctx, state, origin);
   drawParticles(ctx, state, origin);
@@ -436,7 +437,7 @@ function drawSortedWorld(ctx, state, origin) {
     if (renderable.kind === "obstacle") {
       drawObstacle(ctx, renderable.item, state.arena.theme, state.arena.sceneStyle, origin);
     }
-    if (renderable.kind === "interactable") drawInteractable(ctx, renderable.item, origin);
+    if (renderable.kind === "interactable") drawInteractable(ctx, renderable.item, state, origin);
     if (renderable.kind === "npc") drawNpc(ctx, renderable.item, origin);
     if (renderable.kind === "afterImage") drawAfterImage(ctx, renderable.item, origin);
     if (renderable.kind === "enemy") drawEnemy(ctx, renderable.item, state, origin);
@@ -743,8 +744,22 @@ function interpolatePoint(start, end, t) {
   };
 }
 
-function drawInteractable(ctx, item, origin) {
+function drawInteractable(ctx, item, state, origin) {
   const point = toScreen(origin, item.anchorX, item.anchorY);
+  if (state.story.hovered?.data?.id === item.id) {
+    ctx.save();
+    ctx.globalAlpha = 0.7;
+    drawIsoRing(
+      ctx,
+      origin,
+      item.x,
+      item.y,
+      Math.max(24, Math.min(58, Math.max(item.w || 18, item.h || 18) * 0.58)),
+      7,
+      "#fff1a6"
+    );
+    ctx.restore();
+  }
 
   if (item.type === "farmPlot") {
     const halfW = item.w / 2;
@@ -844,6 +859,37 @@ function drawInteractable(ctx, item, origin) {
     pixelRect(ctx, point.x - 2, point.y - 34, 4, 8, "#9ee88b");
     pixelRect(ctx, point.x - 7, point.y - 36, 14, 2, "#f0de9a");
   }
+}
+
+function drawCollisionDebug(ctx, state, origin) {
+  const solids = [
+    ...(state.arena.obstacles || []).map((entry) => entry.solid).filter(Boolean),
+    ...(state.arena.npcs || []).map((entry) => entry.solid).filter(Boolean),
+  ];
+
+  ctx.save();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(255, 91, 91, 0.95)";
+  ctx.fillStyle = "rgba(255, 91, 91, 0.18)";
+
+  for (const solid of solids) {
+    const corners = [
+      toScreen(origin, solid.x, solid.y),
+      toScreen(origin, solid.x + solid.w, solid.y),
+      toScreen(origin, solid.x + solid.w, solid.y + solid.h),
+      toScreen(origin, solid.x, solid.y + solid.h),
+    ];
+    ctx.beginPath();
+    ctx.moveTo(corners[0].x, corners[0].y);
+    for (let index = 1; index < corners.length; index += 1) {
+      ctx.lineTo(corners[index].x, corners[index].y);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  ctx.restore();
 }
 
 function drawFarmCrop(ctx, item, origin) {

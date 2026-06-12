@@ -16,7 +16,8 @@ export function updateEnvironment(state, dt) {
       hazard.damage || 6,
       hazard.x + hazard.w / 2,
       hazard.y + hazard.h / 2,
-      90
+      90,
+      hazard.type
     );
 
     if (hit) {
