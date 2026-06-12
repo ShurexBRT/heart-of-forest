@@ -25,6 +25,101 @@ const SCENE_ATLAS_KEYS = {
   verdantSanctum: "verdant-grove",
 };
 
+const DISABLED_WORLD_ATLASES = new Set(["blighted-woods", "verdant-grove"]);
+
+const BIOME_TREE_RECTS = {
+  "mossy-ruins": [
+    { x: 236, y: 670, w: 124, h: 148 },
+    { x: 352, y: 670, w: 120, h: 148 },
+    { x: 464, y: 670, w: 112, h: 148 },
+    { x: 560, y: 668, w: 118, h: 150 },
+    { x: 670, y: 668, w: 118, h: 150 },
+  ],
+  "moonlit-marsh": [
+    { x: 20, y: 688, w: 116, h: 132 },
+    { x: 348, y: 670, w: 118, h: 148 },
+    { x: 556, y: 668, w: 122, h: 150 },
+  ],
+  "frostpine-tundra": [
+    { x: 236, y: 670, w: 124, h: 148 },
+    { x: 348, y: 676, w: 116, h: 142 },
+    { x: 556, y: 668, w: 122, h: 150 },
+  ],
+  "ember-hollow": [
+    { x: 348, y: 670, w: 126, h: 148 },
+    { x: 664, y: 668, w: 128, h: 150 },
+    { x: 774, y: 668, w: 126, h: 150 },
+  ],
+  "ancient-heart": [
+    { x: 20, y: 688, w: 116, h: 132 },
+    { x: 236, y: 670, w: 124, h: 148 },
+    { x: 348, y: 670, w: 126, h: 148 },
+  ],
+};
+
+const SHARED_ROCK_RECTS = [
+  { x: 24, y: 872, w: 82, h: 94 },
+  { x: 99, y: 860, w: 94, h: 108 },
+  { x: 184, y: 846, w: 114, h: 126 },
+  { x: 280, y: 838, w: 116, h: 136 },
+];
+
+const SHARED_RUIN_RECTS = [
+  { x: 405, y: 866, w: 96, h: 118 },
+  { x: 490, y: 856, w: 140, h: 130 },
+  { x: 618, y: 856, w: 88, h: 130 },
+  { x: 700, y: 852, w: 92, h: 136 },
+  { x: 780, y: 846, w: 104, h: 142 },
+  { x: 872, y: 846, w: 126, h: 142 },
+];
+
+const BIOME_PROP_RECTS = {
+  "mossy-ruins": {
+    bridges: [
+      { x: 1024, y: 82, w: 120, h: 128 },
+      { x: 1142, y: 78, w: 108, h: 134 },
+    ],
+    lanterns: [{ x: 1398, y: 72, w: 84, h: 140 }],
+    signposts: [{ x: 1335, y: 84, w: 78, h: 124 }],
+  },
+  "moonlit-marsh": {
+    bridges: [
+      { x: 1012, y: 76, w: 122, h: 136 },
+      { x: 1126, y: 76, w: 104, h: 138 },
+      { x: 1216, y: 76, w: 116, h: 136 },
+    ],
+    lanterns: [{ x: 1302, y: 70, w: 104, h: 146 }],
+    signposts: [{ x: 1390, y: 84, w: 82, h: 124 }],
+  },
+  "frostpine-tundra": {
+    bridges: [
+      { x: 1012, y: 78, w: 112, h: 136 },
+      { x: 1122, y: 74, w: 104, h: 142 },
+      { x: 1210, y: 78, w: 110, h: 138 },
+    ],
+    lanterns: [{ x: 1296, y: 68, w: 102, h: 150 }],
+    signposts: [{ x: 1380, y: 82, w: 86, h: 130 }],
+  },
+  "ember-hollow": {
+    bridges: [
+      { x: 1016, y: 78, w: 112, h: 132 },
+      { x: 1120, y: 74, w: 112, h: 138 },
+      { x: 1210, y: 74, w: 116, h: 140 },
+    ],
+    lanterns: [{ x: 1304, y: 68, w: 98, h: 148 }],
+    signposts: [{ x: 1386, y: 82, w: 84, h: 128 }],
+  },
+  "ancient-heart": {
+    bridges: [
+      { x: 1010, y: 76, w: 114, h: 138 },
+      { x: 1122, y: 72, w: 98, h: 144 },
+      { x: 1206, y: 76, w: 118, h: 138 },
+    ],
+    lanterns: [{ x: 1298, y: 68, w: 102, h: 150 }],
+    signposts: [{ x: 1384, y: 76, w: 88, h: 136 }],
+  },
+};
+
 const atlasState = {
   ready: false,
   failed: false,
@@ -118,15 +213,19 @@ export function drawAylaAtlasSprite(ctx, x, y, facing, frame, pose, options = {}
 
 export function drawBiomeProp(ctx, sceneStyle, type, x, y, options = {}) {
   if (!ATLAS_WORLD_ART_ENABLED) return false;
-  if (type === "tree" && (sceneStyle === "blightedWoods" || sceneStyle === "hollowheartRuins")) {
-    return false;
-  }
+  const atlasKey = SCENE_ATLAS_KEYS[sceneStyle];
+  if (!atlasKey || DISABLED_WORLD_ATLASES.has(atlasKey)) return false;
   const art = getBiomeArt(sceneStyle);
   if (!art) return false;
+  if (type === "bridge") return false;
 
   const bucket =
     type === "tree"
       ? art.sprites.trees
+      : type === "rock" || type === "iceRock"
+        ? art.sprites.rocks
+        : type === "ruin"
+          ? art.sprites.ruins
       : type === "bridge"
         ? art.sprites.bridges
         : type === "signpost"
@@ -136,7 +235,7 @@ export function drawBiomeProp(ctx, sceneStyle, type, x, y, options = {}) {
             : null;
 
   if (!bucket || bucket.length === 0) return false;
-  const sprite = bucket[options.variant ?? 0] || bucket[0];
+  const sprite = bucket[(options.variant ?? 0) % bucket.length] || bucket[0];
   if (!sprite) return false;
 
   drawSpriteCanvas(ctx, sprite, x, y, {
@@ -184,8 +283,8 @@ function loadAtlases() {
 
       for (const key of Object.keys(SCENE_ATLAS_KEYS)) {
         const atlasKey = SCENE_ATLAS_KEYS[key];
-        if (!atlasState.biomeArt[atlasKey]) {
-          atlasState.biomeArt[atlasKey] = buildBiomeArt(atlasState.images[atlasKey]);
+        if (!atlasState.biomeArt[atlasKey] && !DISABLED_WORLD_ATLASES.has(atlasKey)) {
+          atlasState.biomeArt[atlasKey] = buildBiomeArt(atlasState.images[atlasKey], atlasKey);
         }
       }
 
@@ -233,8 +332,10 @@ function buildAylaFrames(image) {
   };
 }
 
-function buildBiomeArt(image) {
+function buildBiomeArt(image, atlasKey) {
   if (!image) return null;
+  const propRects = BIOME_PROP_RECTS[atlasKey];
+  if (!propRects) return null;
 
   return {
     patterns: {
@@ -246,43 +347,29 @@ function buildBiomeArt(image) {
       blight: buildPatternRow(image, { x: 410, y: 78, step: 66, count: 4 }),
     },
     sprites: {
-      trees: [
-        extractSprite(image, { x: 28, y: 700, w: 96, h: 140 }, { trim: true, component: "cluster", padding: 3 }),
-        extractSprite(image, { x: 132, y: 700, w: 98, h: 140 }, { trim: true, component: "cluster", padding: 3 }),
-        extractSprite(image, { x: 238, y: 698, w: 106, h: 142 }, { trim: true, component: "cluster", padding: 3 }),
-        extractSprite(image, { x: 346, y: 698, w: 106, h: 142 }, { trim: true, component: "cluster", padding: 3 }),
-      ],
-      rocks: [
-        extractSprite(image, { x: 22, y: 868, w: 78, h: 92 }, { trim: true, component: "largest", padding: 3 }),
-        extractSprite(image, { x: 102, y: 860, w: 112, h: 100 }, { trim: true, component: "largest", padding: 3 }),
-        extractSprite(image, { x: 214, y: 856, w: 120, h: 104 }, { trim: true, component: "largest", padding: 3 }),
-      ],
-      ruins: [
-        extractSprite(image, { x: 412, y: 838, w: 114, h: 128 }, { trim: true, component: "largest", padding: 3 }),
-        extractSprite(image, { x: 528, y: 838, w: 104, h: 128 }, { trim: true, component: "largest", padding: 3 }),
-        extractSprite(image, { x: 642, y: 838, w: 118, h: 128 }, { trim: true, component: "largest", padding: 3 }),
-      ],
-      bridges: [
-        extractSprite(image, { x: 1028, y: 84, w: 108, h: 102 }, { trim: true, component: "largest", padding: 3 }),
-        extractSprite(image, { x: 1134, y: 84, w: 112, h: 102 }, { trim: true, component: "largest", padding: 3 }),
-      ],
-      lanterns: [
-        extractSprite(image, { x: 1360, y: 82, w: 58, h: 108 }, { trim: true, component: "largest", padding: 3 }),
-      ],
-      fences: [
-        extractSprite(image, { x: 1008, y: 180, w: 126, h: 90 }, { trim: true, component: "largest", padding: 3 }),
-        extractSprite(image, { x: 1134, y: 180, w: 132, h: 90 }, { trim: true, component: "largest", padding: 3 }),
-      ],
-      signposts: [
-        extractSprite(image, { x: 1298, y: 82, w: 62, h: 108 }, { trim: true, component: "largest", padding: 3 }),
-      ],
-      details: [
-        extractSprite(image, { x: 28, y: 548, w: 56, h: 82 }, { trim: true, component: "largest", padding: 2 }),
-        extractSprite(image, { x: 116, y: 548, w: 74, h: 82 }, { trim: true, component: "largest", padding: 2 }),
-        extractSprite(image, { x: 466, y: 548, w: 100, h: 82 }, { trim: true, component: "largest", padding: 2 }),
-      ],
+      trees: extractBiomeSprites(image, BIOME_TREE_RECTS[atlasKey], "largest"),
+      rocks: extractBiomeSprites(image, SHARED_ROCK_RECTS, "largest"),
+      ruins: extractBiomeSprites(image, SHARED_RUIN_RECTS, "largest"),
+      bridges: [],
+      lanterns: extractBiomeSprites(image, propRects.lanterns, "cluster"),
+      fences: [],
+      signposts: extractBiomeSprites(image, propRects.signposts, "largest"),
+      details: [],
     },
   };
+}
+
+function extractBiomeSprites(image, rects, component) {
+  return rects
+    .map((rect) =>
+      extractSprite(image, rect, {
+        trim: true,
+        component,
+        padding: 3,
+        mask: "sheet",
+      })
+    )
+    .filter((sprite) => sprite && sprite.width > 4 && sprite.height > 4);
 }
 
 function buildPatternRow(image, layout) {
@@ -312,8 +399,12 @@ function extractSprite(image, rect, options = {}) {
   sourceCtx.drawImage(image, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
 
   const data = sourceCtx.getImageData(0, 0, rect.w, rect.h);
-  const keyColor = sampleKeyColor(data, rect.w, rect.h);
-  removeKeyedBackground(data, keyColor);
+  if (options.mask === "sheet") {
+    removeSheetBackground(data);
+  } else {
+    const keyColor = sampleKeyColor(data, rect.w, rect.h);
+    removeKeyedBackground(data, keyColor);
+  }
   sourceCtx.putImageData(data, 0, 0);
 
   const padding = options.padding ?? 3;
@@ -400,6 +491,98 @@ function removeKeyedBackground(imageData, keyColor) {
     enqueue(px, py + 1);
     enqueue(px, py - 1);
   }
+}
+
+function removeSheetBackground(imageData) {
+  const { data, width, height } = imageData;
+  const keyColor = sampleSheetBackground(imageData);
+  const seedMask = new Uint8Array(width * height);
+  const grownMask = new Uint8Array(width * height);
+  const keyBrightness = Math.max(keyColor.r, keyColor.g, keyColor.b);
+
+  for (let index = 0; index < width * height; index += 1) {
+    const offset = index * 4;
+    const r = data[offset];
+    const g = data[offset + 1];
+    const b = data[offset + 2];
+    const dr = Math.abs(r - keyColor.r);
+    const dg = Math.abs(g - keyColor.g);
+    const db = Math.abs(b - keyColor.b);
+    const distance = dr + dg + db;
+    const maxDiff = Math.max(dr, dg, db);
+    const brightness = Math.max(r, g, b);
+
+    if ((maxDiff >= 18 && distance >= 34) || brightness >= keyBrightness + 26) {
+      seedMask[index] = 1;
+    }
+  }
+
+  const radius = 1;
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const index = y * width + x;
+      if (!seedMask[index]) continue;
+      for (let oy = -radius; oy <= radius; oy += 1) {
+        for (let ox = -radius; ox <= radius; ox += 1) {
+          const nx = x + ox;
+          const ny = y + oy;
+          if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+          grownMask[ny * width + nx] = 1;
+        }
+      }
+    }
+  }
+
+  for (let index = 0; index < width * height; index += 1) {
+    const offset = index * 4;
+    const dr = Math.abs(data[offset] - keyColor.r);
+    const dg = Math.abs(data[offset + 1] - keyColor.g);
+    const db = Math.abs(data[offset + 2] - keyColor.b);
+    const distance = dr + dg + db;
+    const maxDiff = Math.max(dr, dg, db);
+    const brightness = Math.max(data[offset], data[offset + 1], data[offset + 2]);
+    const outlinePixel = maxDiff >= 5 && distance >= 10;
+
+    if (!grownMask[index] || (!seedMask[index] && !outlinePixel && brightness < keyBrightness + 7)) {
+      data[offset + 3] = 0;
+    }
+  }
+}
+
+function sampleSheetBackground(imageData) {
+  const { data, width, height } = imageData;
+  const samples = [];
+  const inset = Math.min(4, Math.floor(Math.min(width, height) / 4));
+
+  for (let x = inset; x < width - inset; x += Math.max(1, Math.floor(width / 12))) {
+    samples.push(getPixel(data, width, x, inset));
+    samples.push(getPixel(data, width, x, height - inset - 1));
+  }
+  for (let y = inset; y < height - inset; y += Math.max(1, Math.floor(height / 12))) {
+    samples.push(getPixel(data, width, inset, y));
+    samples.push(getPixel(data, width, width - inset - 1, y));
+  }
+
+  samples.sort((a, b) => a.brightness - b.brightness);
+  const darkSamples = samples.slice(0, Math.max(4, Math.ceil(samples.length * 0.45)));
+  return {
+    r: median(darkSamples.map((sample) => sample.r)),
+    g: median(darkSamples.map((sample) => sample.g)),
+    b: median(darkSamples.map((sample) => sample.b)),
+  };
+}
+
+function getPixel(data, width, x, y) {
+  const offset = (y * width + x) * 4;
+  const r = data[offset];
+  const g = data[offset + 1];
+  const b = data[offset + 2];
+  return { r, g, b, brightness: Math.max(r, g, b) };
+}
+
+function median(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.floor(sorted.length / 2)] || 0;
 }
 
 function matchesKeyColor(data, offset, keyColor, threshold) {

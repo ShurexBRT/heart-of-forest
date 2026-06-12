@@ -10,17 +10,16 @@ import {
   drawAylaAtlasSprite,
   drawBiomeProp,
   getAtlasRevision,
-  getBiomePattern,
 } from "./atlasAssets.js";
 import {
   drawPixelSprite,
   getActorSprite,
   getBossSprite,
   getEnemySprite,
-  getGroundTexture,
   getProjectileSprite,
   resolveFacing,
 } from "./pixelAssets.js";
+import { drawTerrainTile } from "./terrainAssets.js";
 import { drawHud } from "../ui/hud.js";
 
 let backgroundCache = null;
@@ -129,135 +128,33 @@ function drawTileMap(ctx, arena, offsetX, offsetY) {
         halfH,
         arena.tiles[ty][tx],
         arena.theme,
-        arena.sceneStyle
+        arena.sceneStyle,
+        tx,
+        ty,
+        {
+          topLeft: arena.tiles[ty]?.[tx - 1]?.ground || null,
+          topRight: arena.tiles[ty - 1]?.[tx]?.ground || null,
+          bottomRight: arena.tiles[ty]?.[tx + 1]?.ground || null,
+          bottomLeft: arena.tiles[ty + 1]?.[tx]?.ground || null,
+        }
       );
     }
   }
 }
 
-function drawTile(ctx, x, y, halfW, halfH, tile, theme, sceneStyle) {
-  const palette = getGroundPalette(tile.ground, tile.variant, theme);
-  const texture = getGroundTexture(tile.ground, theme);
-  const atlasPattern = getBiomePattern(sceneStyle, tile.ground, tile.variant);
-  const pattern = atlasPattern
-    ? ctx.createPattern(atlasPattern, "repeat")
-    : texture
-      ? ctx.createPattern(texture, "repeat")
-      : null;
-  drawDiamond(ctx, x, y, halfW, halfH, pattern || palette.base);
-  if (atlasPattern) {
-    ctx.save();
-    ctx.globalAlpha = 0.45;
-    drawDiamondStroke(ctx, x, y, halfW, halfH, palette.edge);
-    ctx.globalAlpha = 0.22;
-    drawHalfDiamond(ctx, x, y - 1, halfW - 1, halfH - 1, palette.highlight);
-    ctx.globalAlpha = 0.18;
-    drawFooting(ctx, x, y, halfW, halfH, palette.shadow);
-    ctx.restore();
-  } else {
-    drawDiamondStroke(ctx, x, y, halfW, halfH, palette.edge);
-    drawHalfDiamond(ctx, x, y - 1, halfW - 1, halfH - 1, palette.highlight);
-    drawFooting(ctx, x, y, halfW, halfH, palette.shadow);
-  }
-
-  if (tile.overlay === "clover") {
-    pixelRect(ctx, x - 2, y - 1, 2, 2, "#79bf69");
-    pixelRect(ctx, x + 1, y, 2, 2, "#8ccf78");
-  }
-
-  if (tile.overlay === "flowersWarm") {
-    pixelRect(ctx, x - 4, y - 2, 2, 2, "#ffcf75");
-    pixelRect(ctx, x + 1, y - 1, 2, 2, "#ff97a6");
-  }
-
-  if (tile.overlay === "flowersCool") {
-    pixelRect(ctx, x - 3, y - 2, 2, 2, "#93e5ff");
-    pixelRect(ctx, x + 2, y, 2, 2, "#d2f5ff");
-  }
-
-  if (tile.overlay === "reeds") {
-    pixelRect(ctx, x - 2, y - 4, 2, 6, "#8bc07f");
-    pixelRect(ctx, x + 1, y - 3, 2, 5, "#a4d59b");
-  }
-
-  if (tile.overlay === "frostFlowers") {
-    pixelRect(ctx, x - 4, y - 2, 2, 2, "#d9f4ff");
-    pixelRect(ctx, x + 1, y - 1, 2, 2, "#b0ddff");
-  }
-}
-
-function getGroundPalette(ground, variant, theme) {
-  if (ground === "path" || ground === "planks") {
-    const bases = ["#99835a", "#8a7650", "#a89267"];
-    return {
-      base: bases[variant % bases.length],
-      edge: "#5f4d31",
-      highlight: "#cdb88b",
-      shadow: "#6a5736",
-    };
-  }
-
-  if (ground === "soil" || ground === "ash" || ground === "ashPath") {
-    const bases = ground === "ashPath" ? ["#7d6250", "#6e5647"] : ["#6f513a", "#7a5d43", "#5e4331"];
-    return {
-      base: bases[variant % bases.length],
-      edge: ground === "ashPath" ? "#4d392e" : "#503828",
-      highlight: ground === "ashPath" ? "#a78b73" : "#9a7957",
-      shadow: "#463225",
-    };
-  }
-
-  if (ground === "water" || ground === "ice") {
-    return {
-      base: ground === "ice" ? "#7cb9db" : "#326c6b",
-      edge: ground === "ice" ? "#5c8fb1" : "#1c3f47",
-      highlight: ground === "ice" ? "#dff5ff" : "#5fa2a0",
-      shadow: ground === "ice" ? "#4f7392" : "#24474d",
-    };
-  }
-
-  if (ground === "snow" || ground === "snowPath") {
-    return {
-      base: ground === "snowPath" ? "#bac6d4" : ["#dce8f1", "#ccdbe7", "#e5eef5"][variant % 3],
-      edge: "#8e9ca8",
-      highlight: "#f7fcff",
-      shadow: "#a8b8c5",
-    };
-  }
-
-  if (ground === "emberGrass" || ground === "ember") {
-    return {
-      base: ground === "ember" ? ["#924b33", "#a75938"][variant % 2] : ["#55322a", "#633b2f", "#714638"][variant % 3],
-      edge: "#35201b",
-      highlight: ground === "ember" ? "#ffc877" : "#96604c",
-      shadow: "#2a1815",
-    };
-  }
-
-  if (ground === "ruinStone") {
-    return {
-      base: ["#736868", "#817677", "#8d8180"][variant % 3],
-      edge: "#4c4343",
-      highlight: "#b6a9a8",
-      shadow: "#615858",
-    };
-  }
-
-  if (ground === "blight") {
-    return {
-      base: ["#402423", "#4d2b29", "#55312e"][variant % 3],
-      edge: "#231110",
-      highlight: "#7d4740",
-      shadow: "#281514",
-    };
-  }
-
-  return {
-    base: [theme.groundDark, theme.groundMid, theme.groundLight][variant % 3],
-    edge: theme.boundaryStroke,
-    highlight: theme.grass,
-    shadow: theme.groundBase,
-  };
+function drawTile(ctx, x, y, halfW, halfH, tile, theme, sceneStyle, tx, ty, neighbors) {
+  drawTerrainTile(ctx, {
+    x,
+    y,
+    halfW,
+    halfH,
+    tile,
+    theme,
+    sceneStyle,
+    tx,
+    ty,
+    neighbors,
+  });
 }
 
 function drawBackdropGlow(ctx, arena, offsetX, offsetY) {
@@ -571,7 +468,8 @@ function drawTree(ctx, tree, theme, sceneStyle, origin) {
   drawIsoShadow(ctx, point.x, point.y, 34, 14);
   if (
     drawBiomeProp(ctx, sceneStyle, "tree", point.x, point.y + 4, {
-      scale: Math.max(0.9, tree.w / 86),
+      scale: Math.max(0.72, tree.w / 112),
+      variant: getPropVariant(tree, 6),
     })
   ) {
     return;
@@ -600,7 +498,8 @@ function drawRock(ctx, rock, theme, sceneStyle, origin) {
   drawIsoShadow(ctx, point.x, point.y, 26, 10);
   if (
     drawBiomeProp(ctx, sceneStyle, rock.type, point.x, point.y + 2, {
-      scale: Math.max(0.72, rock.w / 96),
+      scale: Math.max(0.58, rock.w / 128),
+      variant: getPropVariant(rock, 4),
     })
   ) {
     return;
@@ -679,7 +578,8 @@ function drawRuin(ctx, ruin, sceneStyle, origin) {
   drawIsoShadow(ctx, point.x, point.y, 30, 12);
   if (
     drawBiomeProp(ctx, sceneStyle, "ruin", point.x, point.y + 2, {
-      scale: Math.max(0.9, ruin.w / 114),
+      scale: Math.min(0.72, Math.max(0.44, ruin.w / 240)),
+      variant: getPropVariant(ruin, 6),
     })
   ) {
     return;
@@ -742,7 +642,7 @@ function drawSignpost(ctx, sign, sceneStyle, origin) {
   drawIsoShadow(ctx, point.x, point.y, 10, 4);
   if (
     drawBiomeProp(ctx, sceneStyle, "signpost", point.x, point.y + 2, {
-      scale: 0.9,
+      scale: 0.64,
     })
   ) {
     return;
@@ -758,7 +658,7 @@ function drawLantern(ctx, lantern, sceneStyle, origin) {
   drawIsoShadow(ctx, point.x, point.y, 8, 4);
   if (
     drawBiomeProp(ctx, sceneStyle, "lantern", point.x, point.y + 2, {
-      scale: 0.86,
+      scale: 0.56,
     })
   ) {
     return;
@@ -780,7 +680,8 @@ function drawBridge(ctx, bridge, sceneStyle, origin) {
   const center = toScreen(origin, bridge.x + bridge.w / 2, bridge.y + bridge.h);
   if (
     drawBiomeProp(ctx, sceneStyle, "bridge", center.x, center.y + 2, {
-      scale: bridge.w > bridge.h ? Math.max(1, bridge.w / 144) : Math.max(1, bridge.h / 144),
+      scale: bridge.w > bridge.h ? Math.max(0.72, bridge.w / 190) : Math.max(0.72, bridge.h / 190),
+      variant: bridge.w >= bridge.h ? 0 : 1,
     })
   ) {
     return;
@@ -795,20 +696,51 @@ function drawBridge(ctx, bridge, sceneStyle, origin) {
 
   ctx.save();
   ctx.fillStyle = "#8d6d45";
+  ctx.strokeStyle = "#4d3523";
+  ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(corners[0].x, corners[0].y);
   for (let i = 1; i < corners.length; i += 1) ctx.lineTo(corners[i].x, corners[i].y);
   ctx.closePath();
   ctx.fill();
-  ctx.restore();
+  ctx.stroke();
 
-  const minX = Math.min(...corners.map((corner) => corner.x));
-  const maxX = Math.max(...corners.map((corner) => corner.x));
-  const minY = Math.min(...corners.map((corner) => corner.y));
-  const maxY = Math.max(...corners.map((corner) => corner.y));
-  for (let x = minX + 8; x < maxX - 6; x += 12) {
-    pixelRect(ctx, x, minY + 2, 2, maxY - minY - 4, "#6c4d30");
+  const longSize = bridge.w >= bridge.h ? bridge.w : bridge.h;
+  const plankCount = Math.max(4, Math.floor(longSize / 18));
+  ctx.lineWidth = 1;
+
+  for (let index = 1; index < plankCount; index += 1) {
+    const t = index / plankCount;
+    const start =
+      bridge.w >= bridge.h
+        ? interpolatePoint(corners[0], corners[1], t)
+        : interpolatePoint(corners[0], corners[3], t);
+    const end =
+      bridge.w >= bridge.h
+        ? interpolatePoint(corners[3], corners[2], t)
+        : interpolatePoint(corners[1], corners[2], t);
+
+    ctx.strokeStyle = "#5f4028";
+    ctx.beginPath();
+    ctx.moveTo(Math.round(start.x), Math.round(start.y));
+    ctx.lineTo(Math.round(end.x), Math.round(end.y));
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(212, 168, 103, 0.42)";
+    ctx.beginPath();
+    ctx.moveTo(Math.round(start.x), Math.round(start.y - 1));
+    ctx.lineTo(Math.round(end.x), Math.round(end.y - 1));
+    ctx.stroke();
   }
+
+  ctx.restore();
+}
+
+function interpolatePoint(start, end, t) {
+  return {
+    x: start.x + (end.x - start.x) * t,
+    y: start.y + (end.y - start.y) * t,
+  };
 }
 
 function drawInteractable(ctx, item, origin) {
@@ -1195,49 +1127,10 @@ function drawSceneAtmosphere(ctx, state) {
   }
 }
 
-function drawDiamond(ctx, x, y, halfW, halfH, color) {
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(x, y - halfH);
-  ctx.lineTo(x + halfW, y);
-  ctx.lineTo(x, y + halfH);
-  ctx.lineTo(x - halfW, y);
-  ctx.closePath();
-  ctx.fill();
-}
-
-function drawDiamondStroke(ctx, x, y, halfW, halfH, color) {
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(x, y - halfH);
-  ctx.lineTo(x + halfW, y);
-  ctx.lineTo(x, y + halfH);
-  ctx.lineTo(x - halfW, y);
-  ctx.closePath();
-  ctx.stroke();
-}
-
-function drawHalfDiamond(ctx, x, y, halfW, halfH, color) {
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(x, y - halfH);
-  ctx.lineTo(x + halfW - 1, y);
-  ctx.lineTo(x, y + 1);
-  ctx.lineTo(x - halfW + 1, y);
-  ctx.closePath();
-  ctx.fill();
-}
-
-function drawFooting(ctx, x, y, halfW, halfH, color) {
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(x - halfW, y);
-  ctx.lineTo(x, y + halfH);
-  ctx.lineTo(x + halfW, y);
-  ctx.lineTo(x, y + halfH - 2);
-  ctx.closePath();
-  ctx.fill();
+function getPropVariant(prop, count) {
+  const x = Math.round(prop.anchorX ?? prop.x ?? 0);
+  const y = Math.round(prop.anchorY ?? prop.y ?? 0);
+  return Math.abs((x * 31 + y * 17) | 0) % count;
 }
 
 function drawIsoRing(ctx, origin, cx, cy, radius, size, color) {
