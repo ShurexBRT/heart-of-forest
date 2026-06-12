@@ -1018,44 +1018,49 @@ function drawTalentTab(ctx, state, x, y, width, height, compact = false) {
   ctx.fillRect(panel.detailRect.x, panel.detailRect.y, panel.detailRect.width, panel.detailRect.height);
   ctx.strokeStyle = "#2d3848";
   ctx.strokeRect(panel.detailRect.x, panel.detailRect.y, panel.detailRect.width, panel.detailRect.height);
-  ctx.fillStyle = "#fff2d5";
-  ctx.font = "700 15px Segoe UI, Arial";
   const detailUnlocked = Boolean(state.progression.talents[detail.id]);
+  const detailIconSize = panel.compact ? 44 : 48;
   drawTalentIcon(
     ctx,
     detail.id,
-    panel.detailRect.x + 14,
-    panel.detailRect.y + 12,
-    76,
+    panel.detailRect.x + 10,
+    panel.detailRect.y + (panel.detailRect.height - detailIconSize) / 2,
+    detailIconSize,
     { alpha: detailUnlocked || panel.selectedUnlockState.unlockable ? 1 : 0.58 }
   );
-  ctx.fillText(detail.name, panel.detailRect.x + 104, panel.detailRect.y + 24);
+  const detailTextX = panel.detailRect.x + detailIconSize + 20;
+  ctx.fillStyle = "#fff2d5";
+  ctx.font = "700 14px Segoe UI, Arial";
+  ctx.fillText(detail.name, detailTextX, panel.detailRect.y + 22);
   ctx.fillStyle = panel.selectedBranch?.color || "#8fdc8b";
-  ctx.font = "700 11px Segoe UI, Arial";
-  ctx.fillText(detail.tree.toUpperCase(), panel.detailRect.x + 104, panel.detailRect.y + 43);
-  ctx.fillStyle = "#d7e4cf";
-  ctx.font = "12px Segoe UI, Arial";
-  drawWrappedText(
-    ctx,
-    detail.description,
-    panel.detailRect.x + 104,
-    panel.detailRect.y + 63,
-    Math.max(220, panel.detailRect.width - 304),
-    18,
-    panel.compact ? 6 : 5
+  ctx.font = "700 10px Segoe UI, Arial";
+  ctx.fillText(
+    `${detail.tree.toUpperCase()}  |  TIER ${detail.tier}${detail.capstone ? "  |  SIGNATURE ULTIMATE" : ""}`,
+    detailTextX,
+    panel.detailRect.y + 39
   );
 
   ctx.fillStyle = detailUnlocked ? "#9ce1a3" : panel.selectedUnlockState.unlockable ? "#f1d786" : "#b18d86";
-  ctx.font = "700 12px Segoe UI, Arial";
+  ctx.font = "700 11px Segoe UI, Arial";
   ctx.fillText(
     detailUnlocked
       ? "Unlocked"
       : panel.selectedUnlockState.unlockable
         ? "Ready to unlock"
         : panel.selectedUnlockState.reason,
-    panel.detailRect.x + 104,
-    panel.detailRect.y + 102
+    detailTextX,
+    panel.detailRect.y + 57
   );
+
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#91a09a";
+  ctx.font = "11px Segoe UI, Arial";
+  ctx.fillText(
+    "Hover a talent for full details",
+    panel.unlockButton ? panel.unlockButton.rect.x - 14 : panel.detailRect.x + panel.detailRect.width - 14,
+    panel.detailRect.y + 22
+  );
+  ctx.textAlign = "left";
 
   if (panel.unlockButton) {
     drawActionButton(
@@ -2056,12 +2061,12 @@ function getTalentPanelData(state, frame) {
   const selectedUnlockState = selectedTalent
     ? getTalentUnlockState(state.progression, selectedTalent.id)
     : { unlockable: false, reason: "" };
-  const detailY = nodesTop + 5 * tierGap + nodeHeight + 14;
+  const detailHeight = compact ? 70 : 76;
   const detailRect = rect(
     treeRect.x,
-    detailY,
+    frame.y + frame.height - detailHeight - 18,
     treeRect.width,
-    Math.max(116, frame.y + frame.height - detailY - 18)
+    detailHeight
   );
   return {
     compact,
@@ -2082,7 +2087,7 @@ function getTalentPanelData(state, frame) {
       selectedTalent && !state.progression.talents[selectedTalent.id]
         ? makeButton(
             detailRect.x + detailRect.width - 184,
-            detailRect.y + detailRect.height - 40,
+            detailRect.y + Math.round((detailRect.height - 28) / 2),
             170,
             28,
             selectedUnlockState.unlockable ? "Unlock Talent" : "Locked",
@@ -2359,6 +2364,45 @@ function buildItemTooltip(entry, lines = [], progression = null) {
   };
 }
 
+function buildTalentTooltip(state, row) {
+  const talent = row.talent;
+  const branch = TALENT_BRANCHES[talent.branch];
+  const learned = Boolean(state.progression.talents[talent.id]);
+  const unlockState = row.unlockState || getTalentUnlockState(state.progression, talent.id);
+  const prerequisiteNames = (talent.requires || [])
+    .map((talentId) => TALENT_DEFS.find((candidate) => candidate.id === talentId)?.name)
+    .filter(Boolean);
+  const requirements = [];
+
+  if (prerequisiteNames.length > 0) {
+    requirements.push(`Requires: ${prerequisiteNames.join(", ")}`);
+  }
+  if (talent.requiresBranchPoints) {
+    requirements.push(`Requires ${talent.requiresBranchPoints} points in ${branch?.name || talent.tree}`);
+  }
+  if (talent.capstone) {
+    requirements.push("Only one Signature Ultimate can be learned.");
+  }
+
+  return {
+    type: "talent",
+    title: talent.capstone ? `ULT: ${talent.name}` : talent.name,
+    eyebrow: `${branch?.name || talent.tree}  |  Tier ${talent.tier}`,
+    lines: [talent.description],
+    requirements,
+    status: learned ? "LEARNED" : unlockState.unlockable ? "AVAILABLE" : "LOCKED",
+    statusDetail: learned
+      ? "This talent is active."
+      : unlockState.unlockable
+        ? "Select it, then spend 1 Talent Point."
+        : unlockState.reason,
+    statusColor: learned ? "#9ce1a3" : unlockState.unlockable ? "#f1d786" : "#d59186",
+    accent: branch?.color || row.color || "#9ce1a3",
+    iconTalentId: talent.id,
+    capstone: Boolean(talent.capstone),
+  };
+}
+
 function getMenuHoverTarget(state, mouseX, mouseY) {
   const frame = getCharacterOverlayFrame(state);
   const tabTarget = getTabTargets(state, frame).find((target) => pointInRect(mouseX, mouseY, target.rect));
@@ -2454,9 +2498,12 @@ function getMenuHoverTarget(state, mouseX, mouseY) {
   if (state.ui.activeTab === "talents") {
     const panel = getTalentPanelData(state, frame);
     if (panel.unlockButton && pointInRect(mouseX, mouseY, panel.unlockButton.rect)) {
+      const row = panel.rows.find((candidate) => candidate.talent.id === panel.unlockButton.talent.id);
       return {
         ...panel.unlockButton,
-        tooltip: { title: "Unlock Talent", lines: [panel.unlockButton.talent.description], accent: panel.unlockButton.accent },
+        tooltip: row
+          ? buildTalentTooltip(state, row)
+          : { title: "Unlock Talent", lines: [panel.unlockButton.talent.description], accent: panel.unlockButton.accent },
       };
     }
     for (const row of panel.rows) {
@@ -2466,7 +2513,7 @@ function getMenuHoverTarget(state, mouseX, mouseY) {
           index: row.index,
           talent: row.talent,
           rect: row.rect,
-          tooltip: { title: row.talent.name, lines: [row.talent.tree, row.talent.description], accent: "#9ce1a3" },
+          tooltip: buildTalentTooltip(state, row),
         };
       }
     }
@@ -2718,9 +2765,92 @@ function getBottomHudInteractionData(state) {
   };
 }
 
+function drawTalentHoverTooltip(ctx, state, target) {
+  const tooltip = target.tooltip;
+  const boxW = Math.min(360, state.viewport.width - 32);
+  const contentW = boxW - 28;
+  ctx.font = "12px Segoe UI, Arial";
+  const descriptionLines = tooltip.lines.flatMap((line) => toWrappedLines(ctx, line, contentW));
+  ctx.font = "11px Segoe UI, Arial";
+  const requirementLines = tooltip.requirements.flatMap((line) => toWrappedLines(ctx, line, contentW));
+  const statusLines = toWrappedLines(ctx, tooltip.statusDetail, contentW);
+  const requirementHeight = requirementLines.length > 0 ? 22 + requirementLines.length * 15 : 0;
+  const boxH = 96 + descriptionLines.length * 17 + requirementHeight + statusLines.length * 15 + 26;
+  const targetRect = target.rect || rect(20, 20, 0, 0);
+  let cursorX = targetRect.x + targetRect.width + 12;
+  if (cursorX + boxW > state.viewport.width - 16) {
+    cursorX = targetRect.x - boxW - 12;
+  }
+  cursorX = Math.max(16, Math.min(state.viewport.width - boxW - 16, cursorX));
+  const cursorY = Math.max(
+    16,
+    Math.min(state.viewport.height - boxH - 16, targetRect.y - 8)
+  );
+
+  ctx.fillStyle = "rgba(0, 0, 0, 0.94)";
+  ctx.fillRect(cursorX, cursorY, boxW, boxH);
+  ctx.fillStyle = "#090d11";
+  ctx.fillRect(cursorX + 3, cursorY + 3, boxW - 6, boxH - 6);
+  drawPanelChrome(ctx, cursorX, cursorY, boxW, boxH, tooltip.accent);
+
+  drawTalentIcon(ctx, tooltip.iconTalentId, cursorX + 14, cursorY + 14, 52);
+  ctx.fillStyle = tooltip.capstone ? "#fff0a8" : "#fff2d5";
+  ctx.font = "700 15px Segoe UI, Arial";
+  ctx.fillText(tooltip.title, cursorX + 78, cursorY + 29);
+  ctx.fillStyle = tooltip.accent;
+  ctx.font = "700 10px Segoe UI, Arial";
+  ctx.fillText(tooltip.eyebrow.toUpperCase(), cursorX + 78, cursorY + 47);
+  ctx.fillStyle = tooltip.statusColor;
+  ctx.font = "700 10px Segoe UI, Arial";
+  ctx.fillText(tooltip.status, cursorX + 78, cursorY + 63);
+
+  let lineY = cursorY + 82;
+  ctx.fillStyle = tooltip.accent;
+  ctx.fillRect(cursorX + 14, lineY - 6, boxW - 28, 1);
+  ctx.fillStyle = "#e5eadf";
+  ctx.font = "12px Segoe UI, Arial";
+  descriptionLines.forEach((line) => {
+    ctx.fillText(line, cursorX + 14, lineY + 10);
+    lineY += 17;
+  });
+
+  if (requirementLines.length > 0) {
+    lineY += 8;
+    ctx.fillStyle = "#b7c2b9";
+    ctx.font = "700 10px Segoe UI, Arial";
+    ctx.fillText("REQUIREMENTS", cursorX + 14, lineY + 9);
+    lineY += 17;
+    ctx.fillStyle = "#c7aaa3";
+    ctx.font = "11px Segoe UI, Arial";
+    requirementLines.forEach((line) => {
+      ctx.fillText(line, cursorX + 14, lineY + 8);
+      lineY += 15;
+    });
+  }
+
+  lineY += 8;
+  ctx.fillStyle = tooltip.statusColor;
+  ctx.font = "700 11px Segoe UI, Arial";
+  statusLines.forEach((line) => {
+    ctx.fillText(line, cursorX + 14, lineY + 8);
+    lineY += 15;
+  });
+
+  ctx.fillStyle = "#788681";
+  ctx.font = "10px Segoe UI, Arial";
+  ctx.fillText("Left Click: Select talent", cursorX + 14, cursorY + boxH - 12);
+}
+
 function drawHoverTooltip(ctx, state) {
   const target = state.ui.hoverTarget;
   if (!target?.tooltip || state.story.dialogue || state.transition.active) {
+    return;
+  }
+
+  if (target.tooltip.type === "talent") {
+    ctx.save();
+    drawTalentHoverTooltip(ctx, state, target);
+    ctx.restore();
     return;
   }
 
