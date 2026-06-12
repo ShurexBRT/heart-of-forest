@@ -808,6 +808,9 @@ function buildEmberpineGrove(context, rng) {
   stampEllipse(tiles, 68, 18, 8, 5, "ember", 1);
   stampEllipse(tiles, 72, 44, 7, 5, "ember", 0);
   clearOverlayRect(tiles, 40, 18, 26, 24);
+  if (flags.ember_restored) {
+    scatterOverlay(tiles, rng, 34, 18, 36, 28, 30, "flowersWarm");
+  }
 
   const interactables = [
     interactable("totem-1", "totem", 650, 408, {
@@ -876,17 +879,21 @@ function buildEmberpineGrove(context, rng) {
       lantern(720, 386, "ember"),
       lantern(990, 272, "ember"),
       ...(flags.ember_pass_reopened ? [lantern(1220, 432, "ember"), fenceH(1110, 448, 138)] : []),
+      ...(flags.ember_restored ? [lantern(844, 690, "warm"), lantern(1088, 570, "warm")] : []),
       signpost(640, 720),
     ],
     npcs: [
       npc("garrick", 188, 454),
       ...(flags.ember_pass_reopened ? [npc("halen", 1248, 454)] : []),
+      ...(flags.ember_restored ? [npc("mara", 1058, 610)] : []),
     ],
     interactables,
-    hazards: [
-      { id: "ember-pool-1", x: 302, y: 220, w: 120, h: 82, damage: 8, interval: 0.72, type: "ember" },
-      { id: "ember-pool-2", x: 1032, y: 598, w: 116, h: 80, damage: 8, interval: 0.72, type: "ember" },
-    ],
+    hazards: flags.ember_restored
+      ? []
+      : [
+          { id: "ember-pool-1", x: 302, y: 220, w: 120, h: 82, damage: 8, interval: 0.72, type: "ember" },
+          { id: "ember-pool-2", x: 1032, y: 598, w: 116, h: 80, damage: 8, interval: 0.72, type: "ember" },
+        ],
   });
 }
 
@@ -902,6 +909,9 @@ function buildFrostveilTundra(context, rng) {
   clearOverlayRect(tiles, 8, 24, 80, 12);
   scatterOverlay(tiles, rng, 18, 10, 20, 10, 16, "frostFlowers");
   scatterOverlay(tiles, rng, 60, 38, 14, 12, 12, "frostFlowers");
+  if (flags.frost_restored) {
+    scatterOverlay(tiles, rng, 34, 20, 34, 22, 28, "flowersCool");
+  }
 
   const interactables = [
     interactable("lost-scout", "scout", 994, 312, {
@@ -958,11 +968,13 @@ function buildFrostveilTundra(context, rng) {
       bush(522, 748, 86, 52, "frost"),
       lantern(982, 286, "frost"),
       ...(flags.ridge_signal_recovered ? [lantern(1120, 248, "frost"), signpost(1030, 250)] : []),
+      ...(flags.frost_restored ? [lantern(742, 590, "warm"), lantern(1068, 494, "warm")] : []),
       signpost(848, 258),
     ],
     npcs: [
       npc("vesper", 226, 430),
       ...(flags.ridge_signal_recovered ? [npc("halen", 1088, 304)] : []),
+      ...(flags.frost_restored ? [npc("mara", 760, 624)] : []),
     ],
     interactables,
     hazards: [],
@@ -970,12 +982,18 @@ function buildFrostveilTundra(context, rng) {
 }
 
 function buildHollowheartRuins(context, rng) {
+  const flags = context.worldFlags || {};
   const tiles = createTiles(rng);
   stampRect(tiles, 0, 0, COLS, ROWS, "blight", 0);
   stampEllipse(tiles, 52, 30, 18, 13, "ruinStone", 0);
   stampEllipse(tiles, 52, 30, 12, 8, "ash", 1);
   paintPath(tiles, 50, 57, 52, 38, 2, "ruinStone", 1);
   clearOverlayRect(tiles, 28, 12, 48, 38);
+  if (flags.scarroot_restored) {
+    stampEllipse(tiles, 52, 32, 18, 12, "grass", 0);
+    paintPath(tiles, 50, 57, 52, 38, 2, "path", 1);
+    scatterOverlay(tiles, rng, 34, 18, 36, 26, 30, "flowersWarm");
+  }
 
   return createBaseArena(context, tiles, {
     playerSpawn: { x: 806, y: 838 },
@@ -1019,13 +1037,16 @@ function buildHollowheartRuins(context, rng) {
       rock(848, 580, 86, 48),
       lantern(748, 354, "ember"),
       lantern(1030, 354, "ember"),
+      ...(flags.scarroot_restored ? [lantern(846, 664, "warm"), lantern(988, 664, "warm")] : []),
     ],
     npcs: [],
     interactables: [],
-    hazards: [
-      { id: "blight-pool-1", x: 648, y: 560, w: 122, h: 88, damage: 10, interval: 0.68, type: "blight" },
-      { id: "blight-pool-2", x: 1052, y: 560, w: 122, h: 88, damage: 10, interval: 0.68, type: "blight" },
-    ],
+    hazards: flags.scarroot_restored
+      ? []
+      : [
+          { id: "blight-pool-1", x: 648, y: 560, w: 122, h: 88, damage: 10, interval: 0.68, type: "blight" },
+          { id: "blight-pool-2", x: 1052, y: 560, w: 122, h: 88, damage: 10, interval: 0.68, type: "blight" },
+        ],
   });
 }
 
@@ -1299,6 +1320,13 @@ function buildBlightedWoods(context, rng) {
   paintPath(tiles, 52, 30, 92, 30, 2, "ashPath", 1);
   paintPath(tiles, 52, 30, 52, 56, 2, "ashPath", 0);
   clearOverlayRect(tiles, 12, 18, 76, 30);
+  if (flags.scarroot_restored) {
+    stampEllipse(tiles, 52, 30, 18, 12, "grass", 0);
+    paintPath(tiles, 8, 30, 52, 30, 2, "path", 0);
+    paintPath(tiles, 52, 30, 92, 30, 2, "path", 1);
+    paintPath(tiles, 52, 30, 52, 56, 2, "path", 0);
+    scatterOverlay(tiles, rng, 34, 18, 36, 26, 34, "flowersWarm");
+  }
 
   const interactables = [
     interactable("blight-effigy-1", "corruptedRoot", 814, 390, {
@@ -1361,17 +1389,21 @@ function buildBlightedWoods(context, rng) {
       lantern(754, 392, "ember"),
       lantern(1020, 312, "ember"),
       ...(flags.court_approach_secured ? [lantern(1228, 448, "ember"), signpost(1268, 416)] : []),
+      ...(flags.scarroot_restored ? [lantern(850, 620, "warm"), lantern(1090, 532, "warm")] : []),
       signpost(904, 762),
     ],
     npcs: [
       npc("bram", 238, 666),
       ...(flags.court_approach_secured ? [npc("halen", 1224, 472)] : []),
+      ...(flags.scarroot_restored ? [npc("mara", 1080, 570)] : []),
     ],
     interactables,
-    hazards: [
-      { id: "blight-pool-a", x: 286, y: 248, w: 122, h: 84, damage: 10, interval: 0.68, type: "blight" },
-      { id: "blight-pool-b", x: 1042, y: 590, w: 132, h: 88, damage: 10, interval: 0.68, type: "blight" },
-    ],
+    hazards: flags.scarroot_restored
+      ? []
+      : [
+          { id: "blight-pool-a", x: 286, y: 248, w: 122, h: 84, damage: 10, interval: 0.68, type: "blight" },
+          { id: "blight-pool-b", x: 1042, y: 590, w: 132, h: 88, damage: 10, interval: 0.68, type: "blight" },
+        ],
   });
 }
 
@@ -1459,12 +1491,14 @@ function buildAncientHeart(context, rng) {
       lantern(892, 338, "frost"),
       lantern(1034, 338, "warm"),
       ...(flags.starfall_sanctum_open ? [lantern(934, 204, "cool"), signpost(1018, 212)] : []),
-      ...(flags.starfall_sanctum_cleansed ? [lantern(1118, 336, "warm"), lantern(776, 336, "warm")] : []),
+      ...(flags.rootlight_restored || flags.starfall_sanctum_cleansed
+        ? [lantern(1118, 336, "warm"), lantern(776, 336, "warm")]
+        : []),
     ],
     npcs: [
       npc("selka", 254, 670),
       ...(flags.elder_hollow_broken ? [npc("mara", 1088, 372)] : []),
-      ...(flags.starfall_sanctum_cleansed ? [npc("halen", 920, 286)] : []),
+      ...(flags.rootlight_restored || flags.starfall_sanctum_cleansed ? [npc("halen", 920, 286)] : []),
     ],
     interactables,
     hazards: [],
