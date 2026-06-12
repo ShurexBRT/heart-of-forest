@@ -3,13 +3,17 @@ import assert from "node:assert/strict";
 
 import {
   addItem,
+  awardRewards,
   createProgression,
   getPlayerBonuses,
   unlockTalent,
   useConsumable,
 } from "../systems/progression.js";
 import { craftRecipe } from "../systems/alchemy.js";
+import { damagePlayer } from "../systems/combat.js";
 import { getRegionStatus, markRegionSceneCleared } from "../systems/regions.js";
+import { REGION_DEFS } from "../data/regionData.js";
+import { QUEST_DEFS } from "../data/storyData.js";
 
 test("talent branches enforce prerequisites and one signature capstone", () => {
   const progression = createProgression({
@@ -74,4 +78,85 @@ test("region status advances without rolling scene progress back", () => {
   progression.worldFlags.heartwood_restored = true;
   assert.equal(getRegionStatus(progression, sceneProgress, "heartwood").id, "restored");
   assert.equal(sceneProgress.whispering_woods.cleared, true);
+});
+
+test("campaign preparations unlock before their target regions", () => {
+  const progression = createProgression({
+    silver: 120,
+    inventory: {
+      moonleaf: 6,
+      stonebloom: 3,
+      cinder_resin: 2,
+    },
+  });
+  const player = {
+    maxHp: 100,
+    hp: 100,
+    maxSpirit: 100,
+    spirit: 100,
+  };
+
+  awardRewards(progression, QUEST_DEFS.ruins_of_memory.rewards);
+  assert.equal(progression.unlockedRecipes.emberward_infusion, true);
+  assert.equal(REGION_DEFS.ember.counterRecipeId, "emberward_infusion");
+  assert.equal(craftRecipe(progression, "emberward_infusion").crafted, true);
+  assert.equal(useConsumable(progression, "emberward_infusion", player).used, true);
+  assert.equal(progression.activePreparation.damageType, "fire");
+
+  awardRewards(progression, QUEST_DEFS.ember_totems.rewards);
+  assert.equal(progression.unlockedRecipes.cinderheart_cordial, true);
+  assert.equal(REGION_DEFS.frost.counterRecipeId, "cinderheart_cordial");
+  assert.equal(craftRecipe(progression, "cinderheart_cordial").crafted, true);
+  assert.equal(useConsumable(progression, "cinderheart_cordial", player).used, true);
+  assert.equal(progression.activePreparation.damageType, "frost");
+
+  awardRewards(progression, QUEST_DEFS.lost_scout.rewards);
+  assert.equal(progression.unlockedRecipes.heartcleanse_elixir, true);
+  assert.equal(REGION_DEFS.scarroot.counterRecipeId, "heartcleanse_elixir");
+  assert.equal(craftRecipe(progression, "heartcleanse_elixir").crafted, true);
+  assert.equal(useConsumable(progression, "heartcleanse_elixir", player).used, true);
+  assert.equal(progression.activePreparation.damageType, "corruption");
+
+  awardRewards(progression, QUEST_DEFS.blight_watch.rewards);
+  awardRewards(progression, QUEST_DEFS.elder_hollow.rewards);
+  assert.equal(progression.unlockedRecipes.starward_draught, true);
+  assert.equal(REGION_DEFS.rootlight.counterRecipeId, "starward_draught");
+  assert.equal(craftRecipe(progression, "starward_draught").crafted, true);
+  assert.equal(useConsumable(progression, "starward_draught", player).used, true);
+  assert.equal(progression.activePreparation.damageType, "astral");
+});
+
+test("regional preparation reduces only its matching damage type", () => {
+  const makeState = (damageType) => ({
+    gameOver: false,
+    progression: {
+      activePreparation: {
+        itemId: "emberward_infusion",
+        damageType,
+        damageReduction: 0.25,
+      },
+    },
+    player: {
+      x: 0,
+      y: 0,
+      hp: 100,
+      vx: 0,
+      vy: 0,
+      incomingDamageMult: 1,
+      abilityInfo: {},
+      isInvulnerable: () => false,
+    },
+    particles: [],
+    shake: 0,
+    combatTimer: 0,
+    audio: { enabled: false },
+  });
+
+  const matched = makeState("fire");
+  assert.equal(damagePlayer(matched, 40, 200, 0, 0, "fire"), true);
+  assert.equal(matched.player.hp, 70);
+
+  const mismatched = makeState("frost");
+  assert.equal(damagePlayer(mismatched, 40, 200, 0, 0, "fire"), true);
+  assert.equal(mismatched.player.hp, 60);
 });

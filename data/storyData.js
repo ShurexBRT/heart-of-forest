@@ -123,7 +123,13 @@ export const QUEST_DEFS = {
     prerequisiteId: "whispering_call",
     startState: "inactive",
     completeFlags: ["ruins_listening_post"],
-    rewards: { items: { relic_shard: 2, spirit_tonic: 1 }, silver: 34, talentPoints: 1, xp: 100 },
+    rewards: {
+      items: { relic_shard: 2, spirit_tonic: 1, stonebloom: 2 },
+      recipes: ["emberward_infusion"],
+      silver: 34,
+      talentPoints: 1,
+      xp: 100,
+    },
     objectives: [{ key: "relicCachesRecovered", label: "Relic caches recovered", required: 2 }],
   },
   sealed_reliquary: {
@@ -189,7 +195,12 @@ export const QUEST_DEFS = {
     prerequisiteId: "ruins_of_memory",
     startState: "inactive",
     completeFlags: ["ember_pass_reopened", "ember_restored"],
-    rewards: { items: { cinder_resin: 2, emberglass_relic: 1, greater_health_potion: 1 }, silver: 40, xp: 120 },
+    rewards: {
+      items: { cinder_resin: 2, emberglass_relic: 1, greater_health_potion: 1 },
+      recipes: ["cinderheart_cordial"],
+      silver: 40,
+      xp: 120,
+    },
     objectives: [{ key: "totemsActivated", label: "Totems rekindled", required: 3 }],
   },
   lost_scout: {
@@ -201,7 +212,12 @@ export const QUEST_DEFS = {
     prerequisiteId: "ember_totems",
     startState: "inactive",
     completeFlags: ["ridge_signal_recovered", "frost_restored"],
-    rewards: { items: { stonebloom: 2, frostband_charm: 1, spirit_tonic: 1 }, silver: 42, xp: 128 },
+    rewards: {
+      items: { stonebloom: 2, moonleaf: 2, frostband_charm: 1, spirit_tonic: 1 },
+      recipes: ["heartcleanse_elixir"],
+      silver: 42,
+      xp: 128,
+    },
     objectives: [{ key: "scoutFound", label: "Lost scout located", required: 1 }],
   },
   blight_watch: {
@@ -226,7 +242,13 @@ export const QUEST_DEFS = {
     autoActivateSceneId: "hollowheart_ruins",
     prerequisiteId: "blight_watch",
     completeFlags: ["elder_hollow_broken", "scarroot_restored"],
-    rewards: { items: { heartseed_pendant: 1, relic_shard: 2, greater_health_potion: 2 }, silver: 72, talentPoints: 1, xp: 220 },
+    rewards: {
+      items: { heartseed_pendant: 1, relic_shard: 2, greater_health_potion: 2 },
+      recipes: ["starward_draught"],
+      silver: 72,
+      talentPoints: 1,
+      xp: 220,
+    },
     objectives: [{ key: "elderHollowDefeated", label: "Elder Hollow defeated", required: 1 }],
   },
   pilgrims_lantern: {

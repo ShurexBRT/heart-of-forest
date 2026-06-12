@@ -67,7 +67,7 @@ export const REGION_DEFS = {
     bossSceneId: "emberpine_grove",
     bossId: "cinder_warden",
     damageType: "fire",
-    counterRecipeId: null,
+    counterRecipeId: "emberward_infusion",
     restoredFlag: "ember_restored",
   },
   frost: {
@@ -78,7 +78,7 @@ export const REGION_DEFS = {
     bossSceneId: "frostveil_tundra",
     bossId: "veil_seraph",
     damageType: "frost",
-    counterRecipeId: null,
+    counterRecipeId: "cinderheart_cordial",
     restoredFlag: "frost_restored",
   },
   scarroot: {
@@ -89,7 +89,7 @@ export const REGION_DEFS = {
     bossSceneId: "hollowheart_ruins",
     bossId: "elder_hollow",
     damageType: "corruption",
-    counterRecipeId: null,
+    counterRecipeId: "heartcleanse_elixir",
     restoredFlag: "scarroot_restored",
   },
   rootlight: {
@@ -100,7 +100,7 @@ export const REGION_DEFS = {
     bossSceneId: "starfall_sanctum",
     bossId: "starwoken_sentinel",
     damageType: "astral",
-    counterRecipeId: null,
+    counterRecipeId: "starward_draught",
     restoredFlag: "rootlight_restored",
   },
 };

@@ -16,7 +16,7 @@ import {
   getTalentUnlockState,
   getXpProgress,
 } from "../systems/progression.js";
-import { getRegionForScene } from "../data/regionData.js";
+import { DAMAGE_TYPES, getRegionForScene } from "../data/regionData.js";
 import { getRegionStatus } from "../systems/regions.js";
 import { getAylaPortrait } from "../rendering/atlasAssets.js";
 import { drawTalentIcon } from "../rendering/talentIconAssets.js";
@@ -348,7 +348,7 @@ function drawBuffChips(ctx, x, y, player, progression) {
     );
     chips.push({
       label: `${preparation.label || fallbackName} ${reduction}%`,
-      color: preparation.damageType === "mire" ? "#7fd7cb" : "#a8d77b",
+      color: DAMAGE_TYPES[preparation.damageType]?.color || "#a8d77b",
     });
   }
   if (chips.length === 0) return;
@@ -1175,7 +1175,7 @@ function drawServiceTab(ctx, state, x, y, width, height) {
   }
 
   if (service.kind === "altar" || service.kind === "crafting") {
-    panel.rows.forEach(({ entry, index, rect: rowRect, descriptionLines }) => {
+    panel.rows.forEach(({ entry, index, rect: rowRect, descriptionLines, compact }) => {
       const selected = index === state.ui.selectedServiceIndex;
       ctx.fillStyle = selected ? "rgba(121, 184, 255, 0.16)" : "rgba(0, 0, 0, 0.26)";
       ctx.fillRect(rowRect.x, rowRect.y, rowRect.width, rowRect.height);
@@ -1183,17 +1183,17 @@ function drawServiceTab(ctx, state, x, y, width, height) {
       ctx.strokeRect(rowRect.x, rowRect.y, rowRect.width, rowRect.height);
       ctx.fillStyle = "#fff6d8";
       ctx.font = "700 12px Segoe UI, Arial";
-      ctx.fillText(entry.title || entry.name, rowRect.x + 12, rowRect.y + 18);
+      ctx.fillText(entry.title || entry.name, rowRect.x + 12, rowRect.y + (compact ? 14 : 18));
       ctx.fillStyle = "#d7e4cf";
       ctx.font = "11px Segoe UI, Arial";
       descriptionLines.forEach((line, lineIndex) => {
-        ctx.fillText(line, rowRect.x + 12, rowRect.y + 36 + lineIndex * 13);
+        ctx.fillText(line, rowRect.x + 12, rowRect.y + (compact ? 29 : 36) + lineIndex * 13);
       });
       ctx.fillStyle = entry.affordable ? "#f1d786" : "#c67d72";
       ctx.fillText(
         service.kind === "crafting" ? formatRecipeCost(entry) : formatActionCost(entry),
         rowRect.x + 12,
-        rowRect.y + rowRect.height - 8
+        rowRect.y + rowRect.height - (compact ? 7 : 8)
       );
     });
     if (panel.actionButton) {
@@ -2161,25 +2161,28 @@ function getServicePanelData(state, frame) {
     const rows = [];
     let rowY = contentTop + 44;
     const measureCtx = getMeasureContext("11px Segoe UI, Arial");
+    const compactRows = service.kind === "crafting" && entries.length > 4;
+    const rowGap = compactRows ? 4 : 12;
 
     entries.forEach((entry, index) => {
       const descriptionLines = measureCtx
-        ? toWrappedLines(measureCtx, entry.description, rowWidth - 24).slice(0, 3)
+        ? toWrappedLines(measureCtx, entry.description, rowWidth - 24).slice(0, compactRows ? 1 : 3)
         : [entry.description];
-      const rowHeight = Math.max(68, 40 + descriptionLines.length * 13);
+      const rowHeight = compactRows ? 54 : Math.max(68, 40 + descriptionLines.length * 13);
       rows.push({
         entry,
         index,
         descriptionLines,
+        compact: compactRows,
         rect: rect(bodyX, rowY, rowWidth, rowHeight),
       });
-      rowY += rowHeight + 12;
+      rowY += rowHeight + rowGap;
     });
     const selected = entries[state.ui.selectedServiceIndex] || null;
     const actionButton = selected
         ? makeButton(
             bodyX,
-            frame.y + frame.height - 86,
+            frame.y + frame.height - (compactRows ? 50 : 86),
             frame.width - 280,
             30,
             selected.affordable
