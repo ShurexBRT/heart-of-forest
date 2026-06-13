@@ -48,12 +48,14 @@ function drawAtlasFloorTexture(ctx, x, y, halfW, halfH, tile, sceneStyle, tx, ty
           tile.ground === "ashPath" ||
           tile.ground === "snowPath" ||
           tile.ground === "ruinStone"
-        ? 0.5
+        ? 0.48
         : tile.ground === "soil" || tile.ground === "planks"
-          ? 0.48
-          : tile.ground === "ember" || tile.ground === "ash" || tile.ground === "blight"
-            ? 0.52
-            : 0.4;
+          ? 0.44
+          : tile.ground === "blight"
+            ? 0.38
+            : tile.ground === "ember" || tile.ground === "ash"
+              ? 0.48
+            : 0.36;
 
   ctx.save();
   clipDiamond(ctx, x, y, halfW, halfH);
@@ -149,7 +151,7 @@ function getTerrainPalette(ground, variant, theme, sceneStyle) {
   }
 
   if (ground === "blight") {
-    return paletteFrom(["#3b2425", "#47292a", "#50302f"], variant, "#75413d", "#1d1113", "#a25a4d");
+    return paletteFrom(["#30252c", "#382831", "#2a2228"], variant, "#6e4768", "#17131a", "#a74eb4");
   }
 
   const naturalBases = [
@@ -436,8 +438,8 @@ function drawTerrainOverlay(ctx, x, y, overlay, palette, seed) {
   const offsetY = ((seed >> 3) % 3) - 1;
 
   if (overlay === "clover") {
-    pixel(ctx, x + offsetX - 1, y + offsetY - 1, 2, 1, "#75b96a", 0.84);
-    pixel(ctx, x + offsetX + 1, y + offsetY, 2, 1, "#9bd185", 0.9);
+    pixel(ctx, x + offsetX - 2, y + offsetY - 1, 3, 2, "#638f4f", 0.84);
+    pixel(ctx, x + offsetX + 1, y + offsetY - 1, 3, 2, "#9bd185", 0.9);
     pixel(ctx, x + offsetX, y + offsetY + 1, 1, 1, palette.dark, 0.6);
     return;
   }
@@ -449,16 +451,18 @@ function drawTerrainOverlay(ctx, x, y, overlay, palette, seed) {
         : overlay === "flowersCool"
           ? ["#8edff2", "#d8efff"]
           : ["#e8f8ff", "#a6d9f4"];
-    pixel(ctx, x + offsetX - 2, y + offsetY, 1, 1, colors[0], 0.95);
-    pixel(ctx, x + offsetX + 2, y + offsetY - 1, 1, 1, colors[1], 0.95);
-    pixel(ctx, x + offsetX, y + offsetY + 1, 1, 1, "#5d8a55", 0.72);
+    pixel(ctx, x + offsetX - 3, y + offsetY - 1, 3, 2, colors[0], 0.95);
+    pixel(ctx, x + offsetX + 1, y + offsetY - 2, 3, 2, colors[1], 0.95);
+    const stemColor = overlay === "frostFlowers" ? "#7897aa" : palette.accent;
+    pixel(ctx, x + offsetX - 1, y + offsetY + 1, 3, 1, stemColor, 0.68);
     return;
   }
 
   if (overlay === "reeds") {
-    pixel(ctx, x + offsetX - 1, y + offsetY - 4, 1, 5, "#78a66d", 0.92);
-    pixel(ctx, x + offsetX + 1, y + offsetY - 3, 1, 4, "#a1c58b", 0.9);
-    pixel(ctx, x + offsetX - 2, y + offsetY - 4, 1, 1, "#b49462", 0.88);
+    pixel(ctx, x + offsetX - 2, y + offsetY - 5, 1, 6, "#587b55", 0.92);
+    pixel(ctx, x + offsetX, y + offsetY - 4, 1, 5, "#8eb17d", 0.9);
+    pixel(ctx, x + offsetX + 2, y + offsetY - 6, 1, 7, "#6e9566", 0.9);
+    pixel(ctx, x + offsetX - 3, y + offsetY - 5, 2, 1, "#a98264", 0.88);
   }
 }
 

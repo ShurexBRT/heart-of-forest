@@ -12,85 +12,85 @@ const BIOMES = [
   {
     id: "forest",
     materials: {
-      natural: ["#1d4728", "#17351f", "#2f6938", "#84a64e"],
-      path: ["#8c744d", "#5d492e", "#b49a68", "#d0bb86"],
-      soil: ["#66462f", "#3d291c", "#8f6747", "#b18962"],
-      planks: ["#725032", "#3e2a1a", "#9e7449", "#c39963"],
-      stone: ["#696b63", "#404540", "#8c9487", "#aeb8a8"],
-      liquid: ["#326f70", "#173f49", "#5ca4a0", "#9ed8ca"],
-      special: ["#244b2c", "#142c1c", "#67a652", "#d8dd8c"],
+      natural: ["#354b2d", "#17251b", "#687b42", "#a8bc68"],
+      path: ["#786c52", "#3a372d", "#a99b79", "#d2c89d"],
+      soil: ["#584536", "#2c241e", "#846a50", "#b5966c"],
+      planks: ["#60462e", "#2d2118", "#947048", "#c49c64"],
+      stone: ["#555a50", "#292f2b", "#899080", "#b7bca4"],
+      liquid: ["#205b58", "#102f35", "#4b9489", "#9dd8c2"],
+      special: ["#293b25", "#111d14", "#759448", "#d6e27f"],
     },
   },
   {
     id: "marsh",
     materials: {
-      natural: ["#1c493f", "#122f2b", "#34705a", "#72a872"],
-      path: ["#6d6745", "#403c29", "#8d865d", "#b3ac78"],
-      soil: ["#554536", "#30271f", "#76614b", "#958064"],
-      planks: ["#5f4932", "#32281d", "#82674a", "#a88b67"],
-      stone: ["#596b65", "#33443f", "#789087", "#a2b8ad"],
-      liquid: ["#285e60", "#12383e", "#4c9590", "#89cbc0"],
-      special: ["#31534a", "#172d2b", "#6c9873", "#c1d690"],
+      natural: ["#263d37", "#111f20", "#496658", "#89a97e"],
+      path: ["#554f45", "#29282a", "#81786c", "#aca28d"],
+      soil: ["#443936", "#242126", "#665652", "#8d7770"],
+      planks: ["#51412f", "#28231c", "#78644a", "#a18965"],
+      stone: ["#465954", "#263735", "#70847d", "#9fb1a8"],
+      liquid: ["#173f50", "#0a2431", "#2d7180", "#78c8ce"],
+      special: ["#223c3c", "#0e232a", "#4f9293", "#75e3f2"],
     },
   },
   {
     id: "highlands",
     materials: {
-      natural: ["#344636", "#202d24", "#657552", "#a3ad6d"],
-      path: ["#8a7754", "#55472f", "#ad9871", "#d0bd91"],
-      soil: ["#67513d", "#3f3024", "#8b7056", "#ad9170"],
-      planks: ["#715739", "#3e2f20", "#94744f", "#ba976b"],
-      stone: ["#737475", "#45484a", "#9b9fa0", "#c1c5c5"],
-      liquid: ["#3d7374", "#23484d", "#68a1a0", "#a6cfca"],
-      special: ["#4f6045", "#293629", "#8c9d65", "#e2d998"],
+      natural: ["#45513a", "#222b22", "#758458", "#aabd72"],
+      path: ["#77705d", "#3d3d36", "#a29b82", "#c9c0a0"],
+      soil: ["#584b3b", "#302920", "#82715a", "#a89570"],
+      planks: ["#5e4830", "#2e241b", "#8b6c46", "#b8915d"],
+      stone: ["#5b6058", "#303630", "#858b7e", "#b4b9a7"],
+      liquid: ["#235c5c", "#11353c", "#4e8f87", "#9bd0bc"],
+      special: ["#39452f", "#1d261c", "#7d954e", "#d3e17a"],
     },
   },
   {
     id: "ember",
     materials: {
-      natural: ["#4d3029", "#291a18", "#744535", "#a96648"],
-      path: ["#665047", "#362d2a", "#8c7163", "#b1907e"],
-      soil: ["#51362d", "#2b1f1b", "#754b3c", "#9d6850"],
-      planks: ["#60402e", "#302118", "#85563d", "#ad7552"],
-      stone: ["#5b4b48", "#302725", "#806b66", "#aa8e87"],
-      liquid: ["#963f2b", "#4c1d19", "#e06d38", "#ffc264"],
-      special: ["#603229", "#2d1715", "#ba5938", "#ffb25d"],
+      natural: ["#302825", "#151416", "#5a3b32", "#c0522f"],
+      path: ["#51443f", "#29262a", "#80665b", "#b38b73"],
+      soil: ["#3f302d", "#201c1d", "#67483e", "#9a6650"],
+      planks: ["#503326", "#251b18", "#80503a", "#b2734e"],
+      stone: ["#3d3d40", "#1c2024", "#626268", "#99969a"],
+      liquid: ["#a42f13", "#46120d", "#ef5a1f", "#ffbd45"],
+      special: ["#342320", "#160f12", "#a8321d", "#ff7a25"],
     },
   },
   {
     id: "frost",
     materials: {
-      natural: ["#d4e2eb", "#94aaba", "#edf6fa", "#ffffff"],
-      path: ["#aebdc9", "#73899a", "#d5e1e8", "#f2f8fb"],
-      soil: ["#66717a", "#39444e", "#8d9aa4", "#b8c5cd"],
-      planks: ["#7d7166", "#4c423a", "#a89a8d", "#d1c2b4"],
-      stone: ["#71889b", "#435d72", "#9db7c9", "#d7ecf4"],
-      liquid: ["#83b7d1", "#4d7895", "#b8dceb", "#eefbff"],
-      special: ["#91bad0", "#4e758e", "#c9e9f5", "#ffffff"],
+      natural: ["#c9d9e5", "#7891a6", "#edf6fb", "#ffffff"],
+      path: ["#9eafbe", "#61778b", "#d0dde7", "#f3f9fd"],
+      soil: ["#596976", "#303f4b", "#8295a4", "#b6c7d3"],
+      planks: ["#655e59", "#36343a", "#938a83", "#c4bbb2"],
+      stone: ["#647b91", "#344d65", "#9bb3c7", "#e0f0fa"],
+      liquid: ["#5a92b2", "#315f80", "#9ecbe0", "#eefbff"],
+      special: ["#729eb9", "#375f7c", "#bde2f2", "#ffffff"],
     },
   },
   {
     id: "blight",
     materials: {
-      natural: ["#3b2425", "#1b1113", "#633534", "#945044"],
-      path: ["#55413e", "#2d2525", "#76605b", "#9d837a"],
-      soil: ["#442a29", "#211617", "#633c38", "#89584d"],
-      planks: ["#513730", "#281f1d", "#714b3e", "#986956"],
-      stone: ["#665858", "#393234", "#8d7975", "#b29a93"],
-      liquid: ["#513735", "#261d22", "#7c4b45", "#b26d58"],
-      special: ["#472526", "#1e1114", "#8b4138", "#df7657"],
+      natural: ["#36262d", "#17131b", "#654052", "#b75bc1"],
+      path: ["#51444d", "#29262d", "#786472", "#a88a9e"],
+      soil: ["#432f36", "#211a21", "#684554", "#925d72"],
+      planks: ["#49332f", "#241d1e", "#704c45", "#9b685c"],
+      stone: ["#514d57", "#292b32", "#7c7280", "#aaa0ad"],
+      liquid: ["#392545", "#171527", "#673d7d", "#b16cce"],
+      special: ["#2b2028", "#120f17", "#573047", "#b74fc4"],
     },
   },
   {
     id: "ancient",
     materials: {
-      natural: ["#392f40", "#1d1823", "#5f4d6b", "#9678ae"],
-      path: ["#665a70", "#3d3545", "#8d7d99", "#b8a7c4"],
-      soil: ["#51413e", "#2b2426", "#735d55", "#9b7c6d"],
-      planks: ["#655246", "#382e29", "#8c7462", "#b39a82"],
-      stone: ["#655e70", "#3c3645", "#91879c", "#c0b4ca"],
-      liquid: ["#4e557d", "#282b4b", "#7d85bc", "#c1c9ff"],
-      special: ["#4c3b58", "#261e31", "#9c78bd", "#f0cf7d"],
+      natural: ["#4a4548", "#242329", "#756b69", "#d0af61"],
+      path: ["#625b5c", "#34343a", "#8c8380", "#c2b7a5"],
+      soil: ["#51433b", "#2a2525", "#786252", "#a8896c"],
+      planks: ["#584737", "#2c2521", "#826b50", "#b09268"],
+      stone: ["#58565e", "#2d3038", "#85818a", "#c1b9b2"],
+      liquid: ["#31495e", "#18283b", "#597b91", "#9fd3d5"],
+      special: ["#43384d", "#211b2a", "#8e68a5", "#edc765"],
     },
   },
 ];
@@ -129,26 +129,26 @@ function drawTexture(startX, startY, palette, material, variant, biomeRow) {
   fill(startX, startY, CELL_W, CELL_H, base);
   const seed = (biomeRow + 1) * 8191 + (variant + 3) * 131 + material.length * 17;
 
-  for (let y = 0; y < CELL_H; y += 1) {
-    for (let x = 0; x < CELL_W; x += 1) {
-      const noise = hash(seed, x, y) % 31;
-      if (noise === 0 || noise === 1) setPixel(startX + x, startY + y, dark);
-      if (noise === 2) setPixel(startX + x, startY + y, light);
-    }
+  for (let index = 0; index < 4; index += 1) {
+    const x = hash(seed, index, 3) % CELL_W;
+    const y = hash(seed, index, 7) % CELL_H;
+    const clusterColor = index % 4 === 0 ? light : dark;
+    stampCluster(startX + x, startY + y, clusterColor, hash(seed, index, 11) % 3);
   }
 
   if (material === "natural") {
-    for (let index = 0; index < 5; index += 1) {
+    for (let index = 0; index < 2; index += 1) {
       const x = 2 + hash(seed, index, 4) % 20;
       const y = 2 + hash(seed, index, 9) % 8;
-      setPixel(startX + x, startY + y, accent);
-      if (index % 2 === 0) setPixel(startX + x + 1, startY + y - 1, light);
+      stampCluster(startX + x, startY + y, accent, index % 3);
+      if ((index + variant) % 2 === 0) setPixel(startX + x + 1, startY + y - 2, light);
     }
   } else if (material === "path" || material === "soil") {
-    for (let index = 0; index < 4; index += 1) {
+    for (let index = 0; index < 3; index += 1) {
       const x = 1 + hash(seed, index, 12) % 18;
       const y = 2 + hash(seed, index, 18) % 8;
-      hLine(startX + x, startY + y, 3 + index % 3, index % 2 ? dark : light);
+      hLine(startX + x, startY + y, 2 + index % 4, index % 3 ? dark : light);
+      if (index % 2 === 0) setPixel(startX + x + 1, startY + y - 1, accent);
     }
   } else if (material === "planks") {
     for (let y = 1 + variant % 2; y < CELL_H; y += 4) {
@@ -159,27 +159,58 @@ function drawTexture(startX, startY, palette, material, variant, biomeRow) {
       setPixel(startX + x, startY + 7, accent);
     }
   } else if (material === "stone") {
-    hLine(startX, startY + 4, CELL_W, dark);
-    hLine(startX, startY + 9, CELL_W, dark);
-    for (let x = 4 + variant; x < CELL_W; x += 8) {
-      vLine(startX + x, startY, 4, dark);
-      vLine(startX + ((x + 4) % CELL_W), startY + 5, 4, dark);
+    fill(startX, startY, CELL_W, CELL_H, dark);
+    for (let index = 0; index < 4; index += 1) {
+      const x = -2 + hash(seed, index, 21) % 23;
+      const y = hash(seed, index, 25) % 10;
+      const w = 4 + hash(seed, index, 27) % 6;
+      const h = 3 + hash(seed, index, 31) % 4;
+      fill(startX + x, startY + y, w, h, base);
+      hLine(startX + x + 1, startY + y, Math.max(1, w - 2), index % 3 ? light : accent);
     }
-    hLine(startX + 2, startY + 2, 5, light);
   } else if (material === "liquid") {
-    for (let y = 2 + variant % 2; y < CELL_H; y += 4) {
+    for (let y = 1 + variant % 2; y < CELL_H; y += 3) {
       const offset = (variant * 3 + y) % 6;
-      hLine(startX + offset, startY + y, 7, light);
-      hLine(startX + 13 + (offset % 3), startY + y + 1, 6, accent);
+      hLine(startX + offset, startY + y, 5 + (y % 3), light);
+      hLine(startX + 12 + (offset % 4), startY + y + 1, 5, accent);
+      setPixel(startX + offset - 1, startY + y + 1, dark);
     }
   } else if (material === "special") {
-    for (let index = 0; index < 6; index += 1) {
+    for (let index = 0; index < 7; index += 1) {
       const x = 2 + hash(seed, index, 23) % 20;
       const y = 1 + hash(seed, index, 29) % 10;
-      setPixel(startX + x, startY + y, index % 2 ? accent : light);
-      if (index % 3 === 0) setPixel(startX + x + 1, startY + y, dark);
+      stampCluster(startX + x, startY + y, index % 2 ? accent : light, index % 3);
+    }
+    if (biomeRow === 3 || biomeRow === 5) {
+      drawCrack(startX + 2 + variant * 3, startY + 1, accent);
+    } else if (biomeRow === 6) {
+      drawRune(startX + 12, startY + 6, accent);
     }
   }
+}
+
+function stampCluster(x, y, color, shape = 0) {
+  setPixel(x, y, color);
+  setPixel(x + 1, y, color);
+  if (shape !== 1) setPixel(x, y + 1, color);
+  if (shape === 2) {
+    setPixel(x - 1, y + 1, color);
+    setPixel(x + 1, y - 1, color);
+  }
+}
+
+function drawCrack(x, y, color) {
+  for (let step = 0; step < 7; step += 1) {
+    setPixel(x + step * 3, y + (step % 2) * 2 + Math.floor(step / 3), color);
+    if (step % 2 === 0) setPixel(x + step * 3 + 1, y + (step % 2) * 2 + Math.floor(step / 3), color);
+  }
+}
+
+function drawRune(x, y, color) {
+  hLine(x - 4, y, 9, color);
+  vLine(x, y - 4, 9, color);
+  setPixel(x - 3, y - 2, color);
+  setPixel(x + 3, y + 2, color);
 }
 
 function fill(x, y, w, h, color) {

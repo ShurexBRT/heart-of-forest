@@ -693,6 +693,7 @@ function buildMossrootMarsh(context, rng) {
   const flags = context.worldFlags || {};
   const tiles = createTiles(rng);
   stampRect(tiles, 0, 0, COLS, ROWS, "grass", 0);
+  clearOverlayRect(tiles, 0, 0, COLS, ROWS);
   stampEllipse(tiles, 24, 25, 14, 9, "water", 0);
   stampEllipse(tiles, 52, 34, 12, 9, "water", 1);
   stampEllipse(tiles, 78, 20, 11, 8, "water", 0);
@@ -816,6 +817,7 @@ function buildEmberpineGrove(context, rng) {
   const flags = context.worldFlags || {};
   const tiles = createTiles(rng);
   stampRect(tiles, 0, 0, COLS, ROWS, "emberGrass", 0);
+  clearOverlayRect(tiles, 0, 0, COLS, ROWS);
   stampEllipse(tiles, 50, 30, 14, 10, "ash", 0);
   paintPath(tiles, 50, 56, 50, 30, 2, "ashPath", 0);
   paintPath(tiles, 50, 30, 92, 30, 2, "ashPath", 1);
@@ -916,6 +918,7 @@ function buildFrostveilTundra(context, rng) {
   const flags = context.worldFlags || {};
   const tiles = createTiles(rng);
   stampRect(tiles, 0, 0, COLS, ROWS, "snow", 0);
+  clearOverlayRect(tiles, 0, 0, COLS, ROWS);
   stampEllipse(tiles, 36, 28, 12, 8, "ice", 0);
   stampEllipse(tiles, 66, 20, 10, 7, "ice", 1);
   paintPath(tiles, 8, 30, 42, 30, 2, "snowPath", 0);
@@ -1000,6 +1003,7 @@ function buildHollowheartRuins(context, rng) {
   const flags = context.worldFlags || {};
   const tiles = createTiles(rng);
   stampRect(tiles, 0, 0, COLS, ROWS, "blight", 0);
+  clearOverlayRect(tiles, 0, 0, COLS, ROWS);
   stampEllipse(tiles, 52, 30, 18, 13, "ruinStone", 0);
   stampEllipse(tiles, 52, 30, 12, 8, "ash", 1);
   paintPath(tiles, 50, 57, 52, 38, 2, "ruinStone", 1);
@@ -1174,6 +1178,7 @@ function buildMossyRuins(context, rng) {
 function buildSunkenReliquary(context, rng) {
   const tiles = createTiles(rng);
   stampRect(tiles, 0, 0, COLS, ROWS, "ruinStone", 0);
+  clearOverlayRect(tiles, 0, 0, COLS, ROWS);
   stampEllipse(tiles, 52, 30, 22, 14, "path", 0);
   stampEllipse(tiles, 52, 30, 12, 8, "water", 0);
   stampRect(tiles, 42, 10, 20, 12, "ruinStone", 1);
@@ -1252,6 +1257,7 @@ function buildChapelOfTides(context, rng) {
   const flags = context.worldFlags || {};
   const tiles = createTiles(rng);
   stampRect(tiles, 0, 0, COLS, ROWS, "ruinStone", 0);
+  clearOverlayRect(tiles, 0, 0, COLS, ROWS);
   stampEllipse(tiles, 52, 30, 20, 14, "water", 0);
   stampEllipse(tiles, 52, 30, 10, 7, "path", 0);
   stampRect(tiles, 22, 18, 60, 24, "path", 1);
@@ -1339,6 +1345,7 @@ function buildBlightedWoods(context, rng) {
   const flags = context.worldFlags || {};
   const tiles = createTiles(rng);
   stampRect(tiles, 0, 0, COLS, ROWS, "blight", 0);
+  clearOverlayRect(tiles, 0, 0, COLS, ROWS);
   stampEllipse(tiles, 52, 30, 16, 11, "ash", 0);
   paintPath(tiles, 8, 30, 52, 30, 2, "ashPath", 0);
   paintPath(tiles, 52, 30, 92, 30, 2, "ashPath", 1);
@@ -1435,6 +1442,7 @@ function buildAncientHeart(context, rng) {
   const flags = context.worldFlags || {};
   const tiles = createTiles(rng);
   stampRect(tiles, 0, 0, COLS, ROWS, "ruinStone", 0);
+  clearOverlayRect(tiles, 0, 0, COLS, ROWS);
   stampEllipse(tiles, 52, 30, 18, 12, "path", 0);
   stampEllipse(tiles, 52, 30, 8, 6, "water", 0);
   paintPath(tiles, 52, 56, 52, 30, 2, "path", 1);
@@ -1533,6 +1541,7 @@ function buildStarfallSanctum(context, rng) {
   const flags = context.worldFlags || {};
   const tiles = createTiles(rng);
   stampRect(tiles, 0, 0, COLS, ROWS, "ruinStone", 0);
+  clearOverlayRect(tiles, 0, 0, COLS, ROWS);
   stampEllipse(tiles, 52, 30, 20, 13, "path", 0);
   stampEllipse(tiles, 52, 30, 9, 6, "ice", 0);
   paintPath(tiles, 52, 56, 52, 30, 2, "path", 1);

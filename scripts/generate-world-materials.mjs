@@ -7,12 +7,12 @@ const CELL_W = 32;
 const CELL_H = 16;
 const VARIANTS = 4;
 const MATERIALS = [
-  ["roof", ["#b86128", "#7b3719", "#dc8c44", "#f2af67"]],
-  ["stone", ["#817d78", "#565451", "#aaa59e", "#d0cac0"]],
-  ["timber", ["#70482d", "#3e291c", "#95623d", "#bd8659"]],
-  ["planks", ["#7b5a38", "#46311f", "#a27a4d", "#cda16a"]],
-  ["metal", ["#58636a", "#303940", "#84929a", "#bcc9ce"]],
-  ["ruin", ["#6f6262", "#413a3d", "#968887", "#b9aaa6"]],
+  ["roof", ["#744027", "#2b1e1a", "#a75f36", "#d59050"]],
+  ["stone", ["#62645b", "#2b302d", "#8d9183", "#bdbea8"]],
+  ["timber", ["#5a3d29", "#271d18", "#845d3d", "#b17f52"]],
+  ["planks", ["#66492f", "#2d221a", "#926b45", "#c0925e"]],
+  ["metal", ["#48545a", "#20292e", "#74848b", "#aec0c5"]],
+  ["ruin", ["#56544f", "#272b29", "#7d7c70", "#a9aa91"]],
 ];
 
 const width = CELL_W * VARIANTS;
@@ -47,6 +47,10 @@ function drawMaterial(startX, startY, material, palette, variant, row) {
         fill(startX + x, startY + y, 8, 4, base);
         hLine(startX + x + 1, startY + y, 6, light);
         hLine(startX + x, startY + y + 4, 8, dark);
+        if ((x + y + variant) % 3 === 0) {
+          setPixel(startX + x + 6, startY + y + 2, "#687342");
+          setPixel(startX + x + 7, startY + y + 2, "#9aa75b");
+        }
       }
     }
     return;
@@ -68,6 +72,8 @@ function drawMaterial(startX, startY, material, palette, variant, row) {
         setPixel(startX + x, startY + y, dark);
         setPixel(startX + x + 1, startY + y + 1, dark);
       }
+      hLine(startX + 4 + variant, startY + 1, 7, "#6f7f46");
+      setPixel(startX + 6 + variant, startY + 2, "#9caf59");
     }
     return;
   }
@@ -81,6 +87,7 @@ function drawMaterial(startX, startY, material, palette, variant, row) {
       const x = 3 + hash(seed, index, 3) % 26;
       const y = 2 + hash(seed, index, 4) % 12;
       hLine(startX + x, startY + y, 3, accent);
+      if (index % 2 === 0) setPixel(startX + x + 1, startY + y + 1, light);
     }
     return;
   }
@@ -103,6 +110,7 @@ function drawMaterial(startX, startY, material, palette, variant, row) {
       setPixel(startX + x, startY + 3, accent);
       setPixel(startX + x, startY + 11, dark);
     }
+    hLine(startX + 3, startY + 2, 8, "#c7d0c5");
   }
 }
 
