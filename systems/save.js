@@ -3,13 +3,15 @@ import { createClock, serializeClock } from "./clock.js";
 
 const SAVE_KEY = "heart-of-forest-save";
 const SETTINGS_KEY = "heart-of-forest-settings";
-const SAVE_VERSION = "0.3.0";
+const SAVE_VERSION = "0.4.0";
 let invalidSaveWarned = false;
 
 export function getDefaultSettings() {
   return {
     musicVolume: 0.7,
     sfxVolume: 0.8,
+    screenShake: 0.65,
+    damageNumbers: true,
     fullscreen: false,
   };
 }
@@ -152,6 +154,8 @@ function normalizeSettings(rawSettings, defaults = getDefaultSettings()) {
   return {
     musicVolume: clampUnit(rawSettings?.musicVolume, defaults.musicVolume),
     sfxVolume: clampUnit(rawSettings?.sfxVolume, defaults.sfxVolume),
+    screenShake: clampUnit(rawSettings?.screenShake, defaults.screenShake),
+    damageNumbers: rawSettings?.damageNumbers !== false,
     fullscreen: Boolean(rawSettings?.fullscreen),
   };
 }

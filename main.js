@@ -50,6 +50,7 @@ import {
   getInventoryEntries,
   getPlayerBonuses,
   isActionSlotAssignable,
+  toggleItemLock,
   unlockTalent,
   unequipItem,
   useActionSlot,
@@ -87,6 +88,7 @@ import {
   markRegionSceneCleared,
   shouldStartCorruptionEcho,
 } from "./systems/regions.js";
+import { syncCampaignProgress } from "./systems/campaign.js";
 import {
   createFrontendState,
   getFrontendEntries,
@@ -133,6 +135,7 @@ function createState(currentProgression, saveData = null, runtime = {}) {
       : INITIAL_SCENE_ID;
   const currentEntryId = saveData?.currentEntryId || "default";
   const sceneProgress = saveData?.sceneProgress || {};
+  syncCampaignProgress(currentProgression, sceneProgress);
   const viewport = runtime.viewport
     ? { ...runtime.viewport }
     : { width: window.innerWidth, height: window.innerHeight, dpr: 1 };
@@ -159,6 +162,8 @@ function createState(currentProgression, saveData = null, runtime = {}) {
     transition: createTransitionState(),
     time: 0,
     shake: 0,
+    hitStop: 0,
+    combatText: [],
     gameOver: false,
     areaCleared: false,
     viewport,
@@ -462,7 +467,7 @@ function buildSaveData() {
   const runtimeSnapshot = buildRuntimeSnapshot();
 
   return {
-    version: "0.3.0",
+    version: "0.4.0",
     player: {
       ...runtimeSnapshot.playerVitals,
       level: state.progression.level,
@@ -520,6 +525,8 @@ function updateSettings(nextSettings) {
     ...state.settings,
     musicVolume: clamp(nextSettings.musicVolume ?? state.settings.musicVolume, 0, 1),
     sfxVolume: clamp(nextSettings.sfxVolume ?? state.settings.sfxVolume, 0, 1),
+    screenShake: clamp(nextSettings.screenShake ?? state.settings.screenShake, 0, 1),
+    damageNumbers: nextSettings.damageNumbers ?? state.settings.damageNumbers,
     fullscreen: nextSettings.fullscreen ?? state.settings.fullscreen,
   };
   saveSettings(state.settings);
@@ -875,6 +882,7 @@ function handleSceneCleared() {
     state.currentSceneId,
     state.clock.day
   );
+  syncCampaignProgress(state.progression, state.sceneProgress);
   state.areaCleared = false;
   state.boss = null;
   state.enemies = [];
@@ -1082,8 +1090,9 @@ function setFrontendSelectionByAction(action) {
 
 function applySliderClick(action, target) {
   clearResetSaveArm();
-  const sliderX = target.bounds.x + 18;
-  const sliderWidth = target.bounds.w - 150;
+  const controlWidth = target.metrics?.controlWidth || target.bounds.w - 36;
+  const sliderX = target.bounds.x + target.bounds.w - controlWidth - 18;
+  const sliderWidth = target.metrics?.sliderWidth || Math.max(88, controlWidth - 72);
   const ratio = clamp((input.mouse.x - sliderX) / sliderWidth, 0, 1);
 
   if (action === "music-volume") {
@@ -1093,6 +1102,11 @@ function applySliderClick(action, target) {
 
   if (action === "sfx-volume") {
     updateSettings({ sfxVolume: ratio });
+    return true;
+  }
+
+  if (action === "screen-shake") {
+    updateSettings({ screenShake: ratio });
     return true;
   }
 
@@ -1188,6 +1202,11 @@ function adjustFrontendOption(delta) {
     return true;
   }
 
+  if (action === "screen-shake") {
+    updateSettings({ screenShake: clamp(state.settings.screenShake + delta * 0.05, 0, 1) });
+    return true;
+  }
+
   if (action === "fullscreen") {
     setFullscreenPreference(!state.settings.fullscreen);
     return true;
@@ -1201,7 +1220,11 @@ function handleFrontendInput() {
 
   if (input.mouse.leftPressed && target && !target.disabled) {
     setFrontendSelectionByAction(target.action);
-    if (target.action === "music-volume" || target.action === "sfx-volume") {
+    if (
+      target.action === "music-volume" ||
+      target.action === "sfx-volume" ||
+      target.action === "screen-shake"
+    ) {
       return applySliderClick(target.action, target);
     }
     return activateFrontendAction(target.action);
@@ -1461,6 +1484,15 @@ function sellInventoryEntry(entry) {
   return getSellHintVisible(state);
 }
 
+function toggleInventoryEntryLock(entry) {
+  if (!entry) return false;
+  const result = toggleItemLock(state.progression, entry.id);
+  if (!result.changed) return true;
+  setToast(result.locked ? `${entry.name} locked` : `${entry.name} unlocked`, 1.6);
+  queueAudio(state, "equip");
+  return true;
+}
+
 function unequipSelectedEntry() {
   const equipped = getEquippedItems(state.progression);
   const slot = equipped[state.ui.selectedEquipmentIndex]?.slot;
@@ -1587,6 +1619,9 @@ function handleMouseUiInput() {
     case "inventory-sell":
       state.ui.selectedInventoryIndex = target.index;
       return sellInventoryEntry(target.entry);
+    case "inventory-lock":
+      state.ui.selectedInventoryIndex = target.index;
+      return toggleInventoryEntryLock(target.entry);
     case "inventory-bind":
       state.ui.selectedInventoryIndex = target.index;
       return assignInventoryEntryToActionSlot(target.slotIndex, target.entry);
@@ -1706,6 +1741,11 @@ function handleMenuNavigation() {
     if (wasPressed(input, "x", "KeyX")) {
       const entry = entries[state.ui.selectedInventoryIndex];
       return sellInventoryEntry(entry);
+    }
+
+    if (wasPressed(input, "k", "KeyK")) {
+      const entry = entries[state.ui.selectedInventoryIndex];
+      return toggleInventoryEntryLock(entry);
     }
 
     if (wasPressed(input, "f", "KeyF")) {
@@ -2033,25 +2073,31 @@ function update(dt) {
       return;
     }
 
-    state.player.tick(dt);
+    const hitStopActive = state.hitStop > 0;
+    state.hitStop = Math.max(0, state.hitStop - dt);
+    const simulationDt = hitStopActive ? 0 : dt;
+
+    state.player.tick(simulationDt);
 
     const uiConsumed = handleUiInput();
     const interactionBlocked = handleInteractionInput();
     const gameplayBlocked = uiConsumed || interactionBlocked || isUiOpen();
 
     if (!state.gameOver && !gameplayBlocked) {
-      handlePlayerAbilities(state, input);
-      state.player.move(dt, input, state);
-      updateCombatEffects(state, dt);
-      updateEnvironment(state, dt);
+      if (!hitStopActive) {
+        handlePlayerAbilities(state, input);
+      }
+      state.player.move(simulationDt, input, state);
+      updateCombatEffects(state, simulationDt, dt);
+      updateEnvironment(state, simulationDt);
 
       for (const enemy of state.enemies) {
-        enemy.update(dt, state);
+        enemy.update(simulationDt, state);
       }
 
       state.enemies = state.enemies.filter((enemy) => !enemy.dead);
       resolveEnemyCrowding(state);
-      updateEncounter(state, dt);
+      updateEncounter(state, simulationDt);
       consumeStoryEvents(state);
     }
 
@@ -2062,7 +2108,7 @@ function update(dt) {
     }
 
     updateExitCharge(dt);
-    updateParticles(state, dt);
+    updateParticles(state, simulationDt);
     updateCamera(dt);
   } catch (error) {
     fatalError = error;

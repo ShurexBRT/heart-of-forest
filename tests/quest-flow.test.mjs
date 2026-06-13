@@ -18,6 +18,8 @@ import {
   openServiceUi,
   performSelectedServiceAction,
 } from "../systems/services.js";
+import { markRegionSceneCleared } from "../systems/regions.js";
+import { syncCampaignProgress } from "../systems/campaign.js";
 
 function createQuestFlowState() {
   return {
@@ -25,6 +27,7 @@ function createQuestFlowState() {
     progression: createProgression(),
     story: createStoryState(),
     storyEvents: [],
+    sceneProgress: {},
     audio: { enabled: false },
     player: {
       refreshFromModifiers() {},
@@ -92,4 +95,47 @@ test("new game can complete the Homestead to Rootwarden preparation loop", () =>
   assert.equal(state.progression.questStates.first_rootwarden, "done");
   assert.equal(state.progression.worldFlags.heartwood_restored, true);
   assert.equal(state.progression.talentPoints, 1);
+});
+
+test("Ember and Frost restore only after their guardian quest and scene clear", () => {
+  const state = createQuestFlowState();
+  state.currentSceneId = "emberpine_grove";
+  state.progression.questStates.ember_totems = "done";
+  updateQuestAvailability(state);
+  assert.equal(state.progression.questStates.cinder_warden, "active");
+
+  state.storyEvents.push({ type: "bossDefeated", bossId: "cinder_warden" });
+  consumeStoryEvents(state);
+  assert.equal(state.progression.questStates.cinder_warden, "done");
+  assert.equal(state.progression.worldFlags.ember_restored, false);
+
+  state.sceneProgress.emberpine_grove = { cleared: true };
+  markRegionSceneCleared(
+    state.progression,
+    state.sceneProgress,
+    "emberpine_grove",
+    3
+  );
+  syncCampaignProgress(state.progression, state.sceneProgress);
+  assert.equal(state.progression.worldFlags.ember_restored, true);
+  assert.equal(state.progression.campaign.loadoutSlots, 2);
+
+  state.currentSceneId = "frostveil_tundra";
+  state.progression.questStates.lost_scout = "done";
+  updateQuestAvailability(state);
+  state.storyEvents.push({ type: "bossDefeated", bossId: "veil_seraph" });
+  consumeStoryEvents(state);
+  assert.equal(state.progression.questStates.veil_seraph, "done");
+  assert.equal(state.progression.worldFlags.frost_restored, false);
+
+  state.sceneProgress.frostveil_tundra = { cleared: true };
+  markRegionSceneCleared(
+    state.progression,
+    state.sceneProgress,
+    "frostveil_tundra",
+    4
+  );
+  syncCampaignProgress(state.progression, state.sceneProgress);
+  assert.equal(state.progression.worldFlags.frost_restored, true);
+  assert.equal(state.progression.campaign.loadoutSlots, 3);
 });

@@ -10,6 +10,7 @@ import {
 } from "./progression.js";
 import { queueAudio } from "./audio.js";
 import { openServiceUi } from "./services.js";
+import { syncCampaignProgress } from "./campaign.js";
 
 const THORNLING_QUEST_TYPES = new Set(["thornling", "barkling", "blight_hound"]);
 const WISP_QUEST_TYPES = new Set(["wisp_archer", "mire_spitter", "cinder_imp", "frost_wisp", "starbound_archer"]);
@@ -95,6 +96,14 @@ export function consumeStoryEvents(state) {
 
     if (event.type === "bossDefeated" && event.bossId === "bog_matron") {
       incrementQuestCounter(state.progression, "bogMatronDefeated", 1);
+    }
+
+    if (event.type === "bossDefeated" && event.bossId === "cinder_warden") {
+      incrementQuestCounter(state.progression, "cinderWardenDefeated", 1);
+    }
+
+    if (event.type === "bossDefeated" && event.bossId === "veil_seraph") {
+      incrementQuestCounter(state.progression, "veilSeraphDefeated", 1);
     }
 
     if (event.type === "bossDefeated" && event.bossId === "starwoken_sentinel") {
@@ -534,6 +543,7 @@ function finalizeQuest(state, quest) {
   for (const flag of quest.completeFlags || []) {
     setWorldFlag(progression, flag, true);
   }
+  syncCampaignProgress(progression, state.sceneProgress);
   state.player.refreshFromModifiers(getPlayerBonuses(progression));
   queueAudio(state, rewardSummary.levelsGained > 0 ? "level-up" : "quest");
   return rewardSummary;

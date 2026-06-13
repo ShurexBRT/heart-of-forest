@@ -263,7 +263,7 @@ export function sellSelectedInventoryEntry(state, entry) {
 
   const result = sellInventoryItem(state.progression, entry.id, 1);
   if (!result.sold) {
-    return { success: false, reason: "That item cannot be sold here." };
+    return { success: false, reason: result.reason || "That item cannot be sold here." };
   }
 
   return {

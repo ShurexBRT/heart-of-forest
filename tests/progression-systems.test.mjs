@@ -7,7 +7,10 @@ import {
   awardRewards,
   createProgression,
   getItemAttunementLevel,
+  isItemLocked,
   getPlayerBonuses,
+  sellInventoryItem,
+  toggleItemLock,
   unlockTalent,
   useConsumable,
 } from "../systems/progression.js";
@@ -16,6 +19,7 @@ import { damagePlayer } from "../systems/combat.js";
 import { getRegionStatus, markRegionSceneCleared } from "../systems/regions.js";
 import { REGION_DEFS } from "../data/regionData.js";
 import { QUEST_DEFS } from "../data/storyData.js";
+import { syncCampaignProgress } from "../systems/campaign.js";
 
 test("talent branches enforce prerequisites and one signature capstone", () => {
   const progression = createProgression({
@@ -186,8 +190,45 @@ test("regional preparation reduces only its matching damage type", () => {
   const matched = makeState("fire");
   assert.equal(damagePlayer(matched, 40, 200, 0, 0, "fire"), true);
   assert.equal(matched.player.hp, 70);
+  assert.ok(matched.hitStop > 0);
+  assert.equal(matched.combatText[0].text, "-30");
 
   const mismatched = makeState("frost");
   assert.equal(damagePlayer(mismatched, 40, 200, 0, 0, "fire"), true);
   assert.equal(mismatched.player.hp, 60);
+});
+
+test("campaign migration removes premature regional restoration", () => {
+  const progression = createProgression({
+    worldFlags: {
+      ember_pass_reopened: true,
+      ember_restored: true,
+      frost_restored: true,
+    },
+    questStates: {
+      ember_totems: "done",
+      lost_scout: "done",
+    },
+  });
+
+  syncCampaignProgress(progression, {});
+
+  assert.equal(progression.worldFlags.ember_restored, false);
+  assert.equal(progression.worldFlags.frost_restored, false);
+  assert.equal(progression.campaign.activeChapter, "heartwood");
+});
+
+test("locked inventory items cannot be sold", () => {
+  const progression = createProgression({
+    inventory: { health_potion: 2 },
+  });
+
+  assert.equal(toggleItemLock(progression, "health_potion").locked, true);
+  assert.equal(isItemLocked(progression, "health_potion"), true);
+  assert.equal(sellInventoryItem(progression, "health_potion").sold, false);
+  assert.equal(progression.inventory.health_potion, 2);
+
+  assert.equal(toggleItemLock(progression, "health_potion").locked, false);
+  assert.equal(sellInventoryItem(progression, "health_potion").sold, true);
+  assert.equal(progression.inventory.health_potion, 1);
 });

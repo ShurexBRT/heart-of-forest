@@ -47,10 +47,12 @@ export function renderGame(ctx, state, options = {}) {
   drawExitMarkers(ctx, state, origin);
   drawProjectiles(ctx, state, origin);
   drawSortedWorld(ctx, state, origin);
+  drawBossTelegraphs(ctx, state, origin);
   if (state.debugCollision) drawCollisionDebug(ctx, state, origin);
   drawHostileProjectiles(ctx, state, origin);
   drawSwings(ctx, state, origin);
   drawParticles(ctx, state, origin);
+  drawCombatText(ctx, state, origin);
   drawSceneAtmosphere(ctx, state);
 
   if (options.showHud !== false) {
@@ -59,8 +61,10 @@ export function renderGame(ctx, state, options = {}) {
 }
 
 function getWorldOrigin(state) {
-  const shakeX = state.shake > 0 ? Math.round((Math.random() - 0.5) * state.shake) : 0;
-  const shakeY = state.shake > 0 ? Math.round((Math.random() - 0.5) * state.shake) : 0;
+  const shakeScale = state.settings?.screenShake ?? 0.65;
+  const shakeAmount = state.shake * shakeScale;
+  const shakeX = shakeAmount > 0 ? Math.round((Math.random() - 0.5) * shakeAmount) : 0;
+  const shakeY = shakeAmount > 0 ? Math.round((Math.random() - 0.5) * shakeAmount) : 0;
 
   return {
     x: Math.round(state.viewport.width / 2 - state.camera.x + shakeX),
@@ -290,7 +294,6 @@ function drawGroundEffects(ctx, state, origin) {
     ctx.restore();
   }
 
-  drawBossTelegraphs(ctx, state, origin);
 }
 
 function drawExitMarkers(ctx, state, origin) {
@@ -1255,6 +1258,23 @@ function drawParticles(ctx, state, origin) {
       Math.max(1, Math.round(particle.size)),
       particle.color
     );
+    ctx.restore();
+  }
+}
+
+function drawCombatText(ctx, state, origin) {
+  for (const entry of state.combatText || []) {
+    const alpha = Math.max(0, Math.min(1, entry.life / entry.maxLife));
+    const point = toScreen(origin, entry.x, entry.y, 24);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.textAlign = "center";
+    ctx.font = "800 14px Segoe UI, Arial";
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "rgba(16, 12, 10, 0.88)";
+    ctx.strokeText(entry.text, point.x, point.y);
+    ctx.fillStyle = entry.color;
+    ctx.fillText(entry.text, point.x, point.y);
     ctx.restore();
   }
 }

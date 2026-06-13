@@ -9,6 +9,7 @@ import {
   getActionSlotEntries,
   getEquippedItems,
   getInventoryEntries,
+  getItemAspectAffinity,
   getItemAttunementLevel,
   getItemValue,
   getPlayerBonuses,
@@ -1056,6 +1057,11 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
     );
     ctx.fillStyle = "#dce6d6";
     ctx.fillText(`x${entry.amount}`, listX + listWidth - 48, rowY + 2);
+    if (entry.locked) {
+      ctx.fillStyle = "#e9d281";
+      ctx.font = "700 9px Segoe UI, Arial";
+      ctx.fillText("LOCK", listX + listWidth - 92, rowY + 2);
+    }
     rowY += 40;
   });
 
@@ -1074,6 +1080,11 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
   ctx.fillStyle = "#e9d281";
   ctx.font = "11px Segoe UI, Arial";
   ctx.fillText(`Value ${getItemValue(selectedEntry.id)} silver`, detailsX + 12, detailsY + 76);
+  const affinity = getItemAspectAffinity(selectedEntry);
+  if (affinity) {
+    ctx.fillStyle = "#9dd9a2";
+    ctx.fillText(`Build affinity: ${affinity.label}`, detailsX + 12, detailsY + 92);
+  }
 
   if (panel.primaryButton) {
     drawActionButton(ctx, panel.primaryButton, state.ui.hoverTarget, "#11202c", "#f6ead0");
@@ -1081,8 +1092,17 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
   if (panel.sellButton) {
     drawActionButton(ctx, panel.sellButton, state.ui.hoverTarget, "#241714", "#fff0dd");
   }
+  if (panel.lockButton) {
+    drawActionButton(
+      ctx,
+      panel.lockButton,
+      state.ui.hoverTarget,
+      selectedEntry.locked ? "#312712" : "#182029",
+      selectedEntry.locked ? "#ffe19b" : "#d7e4cf"
+    );
+  }
 
-  let detailY = detailsY + ((panel.primaryButton || panel.sellButton) ? 116 : 96);
+  let detailY = detailsY + 140;
   if (selectedEntry.maxStack) {
     ctx.fillStyle = "#d7e4cf";
     ctx.font = "11px Segoe UI, Arial";
@@ -1124,7 +1144,11 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
       for (const line of buildComparisonLines(selectedEntry, equippedItem)) {
         ctx.fillStyle = line.delta > 0 ? "#9ce1a3" : line.delta < 0 ? "#f0a08d" : "#d7e4cf";
         ctx.font = "11px Segoe UI, Arial";
-        ctx.fillText(`${line.label}: ${line.current} (${line.delta > 0 ? "+" : ""}${line.delta})`, detailsX + 12, detailY);
+        ctx.fillText(
+          `${line.label}: ${line.equipped} -> ${line.current} (${line.delta > 0 ? "+" : ""}${line.delta})`,
+          detailsX + 12,
+          detailY
+        );
         detailY += 14;
       }
       detailY += 4;
@@ -1379,7 +1403,11 @@ function drawServiceTab(ctx, state, x, y, width, height) {
           for (const line of buildComparisonLines(selectedItem, equippedItem)) {
             ctx.fillStyle = line.delta > 0 ? "#9ce1a3" : line.delta < 0 ? "#f0a08d" : "#d7e4cf";
             ctx.font = "11px Segoe UI, Arial";
-            ctx.fillText(`${line.label}: ${line.current} (${line.delta > 0 ? "+" : ""}${line.delta})`, panel.detailsRect.x + 12, compareY);
+            ctx.fillText(
+              `${line.label}: ${line.equipped} -> ${line.current} (${line.delta > 0 ? "+" : ""}${line.delta})`,
+              panel.detailsRect.x + 12,
+              compareY
+            );
             compareY += 14;
           }
         } else {
@@ -1886,6 +1914,7 @@ function buildComparisonLines(current, equipped) {
     return {
       label: formatBonusKey(key),
       current: `${currentValue > 0 ? "+" : ""}${currentValue}`,
+      equipped: `${equippedValue > 0 ? "+" : ""}${equippedValue}`,
       delta: currentValue - equippedValue,
     };
   });
@@ -2138,9 +2167,10 @@ function getInventoryPanelData(state, frame) {
     service,
     filterButtons: makeOptionButtons(listX, frame.y + 84, INVENTORY_FILTER_BUTTONS, state.ui.inventoryFilter, "inventory-filter", "#8ecf9a"),
     sortButtons: makeOptionButtons(listX + 270, frame.y + 84, INVENTORY_SORT_BUTTONS, state.ui.inventorySort, "inventory-sort", "#8fb9ff"),
-    detailsRect: rect(detailsX, detailsY - 18, 240, 214),
+    detailsRect: rect(detailsX, detailsY - 18, 240, 270),
     primaryButton: null,
     sellButton: null,
+    lockButton: null,
     bindButtons: [],
   };
 
@@ -2154,8 +2184,8 @@ function getInventoryPanelData(state, frame) {
     const primaryLabel = selectedEntry.category === "equipment" ? "Equip" : "Use";
     data.primaryButton = makeButton(
       detailsX + 12,
-      detailsY + 76,
-      98,
+      detailsY + 100,
+      66,
       28,
       primaryLabel,
       "inventory-primary",
@@ -2164,11 +2194,22 @@ function getInventoryPanelData(state, frame) {
     );
   }
 
+  data.lockButton = makeButton(
+    detailsX + (data.primaryButton ? 86 : 12),
+    detailsY + 100,
+    66,
+    28,
+    selectedEntry.locked ? "Unlock" : "Lock",
+    "inventory-lock",
+    selectedEntry.locked ? "#e1bd68" : "#8fa8bd",
+    { index: state.ui.selectedInventoryIndex, entry: selectedEntry }
+  );
+
   if (service?.kind === "shop") {
     data.sellButton = makeButton(
-      detailsX + 128,
-      detailsY + 76,
-      100,
+      detailsX + 160,
+      detailsY + 100,
+      68,
       28,
       "Sell",
       "inventory-sell",
@@ -2177,7 +2218,7 @@ function getInventoryPanelData(state, frame) {
     );
   }
 
-  let detailY = detailsY + ((data.primaryButton || data.sellButton) ? 116 : 96);
+  let detailY = detailsY + 140;
   if (selectedEntry.maxStack) {
     detailY += 34;
   }
@@ -2572,7 +2613,7 @@ function buildItemTooltip(entry, lines = [], progression = null) {
       tooltipLines.push(`Equipped: ${equippedItem.name}`);
       for (const comparison of buildComparisonLines(entry, equippedItem)) {
         tooltipLines.push(
-          `${comparison.label}: ${comparison.current} (${comparison.delta > 0 ? "+" : ""}${comparison.delta})`
+          `${comparison.label}: ${comparison.equipped} -> ${comparison.current} (${comparison.delta > 0 ? "+" : ""}${comparison.delta})`
         );
       }
     } else if (!equippedItem) {
@@ -2581,6 +2622,13 @@ function buildItemTooltip(entry, lines = [], progression = null) {
   }
   if (entry.maxStack && typeof entry.amount === "number") {
     tooltipLines.push(`Stack ${entry.amount}/${entry.maxStack}`);
+  }
+  const affinity = getItemAspectAffinity(entry);
+  if (affinity) {
+    tooltipLines.push(`Build affinity: ${affinity.label}`);
+  }
+  if (entry.locked) {
+    tooltipLines.push("Locked against selling.");
   }
   tooltipLines.push(`Value ${getItemValue(entry.id)} silver`);
   return {
@@ -2692,7 +2740,29 @@ function getMenuHoverTarget(state, mouseX, mouseY) {
     if (panel.sellButton && pointInRect(mouseX, mouseY, panel.sellButton.rect)) {
       return {
         ...panel.sellButton,
-        tooltip: { title: "Sell", lines: [`Sell for ${getItemValue(panel.sellButton.entry.id)} silver.`], accent: panel.sellButton.accent },
+        tooltip: {
+          title: "Sell",
+          lines: [
+            panel.sellButton.entry.locked
+              ? "Unlock this item before selling it."
+              : `Sell for ${Math.max(1, Math.floor(getItemValue(panel.sellButton.entry.id) * 0.25))} silver.`,
+          ],
+          accent: panel.sellButton.accent,
+        },
+      };
+    }
+    if (panel.lockButton && pointInRect(mouseX, mouseY, panel.lockButton.rect)) {
+      return {
+        ...panel.lockButton,
+        tooltip: {
+          title: panel.lockButton.label,
+          lines: [
+            panel.lockButton.entry.locked
+              ? "Allow this item to be sold again."
+              : "Protect this item from accidental selling. Keyboard: K.",
+          ],
+          accent: panel.lockButton.accent,
+        },
       };
     }
     for (const button of panel.bindButtons) {

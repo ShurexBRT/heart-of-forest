@@ -14,7 +14,7 @@ globalThis.localStorage = {
   },
 };
 
-const { loadSave, saveGame } = await import("../systems/save.js");
+const { loadSave, loadSettings, saveGame, saveSettings } = await import("../systems/save.js");
 
 test("legacy 0.1 save gains a normalized day clock", () => {
   storage.set(
@@ -67,7 +67,7 @@ test("legacy 0.1 save gains a normalized day clock", () => {
   assert.deepEqual(save.runtimeSnapshot.clock, save.calendar);
 });
 
-test("saving writes version 0.3.0 and keeps clock progress", () => {
+test("saving writes version 0.4.0 and keeps clock progress", () => {
   const legacy = loadSave();
   legacy.calendar = { day: 3, minuteOfDay: 1080, realDaySeconds: 900 };
   legacy.runtimeSnapshot.clock = legacy.calendar;
@@ -75,7 +75,22 @@ test("saving writes version 0.3.0 and keeps clock progress", () => {
   assert.equal(saveGame(legacy), true);
 
   const saved = JSON.parse(storage.get("heart-of-forest-save"));
-  assert.equal(saved.version, "0.3.0");
+  assert.equal(saved.version, "0.4.0");
   assert.equal(saved.calendar.day, 3);
   assert.equal(saved.runtimeSnapshot.clock.minuteOfDay, 1080);
+});
+
+test("legacy settings gain readable combat defaults", () => {
+  storage.set(
+    "heart-of-forest-settings",
+    JSON.stringify({ musicVolume: 0.4, sfxVolume: 0.5, fullscreen: false })
+  );
+
+  const settings = loadSettings();
+  assert.equal(settings.screenShake, 0.65);
+  assert.equal(settings.damageNumbers, true);
+
+  settings.screenShake = 0.2;
+  assert.equal(saveSettings(settings), true);
+  assert.equal(JSON.parse(storage.get("heart-of-forest-settings")).screenShake, 0.2);
 });

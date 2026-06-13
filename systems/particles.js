@@ -1,5 +1,7 @@
 import { randomRange, TAU } from "../core/math.js";
 
+const MAX_PARTICLES = 220;
+
 export function spawnBurst(state, x, y, options = {}) {
   const {
     count = 8,
@@ -11,7 +13,10 @@ export function spawnBurst(state, x, y, options = {}) {
     angle = 0,
   } = options;
 
-  for (let i = 0; i < count; i += 1) {
+  const available = Math.max(0, MAX_PARTICLES - state.particles.length);
+  const spawnCount = Math.min(count, available);
+
+  for (let i = 0; i < spawnCount; i += 1) {
     const particleAngle = angle + randomRange(-spread / 2, spread / 2);
     const particleSpeed = randomRange(speed * 0.25, speed);
 

@@ -11,7 +11,14 @@ const TEXT_MEASURE_CANVAS =
 const TEXT_MEASURE_CTX = TEXT_MEASURE_CANVAS ? TEXT_MEASURE_CANVAS.getContext("2d") : null;
 
 const TITLE_ACTIONS = ["new-game", "continue", "options"];
-const OPTIONS_ACTIONS = ["music-volume", "sfx-volume", "fullscreen", "reset-save", "back"];
+const OPTIONS_ACTIONS = [
+  "music-volume",
+  "sfx-volume",
+  "screen-shake",
+  "fullscreen",
+  "reset-save",
+  "back",
+];
 const PAUSE_ACTIONS = ["resume", "save-game", "save-return-title", "options"];
 const GAME_OVER_ACTIONS = ["retry", "load-save", "return-title"];
 
@@ -321,14 +328,19 @@ function getOptionEntries(state, layout) {
   return OPTIONS_ACTIONS.map((action) => {
     const description = getOptionDescription(action, state.frontend.resetSaveArmed);
     const metrics = getOptionControlMetrics(action, splitLayout.leftW);
+    const dense = OPTIONS_ACTIONS.length > 5 && !metrics.stacked;
     const descriptionLines = toWrappedLines(
       measure,
       description,
       metrics.textWidth,
-      splitLayout.compact ? 2 : 4
+      splitLayout.compact || dense ? 2 : 4
     );
     const height = Math.max(
-      metrics.stacked ? (splitLayout.compact ? 74 : 92) : splitLayout.compact ? 64 : 74,
+      metrics.stacked
+        ? (splitLayout.compact ? 74 : 92)
+        : splitLayout.compact || dense
+          ? 64
+          : 74,
       34 + descriptionLines.length * 14 + (metrics.stacked ? 26 : 0)
     );
     const entry = {
@@ -411,7 +423,7 @@ function drawOptionsMenu(ctx, state, layout, theme) {
     drawGuidePanel(ctx, splitLayout.rightX, splitLayout.rightY, splitLayout.rightW, splitLayout.rightH, theme);
   }
 
-  if (!splitLayout.compact || !splitLayout.showGuide) {
+  if (!splitLayout.showGuide) {
     drawFooterSummary(
       ctx,
       layout,
@@ -870,8 +882,17 @@ function drawOptionRow(ctx, entry, settings, frontend = null, theme) {
     ctx.fillText(line, textX, descriptionY + index * 14);
   });
 
-  if (entry.action === "music-volume" || entry.action === "sfx-volume") {
-    const value = entry.action === "music-volume" ? settings.musicVolume : settings.sfxVolume;
+  if (
+    entry.action === "music-volume" ||
+    entry.action === "sfx-volume" ||
+    entry.action === "screen-shake"
+  ) {
+    const value =
+      entry.action === "music-volume"
+        ? settings.musicVolume
+        : entry.action === "sfx-volume"
+          ? settings.sfxVolume
+          : settings.screenShake;
     const sliderX = controlX;
     const sliderY = metrics.stacked ? bounds.y + bounds.h - 28 : Math.round(bounds.y + bounds.h / 2 - 6);
     drawSlider(ctx, sliderX, sliderY, metrics.sliderWidth, value, entry.selected, theme);
@@ -966,13 +987,17 @@ function getOptionsSplitLayout(layout) {
     rightY,
     rightW,
     rightH,
-    gap: compact ? 8 : 14,
+    gap: OPTIONS_ACTIONS.length > 5 ? 8 : compact ? 8 : 14,
   };
 }
 
 function getOptionControlMetrics(action, rowWidth) {
   const stacked = rowWidth < 420;
-  if (action === "music-volume" || action === "sfx-volume") {
+  if (
+    action === "music-volume" ||
+    action === "sfx-volume" ||
+    action === "screen-shake"
+  ) {
     const controlWidth = stacked ? rowWidth - 36 : 204;
     const sliderWidth = Math.max(88, controlWidth - 72);
     return {
@@ -1175,6 +1200,7 @@ function getSelectionKeyForMode(mode) {
 function getActionValue(state, action) {
   if (action === "music-volume") return state.settings.musicVolume;
   if (action === "sfx-volume") return state.settings.sfxVolume;
+  if (action === "screen-shake") return state.settings.screenShake;
   if (action === "fullscreen") return state.settings.fullscreen;
   return null;
 }
@@ -1212,6 +1238,8 @@ function getOptionDescription(action, resetSaveArmed) {
       return "Raise or lower the score that follows the roads, shrines, and village breath between fights.";
     case "sfx-volume":
       return "Set the weight of impacts, projectiles, UI clicks, and the small sounds that sell the combat feel.";
+    case "screen-shake":
+      return "Control camera impact without changing hit-stop, telegraphs, or damage feedback.";
     case "fullscreen":
       return "Toggle a cleaner full-screen presentation for the grove and its overlays.";
     case "reset-save":
@@ -1237,6 +1265,8 @@ function formatActionLabel(action) {
       return "Music Volume";
     case "sfx-volume":
       return "SFX Volume";
+    case "screen-shake":
+      return "Screen Shake";
     case "fullscreen":
       return "Fullscreen";
     case "reset-save":

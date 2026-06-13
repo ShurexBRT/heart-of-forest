@@ -53,12 +53,13 @@ export function handlePlayerAbilities(state, input) {
   if (wasPressed(input, "r", "KeyR")) castSignatureAbility(state);
 }
 
-export function updateCombatEffects(state, dt) {
+export function updateCombatEffects(state, dt, visualDt = dt) {
   updateProjectiles(state, dt);
   updateRoots(state, dt);
   updatePulses(state, dt);
   updateSwings(state, dt);
   updateAfterImages(state, dt);
+  updateCombatText(state, visualDt);
 }
 
 export function markCombat(state, duration = COMBAT_TAG_DURATION) {
@@ -103,6 +104,8 @@ export function damagePlayer(state, amount, sourceX, sourceY, knockback, damageT
   player.vx += direction.x * knockback;
   player.vy += direction.y * knockback;
   state.shake = Math.max(state.shake, actualDamage >= 20 ? 8 : 5);
+  state.hitStop = Math.max(state.hitStop || 0, actualDamage >= 20 ? 0.055 : 0.035);
+  pushCombatText(state, player.x, player.y - 22, actualDamage, "#ff9b84", true);
   markCombat(state);
   state.lastDamageType = normalizedType;
   queueAudio(state, "player-hit");
@@ -848,6 +851,17 @@ function damageHostile(state, target, amount, sourceX, sourceY, knockback, stun)
   target.stun = Math.max(target.stun, stun);
   target.vx += direction.x * knockback;
   target.vy += direction.y * knockback;
+  pushCombatText(
+    state,
+    target.x,
+    target.y - (target.isBoss ? 42 : 24),
+    Math.round(amount),
+    target.isBoss ? "#ffe19b" : "#fff2cf"
+  );
+  state.hitStop = Math.max(
+    state.hitStop || 0,
+    target.hp <= 0 ? (target.isBoss ? 0.085 : 0.06) : target.isBoss || amount >= 24 ? 0.045 : 0.025
+  );
 
   if (!target.isBoss) {
     target.state = target.hp > 0 ? "chase" : target.state;
@@ -948,6 +962,32 @@ function damageHostile(state, target, amount, sourceX, sourceY, knockback, stun)
       }
     }
   }
+}
+
+function pushCombatText(state, x, y, amount, color, playerHit = false) {
+  if (state.settings?.damageNumbers === false) return;
+  state.combatText = state.combatText || [];
+  state.combatText.push({
+    x,
+    y,
+    text: `${playerHit ? "-" : ""}${Math.max(1, Math.round(amount))}`,
+    color,
+    life: 0.72,
+    maxLife: 0.72,
+    rise: playerHit ? 24 : 30,
+  });
+  if (state.combatText.length > 32) {
+    state.combatText.splice(0, state.combatText.length - 32);
+  }
+}
+
+function updateCombatText(state, dt) {
+  state.combatText = state.combatText || [];
+  for (const entry of state.combatText) {
+    entry.y -= entry.rise * dt;
+    entry.life -= dt;
+  }
+  state.combatText = state.combatText.filter((entry) => entry.life > 0);
 }
 
 function gainHeartCharge(state, amount) {

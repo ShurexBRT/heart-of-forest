@@ -9,6 +9,7 @@ import {
   rollAffixItem,
 } from "../data/gameData.js";
 import { QUEST_DEFS } from "../data/storyData.js";
+import { createCampaignProgress } from "./campaign.js";
 
 const ACTION_SLOT_COUNT = 3;
 const MAX_CAMPAIGN_TALENT_POINTS = 8;
@@ -108,6 +109,14 @@ function normalizeRecipes(rawRecipes = {}) {
     Object.entries(rawRecipes || {})
       .filter(([, value]) => value)
       .map(([recipeId]) => [recipeId, true])
+  );
+}
+
+function normalizeLockedItems(rawLockedItems = {}) {
+  return Object.fromEntries(
+    Object.entries(rawLockedItems || {})
+      .filter(([itemId, value]) => getItemDef(itemId) && value)
+      .map(([itemId]) => [itemId, true])
   );
 }
 
@@ -246,6 +255,8 @@ export function createProgression(snapshot = null) {
     regionProgress: {},
     journal: [],
     buyback: [],
+    lockedItems: {},
+    campaign: createCampaignProgress(),
     questStates,
     questCounters: createQuestCounterDefaults(),
     conversationFlags: {},
@@ -286,6 +297,8 @@ export function createProgression(snapshot = null) {
       : {};
   merged.journal = Array.isArray(snapshot.journal) ? [...snapshot.journal] : merged.journal;
   merged.buyback = normalizeBuyback(snapshot.buyback || merged.buyback);
+  merged.lockedItems = normalizeLockedItems(snapshot.lockedItems || {});
+  merged.campaign = createCampaignProgress(snapshot.campaign);
   merged.questStates = { ...merged.questStates, ...(snapshot.questStates || {}) };
   merged.questCounters = { ...merged.questCounters, ...(snapshot.questCounters || {}) };
   merged.conversationFlags = {
@@ -403,7 +416,12 @@ export function getInventoryEntries(progression, filterOrOptions = null) {
     .filter(([, amount]) => amount > 0)
     .flatMap(([id, amount]) => {
       const item = getItemDef(id);
-      return item ? createInventoryEntry(id, item, amount) : [];
+      return item
+        ? createInventoryEntry(id, item, amount).map((entry) => ({
+            ...entry,
+            locked: isItemLocked(progression, id),
+          }))
+        : [];
     })
     .filter((entry) => {
       if (options.filter === "all") return true;
@@ -420,7 +438,12 @@ export function getStashEntries(progression, filterOrOptions = null) {
     .filter(([, amount]) => amount > 0)
     .flatMap(([id, amount]) => {
       const item = getItemDef(id);
-      return item ? createInventoryEntry(id, item, amount) : [];
+      return item
+        ? createInventoryEntry(id, item, amount).map((entry) => ({
+            ...entry,
+            locked: isItemLocked(progression, id),
+          }))
+        : [];
     })
     .filter((entry) => {
       if (options.filter === "all") return true;
@@ -875,10 +898,84 @@ export function getItemValue(itemId) {
   return getItemDef(itemId)?.value || 0;
 }
 
+export function isItemLocked(progression, itemId) {
+  return Boolean(itemId && progression.lockedItems?.[itemId]);
+}
+
+export function toggleItemLock(progression, itemId) {
+  if (!getItemDef(itemId) || getItemCount(progression, itemId) <= 0) {
+    return { changed: false, locked: false };
+  }
+
+  progression.lockedItems = progression.lockedItems || {};
+  const locked = !isItemLocked(progression, itemId);
+  if (locked) {
+    progression.lockedItems[itemId] = true;
+  } else {
+    delete progression.lockedItems[itemId];
+  }
+  return { changed: true, locked };
+}
+
+export function getItemAspectAffinity(itemOrId) {
+  const item = typeof itemOrId === "string" ? getItemDef(itemOrId) : itemOrId;
+  if (!item?.bonuses) return null;
+
+  const scores = {
+    thornwarden: 0,
+    spiritweaver: 0,
+    rootcaller: 0,
+  };
+  const weights = {
+    staffDamageBonus: "thornwarden",
+    staffSpiritBonus: "thornwarden",
+    staffArcBonus: "thornwarden",
+    staffRangeBonus: "thornwarden",
+    dashStaffBonus: "thornwarden",
+    incomingDamageReductionBonus: "thornwarden",
+    boltDamageBonus: "spiritweaver",
+    boltRangeBonus: "spiritweaver",
+    pulseDamageBonus: "spiritweaver",
+    pulseRadiusBonus: "spiritweaver",
+    pulseCooldownBonus: "spiritweaver",
+    bossSpellDamageBonus: "spiritweaver",
+    maxSpiritBonus: "spiritweaver",
+    spiritRegenBonus: "spiritweaver",
+    rootDurationBonus: "rootcaller",
+    rootHeartChargeBonus: "rootcaller",
+    preparationReductionBonus: "rootcaller",
+    preparationHeartChargeBonus: "rootcaller",
+    healthRegenBonus: "rootcaller",
+    bloomBonus: "rootcaller",
+  };
+
+  for (const [key, value] of Object.entries(item.bonuses)) {
+    const branch = weights[key];
+    if (branch && Number(value) !== 0) {
+      scores[branch] += Math.max(1, Math.abs(Number(value)));
+    }
+  }
+
+  const [id, score] = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
+  if (score <= 0) return null;
+  return {
+    id,
+    label:
+      id === "thornwarden"
+        ? "Thornwarden"
+        : id === "spiritweaver"
+          ? "Spiritweaver"
+          : "Rootcaller",
+  };
+}
+
 export function sellInventoryItem(progression, itemId, amount = 1) {
+  if (isItemLocked(progression, itemId)) {
+    return { sold: false, value: 0, reason: "This item is locked." };
+  }
   const value = getItemValue(itemId);
   if (value <= 0 || !removeItem(progression, itemId, amount)) {
-    return { sold: false, value: 0 };
+    return { sold: false, value: 0, reason: "That item cannot be sold here." };
   }
 
   const payout = Math.max(1, Math.floor(value * 0.25)) * amount;

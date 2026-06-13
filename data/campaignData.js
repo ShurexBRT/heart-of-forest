@@ -1,0 +1,55 @@
+export const CAMPAIGN_CHAPTER_ORDER = [
+  "heartwood",
+  "stillwater",
+  "ember",
+  "frost",
+  "scarroot",
+  "rootlight",
+];
+
+export const CAMPAIGN_CHAPTERS = {
+  heartwood: {
+    id: "heartwood",
+    title: "The Homestead Wakes",
+    restoredFlag: "heartwood_restored",
+    bossSceneId: "mossy_ruins",
+    aspect: "hearthkeeper",
+  },
+  stillwater: {
+    id: "stillwater",
+    title: "The Drowned Road",
+    restoredFlag: "stillwater_restored",
+    bossSceneId: "chapel_of_tides",
+    aspect: "tidekeeper",
+  },
+  ember: {
+    id: "ember",
+    title: "Ash Under Bark",
+    restoredFlag: "ember_restored",
+    bossSceneId: "emberpine_grove",
+    bossQuestId: "cinder_warden",
+    aspect: "firekeeper",
+  },
+  frost: {
+    id: "frost",
+    title: "Frostpine Silence",
+    restoredFlag: "frost_restored",
+    bossSceneId: "frostveil_tundra",
+    bossQuestId: "veil_seraph",
+    aspect: "veilkeeper",
+  },
+  scarroot: {
+    id: "scarroot",
+    title: "Hollowheart Rot",
+    restoredFlag: "scarroot_restored",
+    bossSceneId: "hollowheart_ruins",
+    aspect: "rootspeaker",
+  },
+  rootlight: {
+    id: "rootlight",
+    title: "Starfall Sanctum",
+    restoredFlag: "rootlight_restored",
+    bossSceneId: "starfall_sanctum",
+    aspect: "starbinder",
+  },
+};
