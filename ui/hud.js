@@ -9,6 +9,7 @@ import {
   getActionSlotEntries,
   getEquippedItems,
   getInventoryEntries,
+  getItemAttunementLevel,
   getItemValue,
   getPlayerBonuses,
   getQuestCounter,
@@ -1888,6 +1889,7 @@ function buildComparisonLines(current, equipped) {
 }
 
 function formatActionCost(action) {
+  if (action.maxed) return "Maximum attunement";
   const parts = [];
   if (action.costSilver) parts.push(`${action.costSilver} silver`);
   for (const [itemId, amount] of Object.entries(action.costItems || {})) {
@@ -2379,7 +2381,7 @@ function getServicePanelData(state, frame) {
     const rows = [];
     let rowY = contentTop + 44;
     const measureCtx = getMeasureContext("11px Segoe UI, Arial");
-    const compactRows = service.kind === "crafting" && entries.length > 4;
+    const compactRows = entries.length > 4;
     const rowGap = compactRows ? 4 : 12;
 
     entries.forEach((entry, index) => {
@@ -2406,8 +2408,12 @@ function getServicePanelData(state, frame) {
             selected.affordable
               ? service.kind === "crafting"
                 ? "Brew Preparation"
-                : "Invoke Rite"
-              : "Requirements Not Met",
+                : selected.actionId === "attune"
+                  ? "Attune Gear"
+                  : "Invoke Rite"
+              : selected.maxed
+                ? "Maximum Attunement"
+                : "Requirements Not Met",
             "service-activate",
             selected.affordable ? "#b1e29f" : "#8a6e6a",
             {
@@ -2554,6 +2560,10 @@ function buildItemTooltip(entry, lines = [], progression = null) {
     }
   }
   if (progression && entry.category === "equipment" && entry.slot) {
+    const attunementLevel = getItemAttunementLevel(progression, entry.id);
+    if (attunementLevel > 0) {
+      tooltipLines.push(`Attunement Rank ${["I", "II", "III"][attunementLevel - 1]}`);
+    }
     const equippedItem = getEquippedItems(progression).find((candidate) => candidate.slot === entry.slot)?.item;
     if (equippedItem && equippedItem.id !== entry.id) {
       tooltipLines.push(`Equipped: ${equippedItem.name}`);

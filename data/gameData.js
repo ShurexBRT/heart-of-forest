@@ -1350,6 +1350,12 @@ export const SERVICE_DEFS = {
     kind: "altar",
     actions: [
       {
+        id: "attune",
+        title: "Attune Equipped Gear",
+        description: "Strengthen equipped relics through three permanent ranks.",
+        dynamic: "equippedAttunement",
+      },
+      {
         id: "restore",
         title: "Restore Vigor",
         description: "Fully restore Health and Spirit.",

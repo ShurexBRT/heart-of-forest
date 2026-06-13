@@ -1,11 +1,16 @@
 import { SERVICE_DEFS, getItemDef } from "../data/gameData.js";
 import {
+  attuneEquipmentItem,
   buyBackItem,
   buyInventoryItem,
   getCurrency,
   getBuybackEntries,
+  getEquippedItems,
   getInventoryEntries,
+  getItemAttunementCost,
+  getItemAttunementLevel,
   getItemCount,
+  getPlayerBonuses,
   getStashEntries,
   hasWorldFlag,
   resetTalents,
@@ -96,10 +101,38 @@ export function getServiceEntries(state) {
   }
 
   if (service.kind === "altar") {
-    return service.actions.map((entry) => ({
-      ...entry,
-      affordable: canAffordAction(state.progression, entry),
-    }));
+    return service.actions.flatMap((entry) => {
+      if (entry.dynamic !== "equippedAttunement") {
+        return [{
+          ...entry,
+          affordable: canAffordAction(state.progression, entry),
+        }];
+      }
+
+      return getEquippedItems(state.progression)
+        .filter(({ item }) => item)
+        .map(({ slot, itemId, item }) => {
+          const level = getItemAttunementLevel(state.progression, itemId);
+          const cost = getItemAttunementCost(state.progression, itemId);
+          const maxed = !cost;
+          return {
+            id: `attune:${slot}`,
+            actionId: "attune",
+            itemId,
+            slot,
+            title: `${item.name}  ${formatAttunementRank(level)}`,
+            description: maxed
+              ? `Maximum attunement reached in the ${slot} slot.`
+              : `Raise this ${slot} to ${formatAttunementRank(cost.nextLevel)} and amplify all of its bonuses by 12%.`,
+            costSilver: cost?.costSilver || 0,
+            costItems: cost?.costItems || {},
+            level,
+            nextLevel: cost?.nextLevel || level,
+            maxed,
+            affordable: !maxed && canAffordAction(state.progression, cost),
+          };
+        });
+    });
   }
 
   if (service.kind === "crafting") {
@@ -113,11 +146,16 @@ export function getServiceEntries(state) {
 }
 
 function canAffordAction(progression, action) {
+  if (!action || action.maxed) return false;
   if ((action.costSilver || 0) > getCurrency(progression)) return false;
   for (const [itemId, amount] of Object.entries(action.costItems || {})) {
     if (getItemCount(progression, itemId) < amount) return false;
   }
   return true;
+}
+
+function formatAttunementRank(level) {
+  return level > 0 ? `Rank ${["I", "II", "III"][level - 1]}` : "Unattuned";
 }
 
 function matchesItemFilter(item, filter) {
@@ -157,7 +195,24 @@ export function performSelectedServiceAction(state) {
     const action = getServiceEntries(state)[state.ui.selectedServiceIndex];
     if (!action) return { success: false };
     if (!canAffordAction(state.progression, action)) {
+      if (action.maxed) {
+        return { success: false, reason: "That item has reached maximum attunement." };
+      }
       return { success: false, reason: "You lack the needed silver or relics." };
+    }
+
+    if (action.actionId === "attune") {
+      const result = attuneEquipmentItem(state.progression, action.itemId);
+      if (!result.attuned) {
+        return { success: false, reason: result.reason };
+      }
+      state.player.refreshFromModifiers(getPlayerBonuses(state.progression), {
+        preserveVitals: true,
+      });
+      return {
+        success: true,
+        text: `${result.item.name} attuned to ${formatAttunementRank(result.level)}.`,
+      };
     }
 
     if (action.id === "restore") {

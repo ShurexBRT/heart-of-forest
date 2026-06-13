@@ -12,6 +12,12 @@ import { QUEST_DEFS } from "../data/storyData.js";
 
 const ACTION_SLOT_COUNT = 3;
 const MAX_CAMPAIGN_TALENT_POINTS = 8;
+export const MAX_ITEM_ATTUNEMENT = 3;
+export const ITEM_ATTUNEMENT_COSTS = [
+  { costSilver: 80, costItems: { ironbark: 2 } },
+  { costSilver: 140, costItems: { relic_shard: 2 } },
+  { costSilver: 220, costItems: { relic_shard: 3, heartseed: 1 } },
+];
 
 const ENEMY_LOOT_RULES = {
   thornling: { lootIndex: 0, silver: 1, bonusChance: 0.08, bonusItem: "health_potion" },
@@ -83,6 +89,17 @@ function normalizeTalents(rawTalents = {}) {
     Object.entries(rawTalents || {})
       .filter(([talentId, value]) => validIds.has(talentId) && value)
       .map(([talentId]) => [talentId, 1])
+  );
+}
+
+function normalizeAttunements(rawAttunements = {}) {
+  return Object.fromEntries(
+    Object.entries(rawAttunements || {})
+      .filter(([itemId, level]) => getItemDef(itemId) && Number(level) > 0)
+      .map(([itemId, level]) => [
+        itemId,
+        Math.min(MAX_ITEM_ATTUNEMENT, Math.max(1, Math.floor(Number(level)))),
+      ])
   );
 }
 
@@ -223,6 +240,7 @@ export function createProgression(snapshot = null) {
     actionSlots: ["health_potion", "spirit_tonic", null],
     talentPoints: 0,
     talents: {},
+    attunements: {},
     unlockedRecipes: {},
     activePreparation: null,
     regionProgress: {},
@@ -248,6 +266,7 @@ export function createProgression(snapshot = null) {
   merged.equipment = { ...merged.equipment, ...(snapshot.equipment || {}) };
   merged.actionSlots = normalizeActionSlots(snapshot.actionSlots || merged.actionSlots);
   merged.talents = normalizeTalents(snapshot.talents || {});
+  merged.attunements = normalizeAttunements(snapshot.attunements || {});
   const spentTalents = Object.keys(merged.talents).length;
   merged.talentPoints = Math.max(
     0,
@@ -479,6 +498,52 @@ export function getEquippedItems(progression) {
   });
 }
 
+export function getItemAttunementLevel(progression, itemId) {
+  return Math.min(
+    MAX_ITEM_ATTUNEMENT,
+    Math.max(0, Math.floor(progression.attunements?.[itemId] || 0))
+  );
+}
+
+export function getItemAttunementCost(progression, itemId) {
+  const level = getItemAttunementLevel(progression, itemId);
+  if (level >= MAX_ITEM_ATTUNEMENT) return null;
+  return {
+    ...ITEM_ATTUNEMENT_COSTS[level],
+    costItems: { ...ITEM_ATTUNEMENT_COSTS[level].costItems },
+    nextLevel: level + 1,
+  };
+}
+
+export function attuneEquipmentItem(progression, itemId) {
+  const item = getItemDef(itemId);
+  const equipped = item?.slot && progression.equipment?.[item.slot] === itemId;
+  if (!item || item.category !== "equipment" || !equipped) {
+    return { attuned: false, reason: "That item must be equipped before it can be attuned." };
+  }
+
+  const cost = getItemAttunementCost(progression, itemId);
+  if (!cost) {
+    return { attuned: false, reason: "That item has reached maximum attunement." };
+  }
+  if (getCurrency(progression) < cost.costSilver) {
+    return { attuned: false, reason: "Not enough silver." };
+  }
+  for (const [materialId, amount] of Object.entries(cost.costItems)) {
+    if (getItemCount(progression, materialId) < amount) {
+      return { attuned: false, reason: `Not enough ${getItemDef(materialId)?.name || materialId}.` };
+    }
+  }
+
+  spendCurrency(progression, cost.costSilver);
+  for (const [materialId, amount] of Object.entries(cost.costItems)) {
+    removeItem(progression, materialId, amount);
+  }
+  progression.attunements = progression.attunements || {};
+  progression.attunements[itemId] = cost.nextLevel;
+  return { attuned: true, item, level: cost.nextLevel, cost };
+}
+
 export function equipItem(progression, itemId) {
   const item = getItemDef(itemId);
   if (!item || item.category !== "equipment" || !item.slot) return false;
@@ -684,8 +749,13 @@ export function getPlayerBonuses(progression) {
     const itemId = progression.equipment[slot];
     const item = itemId ? getItemDef(itemId) : null;
     if (!item?.bonuses) continue;
+    const attunementLevel = getItemAttunementLevel(progression, itemId);
     for (const [key, value] of Object.entries(item.bonuses)) {
       bonuses[key] = (bonuses[key] || 0) + value;
+      if (attunementLevel > 0 && typeof value === "number") {
+        const attunementBonus = Number((value * attunementLevel * 0.12).toFixed(3));
+        bonuses[key] += attunementBonus;
+      }
     }
   }
 

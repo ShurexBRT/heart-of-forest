@@ -3,8 +3,10 @@ import assert from "node:assert/strict";
 
 import {
   addItem,
+  attuneEquipmentItem,
   awardRewards,
   createProgression,
+  getItemAttunementLevel,
   getPlayerBonuses,
   unlockTalent,
   useConsumable,
@@ -31,6 +33,35 @@ test("talent branches enforce prerequisites and one signature capstone", () => {
   assert.equal(unlockTalent(progression, "focused_bolt"), true);
   assert.equal(unlockTalent(progression, "verdant_nova"), false);
   assert.equal(getPlayerBonuses(progression).signatureAbility, "heartwood_tempest");
+});
+
+test("equipped gear can be attuned through three material-gated ranks", () => {
+  const progression = createProgression({
+    silver: 500,
+    inventory: {
+      ironbark: 2,
+      relic_shard: 5,
+      heartseed: 1,
+    },
+  });
+  const baseBonuses = getPlayerBonuses(progression);
+
+  assert.equal(attuneEquipmentItem(progression, "warden_brooch").attuned, true);
+  assert.equal(getItemAttunementLevel(progression, "warden_brooch"), 1);
+  assert.equal(progression.silver, 420);
+  assert.equal(progression.inventory.ironbark, 0);
+  assert.ok(getPlayerBonuses(progression).maxHpBonus > baseBonuses.maxHpBonus);
+
+  assert.equal(attuneEquipmentItem(progression, "warden_brooch").attuned, true);
+  assert.equal(progression.silver, 280);
+  assert.equal(progression.inventory.relic_shard, 3);
+
+  assert.equal(attuneEquipmentItem(progression, "warden_brooch").attuned, true);
+  assert.equal(getItemAttunementLevel(progression, "warden_brooch"), 3);
+  assert.equal(progression.silver, 60);
+  assert.equal(progression.inventory.relic_shard, 0);
+  assert.equal(progression.inventory.heartseed, 0);
+  assert.equal(attuneEquipmentItem(progression, "warden_brooch").attuned, false);
 });
 
 test("brewing consumes ingredients and preparation replaces the active counter", () => {
