@@ -728,8 +728,11 @@ function drawBossBar(ctx, state) {
   if (boss) {
     ctx.font = "700 9px Segoe UI, Arial";
     ctx.fillStyle = prepared ? "#a7e4a4" : "#d9a18d";
+    const attackText = boss.currentAttack?.label
+      ? `${boss.currentAttack.label.toUpperCase()} ${Math.max(0, boss.currentAttack.timer).toFixed(1)}s`
+      : `PHASE ${boss.phase || 1}`;
     ctx.fillText(
-      `${damageType.toUpperCase()}  |  PHASE ${boss.phase || 1}  |  ${prepared ? "WARD ACTIVE" : `NO ${damageType.toUpperCase()} WARD`}`,
+      `${damageType.toUpperCase()}  |  ${attackText}  |  ${prepared ? "WARD ACTIVE" : `NO ${damageType.toUpperCase()} WARD`}`,
       state.viewport.width / 2,
       y + 29
     );

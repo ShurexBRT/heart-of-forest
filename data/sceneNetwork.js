@@ -103,7 +103,7 @@ export const SCENES = {
     id: "mossy_ruins",
     title: "Mossy Ruins",
     regionName: "Old Stone Verge",
-    completionText: "Ruins Reclaimed",
+    completionText: "Heartwood Restored",
     biomeId: "highlands",
     seed: "mossy-ruins",
     poiTypeId: "ruin",

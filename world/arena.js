@@ -535,12 +535,18 @@ function buildWhisperingWoods(context, rng) {
   paintPath(tiles, 18, 35, 4, 43, 2, "path", 0);
   scatterOverlay(tiles, rng, 10, 8, 18, 10, 24, "flowersWarm");
   scatterOverlay(tiles, rng, 65, 16, 14, 10, 18, "flowersCool");
+  if (flags.heartwood_restored) {
+    scatterOverlay(tiles, rng, 24, 16, 34, 24, 34, "flowersWarm");
+    scatterOverlay(tiles, rng, 46, 28, 30, 18, 24, "flowersCool");
+  }
 
-  const npcs = [
-    npc("elder_rowan", 366, 556),
-    npc("lysa", 468, 610),
-    npc("tamsin", 246, 560),
-  ];
+  const npcs = flags.heartwood_restored
+    ? [
+        npc("elder_rowan", 366, 556),
+        npc("lysa", 468, 610),
+        npc("tamsin", 246, 560),
+      ]
+    : [];
   if (flags.village_patrols_returned) {
     npcs.push(npc("halen", 702, 430));
   }
@@ -592,22 +598,26 @@ function buildWhisperingWoods(context, rng) {
       requiresCleared: true,
       sortY: 396,
     }),
-    interactable("village-stash", "chest", 328, 304, {
-      name: "Supply Stash",
-      promptLabel: "Open Stash",
-      serviceId: "village_stash",
-      sortY: 316,
-      w: 24,
-      h: 20,
-    }),
-    interactable("waystone-altar", "shrine", 598, 282, {
-      name: "Waystone Altar",
-      promptLabel: "Commune at Altar",
-      serviceId: "waystone_altar",
-      sortY: 296,
-      w: 28,
-      h: 24,
-    }),
+    ...(flags.heartwood_restored
+      ? [
+          interactable("village-stash", "chest", 328, 304, {
+            name: "Supply Stash",
+            promptLabel: "Open Stash",
+            serviceId: "village_stash",
+            sortY: 316,
+            w: 24,
+            h: 20,
+          }),
+          interactable("waystone-altar", "shrine", 598, 282, {
+            name: "Waystone Altar",
+            promptLabel: "Commune at Altar",
+            serviceId: "waystone_altar",
+            sortY: 296,
+            w: 28,
+            h: 24,
+          }),
+        ]
+      : []),
   ];
 
   return createBaseArena(context, tiles, {
@@ -647,10 +657,15 @@ function buildWhisperingWoods(context, rng) {
       fenceV(394, 248, 100),
       fenceV(618, 248, 126),
       signpost(694, 376),
-      lantern(486, 320),
-      lantern(664, 278),
-      lantern(292, 302),
-      lantern(610, 278),
+      ...(flags.heartwood_restored
+        ? [
+            lantern(486, 320),
+            lantern(664, 278),
+            lantern(292, 302),
+            lantern(610, 278),
+            lantern(536, 520, "warm"),
+          ]
+        : []),
       signpost(132, 684),
       ...(flags.village_patrols_returned ? [lantern(840, 278), fenceH(874, 286, 122)] : []),
       ...(flags.apothecary_resupplied ? [lantern(194, 280, "cool"), signpost(242, 336)] : []),
@@ -1062,6 +1077,10 @@ function buildMossyRuins(context, rng) {
   stampEllipse(tiles, 74, 42, 8, 6, "water", 0);
   clearOverlayRect(tiles, 20, 18, 58, 24);
   scatterOverlay(tiles, rng, 12, 10, 18, 12, 18, "flowersWarm");
+  if (flags.heartwood_restored) {
+    scatterOverlay(tiles, rng, 34, 18, 36, 24, 42, "flowersWarm");
+    scatterOverlay(tiles, rng, 50, 26, 24, 18, 26, "flowersCool");
+  }
 
   const interactables = [
     interactable("relic-cache-1", "totem", 714, 302, {
@@ -1134,14 +1153,19 @@ function buildMossyRuins(context, rng) {
       bush(310, 700, 88, 54, "forest"),
       lantern(690, 334),
       lantern(1090, 470),
+      ...(flags.heartwood_restored
+        ? [lantern(836, 612, "warm"), lantern(1012, 604, "warm")]
+        : []),
       ...(flags.ruins_listening_post ? [lantern(888, 186, "cool"), signpost(1092, 308)] : []),
       ...(flags.sunken_reliquary_open ? [lantern(900, 146, "warm")] : []),
       signpost(900, 760),
     ],
-    npcs: [
-      npc("orras", 250, 666),
-      ...(flags.ruins_listening_post ? [npc("halen", 1038, 348)] : []),
-    ],
+    npcs: flags.heartwood_restored
+      ? [
+          npc("orras", 250, 666),
+          ...(flags.ruins_listening_post ? [npc("halen", 1038, 348)] : []),
+        ]
+      : [],
     interactables,
     hazards: [],
   });

@@ -373,6 +373,45 @@ function drawBossTelegraphs(ctx, state, origin) {
     }
     ctx.restore();
   }
+
+  if (boss.currentAttack.type === "rootCrown") {
+    const attack = boss.currentAttack;
+    const pulse = 1 + Math.sin(state.time * 15) * 0.025;
+    const segments = 36;
+    ctx.save();
+    ctx.globalAlpha = 0.7;
+    for (let index = 0; index < segments; index += 1) {
+      const angleA = (Math.PI * 2 * index) / segments;
+      const angleB = (Math.PI * 2 * (index + 1)) / segments;
+      const middle = (angleA + angleB) * 0.5;
+      const delta = Math.atan2(
+        Math.sin(middle - attack.gapAngle),
+        Math.cos(middle - attack.gapAngle)
+      );
+      if (Math.abs(delta) <= attack.gapWidth) continue;
+      drawIsoLine(
+        ctx,
+        origin,
+        attack.centerX + Math.cos(angleA) * attack.ringRadius * pulse,
+        attack.centerY + Math.sin(angleA) * attack.ringRadius * pulse,
+        attack.centerX + Math.cos(angleB) * attack.ringRadius * pulse,
+        attack.centerY + Math.sin(angleB) * attack.ringRadius * pulse,
+        5,
+        slamColor
+      );
+    }
+    drawIsoLine(
+      ctx,
+      origin,
+      attack.centerX,
+      attack.centerY,
+      attack.centerX + Math.cos(attack.gapAngle) * (attack.ringRadius + 32),
+      attack.centerY + Math.sin(attack.gapAngle) * (attack.ringRadius + 32),
+      4,
+      "#c7f4b2"
+    );
+    ctx.restore();
+  }
 }
 
 function drawProjectiles(ctx, state, origin) {

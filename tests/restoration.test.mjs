@@ -54,3 +54,37 @@ test("regional restoration visibly settles Ember, Frost, and Scarroot", () => {
   });
   assert.ok(rootlightRestored.npcs.some((npc) => npc.id === "halen"));
 });
+
+test("defeating Rootwarden repopulates Heartwood and unlocks village services", () => {
+  const woodsInfested = buildScene("whispering_woods");
+  const woodsRestored = buildScene("whispering_woods", {
+    heartwood_restored: true,
+  });
+  const ruinsInfested = buildScene("mossy_ruins");
+  const ruinsRestored = buildScene("mossy_ruins", {
+    heartwood_restored: true,
+  });
+
+  assert.equal(woodsInfested.npcs.length, 0);
+  assert.equal(
+    woodsInfested.interactables.some((entry) => entry.serviceId === "village_stash"),
+    false
+  );
+  assert.equal(
+    woodsInfested.interactables.some((entry) => entry.serviceId === "waystone_altar"),
+    false
+  );
+  assert.ok(woodsRestored.npcs.some((npc) => npc.id === "elder_rowan"));
+  assert.ok(woodsRestored.interactables.some((entry) => entry.serviceId === "village_stash"));
+  assert.ok(woodsRestored.interactables.some((entry) => entry.serviceId === "waystone_altar"));
+  assert.ok(
+    countOverlay(woodsRestored, "flowersWarm") >
+      countOverlay(woodsInfested, "flowersWarm")
+  );
+  assert.equal(ruinsInfested.npcs.length, 0);
+  assert.ok(ruinsRestored.npcs.some((npc) => npc.id === "orras"));
+  assert.ok(
+    countOverlay(ruinsRestored, "flowersWarm") >
+      countOverlay(ruinsInfested, "flowersWarm")
+  );
+});

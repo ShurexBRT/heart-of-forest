@@ -19,6 +19,7 @@ const BOSS_IDENTITY = {
     summonPhase3: [{ type: "thorn_weaver", elite: true, affixes: ["bulwark"] }, "barkling", "root_stalker"],
     summonBanner: "The Old Roots Rise",
     phaseBanners: ["Rootwarden Stirs", "Heartwood Unbound"],
+    signatureLabel: "Root Crown",
     summonBurstColors: ["#9ce77a", "#e3ca73", "#d8f0a0"],
     slamTelegraphColor: "#c5e684",
     volleyTelegraphColor: "#9ddd79",
@@ -170,6 +171,7 @@ export class Boss {
       volley: 0.9,
       eruption: 1.8,
       summon: 2.4,
+      signature: 4.8,
     };
     this.phase = 1;
     this.thresholds = [0.72, 0.44, 0.2];
@@ -222,6 +224,16 @@ export class Boss {
 
     if (playerDistance < 160 && this.cooldowns.slam <= 0) {
       this.beginSlam(state.player.x, state.player.y);
+      return;
+    }
+
+    if (
+      this.id === "rootwarden" &&
+      this.phase >= 2 &&
+      this.cooldowns.signature <= 0 &&
+      state.eruptions.length === 0
+    ) {
+      this.beginRootCrown(state);
       return;
     }
 
@@ -316,6 +328,57 @@ export class Boss {
     this.vy *= 0.18;
   }
 
+  beginRootCrown(state) {
+    const center = { x: state.player.x, y: state.player.y };
+    const gapAngle = angleTo(this.x, this.y, center.x, center.y);
+    const ringRadius = this.phase >= 3 ? 104 : 94;
+    const ringCount = this.phase >= 3 ? 14 : 12;
+    const gapWidth = this.phase >= 3 ? 0.42 : 0.5;
+    const damage = phasePair(this.identity.eruptionDamage, this.phase);
+
+    for (let index = 0; index < ringCount; index += 1) {
+      const angle = (TAU * index) / ringCount;
+      const delta = Math.atan2(Math.sin(angle - gapAngle), Math.cos(angle - gapAngle));
+      if (Math.abs(delta) <= gapWidth) continue;
+      state.eruptions.push({
+        x: center.x + Math.cos(angle) * ringRadius,
+        y: center.y + Math.sin(angle) * ringRadius,
+        radius: this.phase >= 3 ? 27 : 25,
+        warning: this.phase >= 3 ? 0.66 : 0.74,
+        active: 0.36,
+        damage,
+        hitPlayer: false,
+        type: "thorn",
+      });
+    }
+
+    state.eruptions.push({
+      x: center.x,
+      y: center.y,
+      radius: this.phase >= 3 ? 46 : 40,
+      warning: this.phase >= 3 ? 0.98 : 1.08,
+      active: 0.32,
+      damage: damage + 2,
+      hitPlayer: false,
+      type: "thorn",
+    });
+
+    this.currentAttack = {
+      type: "rootCrown",
+      label: this.identity.signatureLabel || "Root Crown",
+      timer: this.phase >= 3 ? 0.72 : 0.82,
+      duration: this.phase >= 3 ? 0.72 : 0.82,
+      centerX: center.x,
+      centerY: center.y,
+      gapAngle,
+      gapWidth,
+      ringRadius,
+    };
+    this.cooldowns.signature = this.phase >= 3 ? 5.8 : 7;
+    this.vx *= 0.14;
+    this.vy *= 0.14;
+  }
+
   updateAttack(dt, state) {
     this.currentAttack.timer -= dt;
 
@@ -333,6 +396,9 @@ export class Boss {
     } else if (this.currentAttack.type === "summon") {
       this.performSummon(state);
       this.recovery = 0.46;
+    } else if (this.currentAttack.type === "rootCrown") {
+      this.performRootCrown(state);
+      this.recovery = 0.5;
     }
 
     this.currentAttack = null;
@@ -435,6 +501,17 @@ export class Boss {
     state.encounter.bannerTimer = 1.5;
   }
 
+  performRootCrown(state) {
+    state.shake = Math.max(state.shake, 6);
+    spawnBurst(state, this.x, this.y, {
+      count: 26,
+      colors: this.identity.summonBurstColors || ["#9ce77a", "#e3ca73", "#d8f0a0"],
+      speed: 220,
+      size: [2, 6],
+      life: [0.18, 0.48],
+    });
+  }
+
   updatePhase(state) {
     const ratio = this.hp / this.maxHp;
     const nextPhase = ratio <= 0.55 ? 2 : 1;
@@ -505,7 +582,7 @@ export class Boss {
     }
 
     if (this.currentAttack) {
-      this.pose = this.currentAttack.type;
+      this.pose = this.currentAttack.type === "rootCrown" ? "summon" : this.currentAttack.type;
       return;
     }
 
