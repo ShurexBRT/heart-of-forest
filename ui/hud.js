@@ -123,50 +123,108 @@ export function getUiHoverTarget(state, mouseX, mouseY) {
 }
 
 function drawBottomHud(ctx, state, abilityInfo) {
-  const { width, height } = state.viewport;
-  const panelW = 680;
-  const panelH = 132;
-  const x = width / 2 - panelW / 2;
-  const y = height - panelH - 12;
+  const layout = getBottomHudLayout(state);
+  const { panelRect, leftOrb, rightOrb, abilityStartX, abilityY, abilitySlotSize, abilityGap } = layout;
+  const { x, y, width: panelW, height: panelH } = panelRect;
   const xp = getXpProgress(state.progression);
   const healthPotions = state.progression.inventory.health_potion || 0;
   const spiritTonics = state.progression.inventory.spirit_tonic || 0;
 
-  ctx.fillStyle = "rgba(5, 8, 12, 0.84)";
+  ctx.fillStyle = "rgba(3, 6, 9, 0.9)";
   ctx.fillRect(x, y, panelW, panelH);
-  ctx.fillStyle = "#11171f";
+  ctx.fillStyle = "#0d141a";
   ctx.fillRect(x + 6, y + 6, panelW - 12, panelH - 12);
+  ctx.fillStyle = "rgba(93, 139, 92, 0.08)";
+  ctx.fillRect(x + 10, y + 10, panelW - 20, 36);
 
-  drawXpBar(ctx, x + 90, y + 7, panelW - 180, xp.ratio, `Lv ${xp.level}`);
-  drawOrb(ctx, x + 58, y + 54, 36, state.player.hp / state.player.maxHp, "#8d242b", "#ef6b62");
-  drawOrb(ctx, x + panelW - 58, y + 54, 36, state.player.spirit / state.player.maxSpirit, "#173f67", "#6ad8ff");
+  drawXpBar(ctx, x + 104, y + panelH - 9, panelW - 208, xp.ratio, `LEVEL ${xp.level}`);
+  drawOrb(
+    ctx,
+    leftOrb.x,
+    leftOrb.y,
+    leftOrb.radius,
+    state.player.hp / state.player.maxHp,
+    "#641b24",
+    "#e65355",
+    "HEALTH",
+    Math.round(state.player.hp),
+    Math.round(state.player.maxHp)
+  );
+  drawOrb(
+    ctx,
+    rightOrb.x,
+    rightOrb.y,
+    rightOrb.radius,
+    state.player.spirit / state.player.maxSpirit,
+    "#123653",
+    "#46bfe5",
+    "SPIRIT",
+    Math.round(state.player.spirit),
+    Math.round(state.player.maxSpirit)
+  );
 
-  ctx.fillStyle = "#f7ead0";
-  ctx.font = "700 12px Segoe UI, Arial";
-  ctx.textAlign = "center";
-  ctx.fillText(`${Math.round(state.player.hp)}`, x + 58, y + 58);
-  ctx.fillText(`${Math.round(state.player.spirit)}`, x + panelW - 58, y + 58);
-  ctx.textAlign = "left";
-
-  const abilityRowWidth = getHudAbilitySpecs().length * 64 + (getHudAbilitySpecs().length - 1) * 8;
-  drawAbilitySlots(ctx, x + panelW / 2 - abilityRowWidth / 2, y + 16, state.player, abilityInfo);
-  drawActionSlots(ctx, x + panelW / 2 - 127, y + 72, state.progression);
-  drawQuickCounters(ctx, x + 12, y + 106, healthPotions, spiritTonics, panelW);
-  drawBuffChips(ctx, x + 96, y + 106, state.player, state.progression);
-  drawCurrencyChip(ctx, x + panelW - 236, y + 106, state.progression);
+  drawAbilitySlots(
+    ctx,
+    abilityStartX,
+    abilityY,
+    state.player,
+    abilityInfo,
+    abilitySlotSize,
+    abilityGap
+  );
+  drawActionSlots(ctx, layout.actionStartX, layout.actionY, state.progression);
+  drawQuickCounters(ctx, x + 10, layout.statusY, healthPotions, spiritTonics, panelW);
+  drawBuffChips(ctx, layout.buffX, layout.statusY, state.player, state.progression);
+  drawCurrencyChip(ctx, layout.currencyX, layout.statusY, state.progression);
   drawPanelChrome(ctx, x, y, panelW, panelH, "#7f9a74");
 }
 
-function drawOrb(ctx, cx, cy, radius, ratio, dark, light) {
+function getBottomHudLayout(state) {
+  const { width, height } = state.viewport;
+  const panelW = Math.min(720, Math.max(480, width - 24), width - 16);
+  const panelH = width < 760 ? 132 : 146;
+  const x = Math.round(width / 2 - panelW / 2);
+  const y = height - panelH - 10;
+  const compact = panelW < 650;
+  const orbRadius = compact ? 32 : 39;
+  const abilitySlotSize = compact ? 50 : 58;
+  const abilityGap = compact ? 5 : 8;
+  const abilityRowWidth =
+    getHudAbilitySpecs().length * abilitySlotSize +
+    (getHudAbilitySpecs().length - 1) * abilityGap;
+  const abilityStartX = Math.round(x + panelW / 2 - abilityRowWidth / 2);
+  return {
+    panelRect: rect(x, y, panelW, panelH),
+    compact,
+    leftOrb: { x: x + 55, y: y + 61, radius: orbRadius },
+    rightOrb: { x: x + panelW - 55, y: y + 61, radius: orbRadius },
+    abilityStartX,
+    abilityY: y + 15,
+    abilitySlotSize,
+    abilityGap,
+    actionStartX: Math.round(x + panelW / 2 - 127),
+    actionY: y + (compact ? 69 : 79),
+    statusY: y + panelH - 32,
+    buffX: x + 94,
+    currencyX: x + panelW - 236,
+  };
+}
+
+function drawOrb(ctx, cx, cy, radius, ratio, dark, light, label, value, maximum) {
   ctx.fillStyle = "#05070a";
   ctx.beginPath();
-  ctx.arc(cx, cy, radius + 8, 0, Math.PI * 2);
+  ctx.arc(cx, cy, radius + 9, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.strokeStyle = "#2a313d";
-  ctx.lineWidth = 4;
+  ctx.strokeStyle = "#1d2731";
+  ctx.lineWidth = 5;
   ctx.beginPath();
-  ctx.arc(cx, cy, radius + 4, 0, Math.PI * 2);
+  ctx.arc(cx, cy, radius + 5, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(177, 202, 164, 0.42)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius + 8, 0, Math.PI * 2);
   ctx.stroke();
 
   ctx.save();
@@ -185,13 +243,107 @@ function drawOrb(ctx, cx, cy, radius, ratio, dark, light) {
   ctx.ellipse(cx - radius * 0.24, cy - radius * 0.34, radius * 0.44, radius * 0.24, -0.5, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#fff4dc";
+  ctx.font = `700 ${radius < 35 ? 12 : 14}px Segoe UI, Arial`;
+  ctx.fillText(`${value}`, cx, cy + 3);
+  ctx.fillStyle = "rgba(238, 246, 231, 0.82)";
+  ctx.font = "700 8px Segoe UI, Arial";
+  ctx.fillText(`/ ${maximum}`, cx, cy + 14);
+  ctx.fillStyle = "#c8d6c4";
+  ctx.font = "700 8px Segoe UI, Arial";
+  ctx.fillText(label, cx, cy + radius + 17);
+  ctx.textAlign = "left";
 }
 
-function drawAbilitySlots(ctx, startX, y, player, abilityInfo) {
+function drawAbilityGlyph(ctx, name, cx, cy, size, color, signatureAbility = null) {
+  const scale = size / 24;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(scale, scale);
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  if (name === "staff") {
+    ctx.beginPath();
+    ctx.moveTo(-7, 8);
+    ctx.lineTo(5, -8);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(7, -9, 4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-9, 6);
+    ctx.lineTo(-5, 10);
+    ctx.stroke();
+  } else if (name === "bolt") {
+    ctx.beginPath();
+    ctx.moveTo(0, -11);
+    ctx.lineTo(8, -1);
+    ctx.lineTo(1, 1);
+    ctx.lineTo(4, 11);
+    ctx.lineTo(-8, 1);
+    ctx.lineTo(-1, -1);
+    ctx.closePath();
+    ctx.fill();
+  } else if (name === "dash") {
+    ctx.beginPath();
+    ctx.moveTo(-10, -7);
+    ctx.lineTo(-2, 0);
+    ctx.lineTo(-10, 7);
+    ctx.moveTo(-1, -7);
+    ctx.lineTo(7, 0);
+    ctx.lineTo(-1, 7);
+    ctx.stroke();
+  } else if (name === "root") {
+    ctx.beginPath();
+    ctx.moveTo(0, -10);
+    ctx.lineTo(0, 2);
+    ctx.moveTo(0, -1);
+    ctx.quadraticCurveTo(-7, 1, -9, 8);
+    ctx.moveTo(0, 1);
+    ctx.quadraticCurveTo(7, 3, 9, 9);
+    ctx.moveTo(-1, -5);
+    ctx.quadraticCurveTo(-7, -8, -9, -3);
+    ctx.moveTo(1, -7);
+    ctx.quadraticCurveTo(7, -10, 9, -5);
+    ctx.stroke();
+  } else {
+    const glyphColor =
+      signatureAbility === "heartwood_tempest"
+        ? "#efcb6d"
+        : signatureAbility === "verdant_nova"
+          ? "#70ddf6"
+          : signatureAbility === "awaken_the_grove"
+            ? "#8fe176"
+            : color;
+    ctx.strokeStyle = glyphColor;
+    ctx.fillStyle = glyphColor;
+    ctx.beginPath();
+    ctx.arc(0, 0, 9, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, 4, 0, Math.PI * 2);
+    ctx.fill();
+    for (let index = 0; index < 6; index += 1) {
+      const angle = index * Math.PI / 3;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(angle) * 11, Math.sin(angle) * 11);
+      ctx.lineTo(Math.cos(angle) * 14, Math.sin(angle) * 14);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function drawAbilitySlots(ctx, startX, y, player, abilityInfo, slotSize = 58, gap = 8) {
   const abilities = getHudAbilitySpecs();
-  const slotW = 64;
-  const slotH = 46;
-  const gap = 8;
+  const slotW = slotSize;
+  const slotH = slotSize;
 
   for (let i = 0; i < abilities.length; i += 1) {
     const [name, color] = abilities[i];
@@ -201,12 +353,16 @@ function drawAbilitySlots(ctx, startX, y, player, abilityInfo) {
     const ratio = info.cooldown > 0 ? Math.min(1, cooldown / info.cooldown) : 0;
     const unlocked = info.unlocked !== false;
 
-    ctx.fillStyle = "rgba(0, 0, 0, 0.64)";
+    const isSignature = name === "pulse" && info.signatureAbility;
+    const heartCharge = Math.max(0, Math.min(100, player.heartCharge || 0));
+    const ready = isSignature && heartCharge >= 100 && cooldown <= 0;
+
+    ctx.fillStyle = "rgba(0, 0, 0, 0.72)";
     ctx.fillRect(x, y, slotW, slotH);
-    ctx.fillStyle = "#10161d";
+    ctx.fillStyle = ready ? "#172217" : "#10161d";
     ctx.fillRect(x + 3, y + 3, slotW - 6, slotH - 6);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = ready ? "#fff0a0" : color;
+    ctx.lineWidth = ready ? 3 : 2;
     ctx.strokeRect(x + 3, y + 3, slotW - 6, slotH - 6);
 
     const innerX = x + 3;
@@ -222,43 +378,72 @@ function drawAbilitySlots(ctx, startX, y, player, abilityInfo) {
       ctx.fillRect(innerX, innerY, innerW, innerH);
     }
 
-    if (ratio > 0 && unlocked) {
-      ctx.fillStyle = "rgba(4, 7, 11, 0.78)";
-      ctx.fillRect(innerX, innerY, innerW, innerH);
+    drawAbilityGlyph(
+      ctx,
+      name,
+      x + slotW / 2,
+      y + slotH / 2 - 3,
+      Math.max(18, slotSize * 0.36),
+      unlocked ? color : "#68737d",
+      info.signatureAbility
+    );
 
-      const cooldownText = cooldown >= 1 ? cooldown.toFixed(1) : cooldown.toFixed(2);
-      ctx.fillStyle = "#dce6ee";
-      ctx.font = "700 12px Segoe UI, Arial";
-      ctx.fillText(info.key, x + 8, y + 14);
-      ctx.fillStyle = "#f6f0d8";
-      ctx.font = "700 20px Segoe UI, Arial";
-      ctx.textAlign = "center";
-      ctx.fillText(cooldownText, x + slotW / 2, y + 29);
+    ctx.fillStyle = unlocked ? "#f7fff1" : "#88939f";
+    ctx.font = `700 ${slotSize < 54 ? 9 : 10}px Segoe UI, Arial`;
+    ctx.fillText(info.key, x + 6, y + 12);
+    if (info.cost > 0 && unlocked) {
+      ctx.textAlign = "right";
+      ctx.fillStyle = player.spirit >= info.cost ? "#74ddff" : "#d87979";
+      ctx.fillText(String(info.cost), x + slotW - 6, y + 12);
       ctx.textAlign = "left";
-      ctx.fillStyle = "#d7e4cf";
-      ctx.font = "11px Segoe UI, Arial";
-      ctx.fillText(info.shortLabel || info.label, x + 8, y + 40);
+    }
+    ctx.textAlign = "center";
+    ctx.fillStyle = unlocked ? "#d7e4cf" : "#8f99a3";
+    ctx.font = `700 ${slotSize < 54 ? 8 : 9}px Segoe UI, Arial`;
+    ctx.fillText(unlocked ? info.shortLabel || info.label : "Locked", x + slotW / 2, y + slotH - 6);
 
-      ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
-      ctx.fillRect(innerX + 6, y + slotH - 12, innerW - 12, 5);
-      ctx.fillStyle = color;
-      ctx.fillRect(innerX + 6, y + slotH - 12, (innerW - 12) * (1 - ratio), 5);
-    } else {
-      ctx.fillStyle = unlocked ? "#f7fff1" : "#88939f";
-      ctx.font = "700 16px Segoe UI, Arial";
-      ctx.fillText(info.key, x + 8, y + 19);
-      ctx.font = "12px Segoe UI, Arial";
-      ctx.fillStyle = unlocked ? "#d7e4cf" : "#97a2ae";
-      ctx.fillText(unlocked ? info.shortLabel || info.label : "Locked", x + 8, y + 36);
+    if (ratio > 0 && unlocked) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(innerX, innerY, innerW, innerH);
+      ctx.clip();
+      ctx.fillStyle = "rgba(2, 5, 8, 0.76)";
+      ctx.beginPath();
+      ctx.moveTo(x + slotW / 2, y + slotH / 2);
+      ctx.arc(
+        x + slotW / 2,
+        y + slotH / 2,
+        slotW,
+        -Math.PI / 2,
+        -Math.PI / 2 + Math.PI * 2 * ratio
+      );
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      const cooldownText = cooldown >= 1 ? cooldown.toFixed(1) : cooldown.toFixed(1);
+      ctx.fillStyle = "#fff4dc";
+      ctx.font = `700 ${slotSize < 54 ? 15 : 18}px Segoe UI, Arial`;
+      ctx.fillText(cooldownText, x + slotW / 2, y + slotH / 2 + 5);
     }
 
-    if (name === "pulse" && info.signatureAbility) {
-      const charge = Math.max(0, Math.min(100, player.heartCharge || 0));
-      ctx.fillStyle = "rgba(0,0,0,0.68)";
-      ctx.fillRect(x + 5, y + slotH - 8, slotW - 10, 4);
-      ctx.fillStyle = charge >= 100 ? "#fff09a" : color;
-      ctx.fillRect(x + 5, y + slotH - 8, (slotW - 10) * charge / 100, 4);
+    if (isSignature) {
+      ctx.strokeStyle = ready ? "#fff09a" : color;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(
+        x + slotW / 2,
+        y + slotH / 2,
+        slotW / 2 + 4,
+        -Math.PI / 2,
+        -Math.PI / 2 + Math.PI * 2 * heartCharge / 100
+      );
+      ctx.stroke();
+      ctx.fillStyle = ready ? "#fff0a0" : "#b8c8ba";
+      ctx.font = "700 8px Segoe UI, Arial";
+      ctx.fillText(ready ? "READY" : `${Math.round(heartCharge)}%`, x + slotW / 2, y - 5);
     }
+    ctx.textAlign = "left";
   }
 }
 
@@ -349,6 +534,7 @@ function drawBuffChips(ctx, x, y, player, progression) {
     chips.push({
       label: `${preparation.label || fallbackName} ${reduction}%`,
       color: DAMAGE_TYPES[preparation.damageType]?.color || "#a8d77b",
+      shield: true,
     });
   }
   if (chips.length === 0) return;
@@ -361,7 +547,19 @@ function drawBuffChips(ctx, x, y, player, progression) {
     ctx.fillStyle = "#10161d";
     ctx.fillRect(cursorX + 2, y + 2, width - 4, 14);
     ctx.fillStyle = chip.color;
-    ctx.fillRect(cursorX + 5, y + 5, 7, 8);
+    if (chip.shield) {
+      ctx.beginPath();
+      ctx.moveTo(cursorX + 9, y + 4);
+      ctx.lineTo(cursorX + 14, y + 6);
+      ctx.lineTo(cursorX + 13, y + 12);
+      ctx.lineTo(cursorX + 9, y + 15);
+      ctx.lineTo(cursorX + 5, y + 12);
+      ctx.lineTo(cursorX + 4, y + 6);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.fillRect(cursorX + 5, y + 5, 7, 8);
+    }
     ctx.fillStyle = "#eef7df";
     ctx.font = "10px Segoe UI, Arial";
     ctx.fillText(chip.label, cursorX + 16, y + 12);
@@ -500,36 +698,43 @@ function drawBossBar(ctx, state) {
     return;
   }
 
-  const width = 460;
-  const height = 18;
+  const width = Math.min(520, state.viewport.width - 80);
+  const height = 16;
   const x = state.viewport.width / 2 - width / 2;
-  const y = 18;
+  const y = 22;
   const boss = state.boss;
   const ratio = boss ? Math.max(0, boss.hp / boss.maxHp) : 1;
+  const damageType = String(boss?.identity?.damageType || "physical").toLowerCase();
+  const damageColor = DAMAGE_TYPES[damageType]?.color || "#db6748";
+  const preparation = state.progression.activePreparation;
+  const prepared = Boolean(preparation && preparation.damageType === damageType);
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.68)";
-  ctx.fillRect(x - 6, y - 18, width + 12, height + 28);
-  ctx.fillStyle = "#10161d";
-  ctx.fillRect(x - 3, y - 15, width + 6, height + 22);
-  ctx.fillStyle = "#42150f";
+  ctx.fillStyle = "rgba(0, 0, 0, 0.78)";
+  ctx.fillRect(x - 8, y - 20, width + 16, height + 38);
+  ctx.fillStyle = "#0c1218";
+  ctx.fillRect(x - 4, y - 16, width + 8, height + 30);
+  ctx.fillStyle = "#32100f";
   ctx.fillRect(x, y, width, height);
-  ctx.fillStyle = "#db6748";
+  ctx.fillStyle = damageColor;
   ctx.fillRect(x, y, width * ratio, height);
+  ctx.fillStyle = "rgba(255,255,255,0.18)";
+  ctx.fillRect(x, y, width * ratio, 3);
 
   ctx.textAlign = "center";
   ctx.fillStyle = "#fff4d4";
-  ctx.font = "700 13px Segoe UI, Arial";
-  ctx.fillText(state.scene.bossName || "Elder Hollow", state.viewport.width / 2, y - 4);
+  ctx.font = "700 14px Segoe UI, Arial";
+  ctx.fillText(state.scene.bossName || "Elder Hollow", state.viewport.width / 2, y - 5);
   if (boss) {
-    ctx.font = "700 10px Segoe UI, Arial";
-    ctx.fillStyle = "#d9e7d0";
+    ctx.font = "700 9px Segoe UI, Arial";
+    ctx.fillStyle = prepared ? "#a7e4a4" : "#d9a18d";
     ctx.fillText(
-      `${String(boss.identity?.damageType || "physical").toUpperCase()}  |  PHASE ${boss.phase || 1}`,
+      `${damageType.toUpperCase()}  |  PHASE ${boss.phase || 1}  |  ${prepared ? "WARD ACTIVE" : `NO ${damageType.toUpperCase()} WARD`}`,
       state.viewport.width / 2,
-      y + 13
+      y + 29
     );
   }
   ctx.textAlign = "left";
+  drawPanelChrome(ctx, x - 8, y - 20, width + 16, height + 38, damageColor);
 }
 
 function drawQuestTracker(ctx, state) {
@@ -538,9 +743,9 @@ function drawQuestTracker(ctx, state) {
   const quests = (state.activeQuests || []).filter((quest) => quest.status !== "done");
   if (quests.length === 0) return;
 
-  const x = 20;
-  const y = 98;
-  const width = 320;
+  const x = 18;
+  const y = 112;
+  const width = Math.min(286, state.viewport.width * 0.3);
   const selectedQuest =
     quests[Math.min(state.ui.selectedQuestIndex || 0, quests.length - 1)] || quests[0];
   const rows = [selectedQuest].map((quest) => {
@@ -548,24 +753,31 @@ function drawQuestTracker(ctx, state) {
       quest.status === "complete"
         ? getQuestTurnInLabel(quest)
         : getQuestObjectiveLabel(quest);
-    const noteLines = toWrappedLines(ctx, note, width - 24).slice(0, 3);
+    const noteLines = toWrappedLines(ctx, note, width - 34).slice(0, 2);
     return {
       quest,
       noteLines,
-      height: 34 + noteLines.length * 14,
+      height: 30 + noteLines.length * 14,
     };
   });
-  const height = 28 + rows.reduce((sum, row) => sum + row.height, 0);
+  const height = 24 + rows.reduce((sum, row) => sum + row.height, 0);
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.58)";
+  ctx.fillStyle = "rgba(0, 0, 0, 0.48)";
   ctx.fillRect(x, y, width, height);
-  ctx.fillStyle = "#10161d";
+  ctx.fillStyle = "rgba(12, 18, 24, 0.92)";
   ctx.fillRect(x + 4, y + 4, width - 8, height - 8);
+  ctx.fillStyle = selectedQuest.status === "complete" ? "#e4c875" : "#7ba979";
+  ctx.fillRect(x + 4, y + 4, 3, height - 8);
   ctx.fillStyle = "#f6fff1";
-  ctx.font = "700 13px Segoe UI, Arial";
-  ctx.fillText("Pinned Quest", x + 12, y + 18);
+  ctx.font = "700 10px Segoe UI, Arial";
+  ctx.fillText("PINNED QUEST", x + 13, y + 17);
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#81908a";
+  ctx.font = "9px Segoe UI, Arial";
+  ctx.fillText("L  QUEST LOG", x + width - 12, y + 17);
+  ctx.textAlign = "left";
 
-  let cursorY = y + 38;
+  let cursorY = y + 35;
   for (const row of rows) {
     const quest = row.quest;
     ctx.fillStyle = "#fff1c6";
@@ -578,8 +790,9 @@ function drawQuestTracker(ctx, state) {
       ctx.fillText(line, x + 12, cursorY);
       cursorY += 14;
     });
-    cursorY += 8;
+    cursorY += 5;
   }
+  drawPanelChrome(ctx, x, y, width, height, selectedQuest.status === "complete" ? "#bca25e" : "#648b67");
 }
 
 function drawQuestLogOverlay(ctx, state) {
@@ -2723,26 +2936,26 @@ function getHudHoverOnlyTarget(state, mouseX, mouseY) {
 }
 
 function getBottomHudInteractionData(state) {
-  const { width, height } = state.viewport;
-  const panelW = 680;
-  const panelH = 108;
-  const x = width / 2 - panelW / 2;
-  const y = height - panelH - 12;
+  const layout = getBottomHudLayout(state);
+  const { panelRect, abilityStartX, abilityY, abilitySlotSize, abilityGap } = layout;
+  const { x, y, width: panelW } = panelRect;
   const abilities = getHudAbilitySpecs();
-  const abilityRowWidth = abilities.length * 64 + (abilities.length - 1) * 8;
-  const abilityStartX = x + panelW / 2 - abilityRowWidth / 2;
-  const actionStartX = x + panelW / 2 - 127;
   const actionSlots = getActionSlotEntries(state.progression);
   return {
     abilitySlots: abilities.map(([name, color], index) => ({
       name,
       color,
       info: state.player.abilityInfo[name],
-      rect: rect(abilityStartX + index * 72, y + 16, 64, 46),
+      rect: rect(
+        abilityStartX + index * (abilitySlotSize + abilityGap),
+        abilityY,
+        abilitySlotSize,
+        abilitySlotSize
+      ),
     })),
     actionSlots: actionSlots.map((slot, index) => ({
       ...slot,
-      rect: rect(actionStartX + index * 88, y + 70, 78, 28),
+      rect: rect(layout.actionStartX + index * 88, layout.actionY, 78, 28),
     })),
     quickItems: [
       {
@@ -2751,7 +2964,7 @@ function getBottomHudInteractionData(state) {
         count: state.progression.inventory.health_potion || 0,
         itemId: "health_potion",
         color: "#df6a67",
-        rect: rect(x + 12, y + 82, 74, 18),
+        rect: rect(x + 10, layout.statusY, 74, 18),
       },
       {
         key: "6",
@@ -2759,7 +2972,7 @@ function getBottomHudInteractionData(state) {
         count: state.progression.inventory.spirit_tonic || 0,
         itemId: "spirit_tonic",
         color: "#6ecff7",
-        rect: rect(x + panelW - 86, y + 82, 74, 18),
+        rect: rect(x + panelW - 76, layout.statusY, 74, 18),
       },
     ],
   };
@@ -2863,8 +3076,21 @@ function drawHoverTooltip(ctx, state) {
   const maxWidth = Math.max(...allLines.map((line) => ctx.measureText(line).width), 120);
   const boxW = Math.min(320, Math.ceil(maxWidth) + 24);
   const boxH = 20 + wrappedLines.length * 16 + 22;
-  const cursorX = Math.min(state.viewport.width - boxW - 16, state.ui.hoverTarget.rect ? state.ui.hoverTarget.rect.x + state.ui.hoverTarget.rect.width + 12 : 20);
-  const cursorY = Math.min(state.viewport.height - boxH - 16, state.ui.hoverTarget.rect ? state.ui.hoverTarget.rect.y + 8 : 20);
+  const targetRect = state.ui.hoverTarget.rect;
+  const cursorX = Math.max(
+    16,
+    Math.min(
+      state.viewport.width - boxW - 16,
+      targetRect ? targetRect.x + targetRect.width + 12 : 20
+    )
+  );
+  const preferredY =
+    targetRect && targetRect.y > state.viewport.height * 0.65
+      ? targetRect.y - boxH - 10
+      : targetRect
+        ? targetRect.y + 8
+        : 20;
+  const cursorY = Math.max(16, Math.min(state.viewport.height - boxH - 16, preferredY));
 
   ctx.fillStyle = "rgba(0,0,0,0.88)";
   ctx.fillRect(cursorX, cursorY, boxW, boxH);
