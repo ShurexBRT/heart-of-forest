@@ -12,6 +12,7 @@ import {
   getItemAspectAffinity,
   getItemAttunementLevel,
   getItemValue,
+  getLoadoutEntries,
   getPlayerBonuses,
   getQuestCounter,
   getStashEntries,
@@ -26,6 +27,7 @@ import { getActiveService, getServiceEntries, getStashUiEntries } from "../syste
 import { NPC_DEFS } from "../data/storyData.js";
 import { getClockView } from "../systems/clock.js";
 import { getQuestPanelHoverTarget, renderQuestPanel } from "./questPanel.js";
+import { getTrainingView } from "../systems/training.js";
 
 const TEXT_MEASURE_CANVAS =
   typeof document !== "undefined" ? document.createElement("canvas") : null;
@@ -78,6 +80,7 @@ export function drawHud(ctx, state, abilityInfo) {
     drawSceneInfo(ctx, state);
     drawBossBar(ctx, state);
     drawQuestTracker(ctx, state);
+    drawTrainingPanel(ctx, state);
     drawBottomHud(ctx, state, abilityInfo);
   }
   drawBanner(ctx, state);
@@ -800,9 +803,43 @@ function drawQuestTracker(ctx, state) {
   drawPanelChrome(ctx, x, y, width, height, selectedQuest.status === "complete" ? "#bca25e" : "#648b67");
 }
 
+function drawTrainingPanel(ctx, state) {
+  const view = getTrainingView(state);
+  if (!view.active) return;
+
+  const width = Math.min(250, state.viewport.width - 36);
+  const x = state.viewport.width - width - 18;
+  const y = 112;
+  const height = 86;
+  const timeRatio = Math.max(0, Math.min(1, view.timeLeft / 20));
+
+  ctx.fillStyle = "rgba(0,0,0,0.58)";
+  ctx.fillRect(x, y, width, height);
+  ctx.fillStyle = "#111920";
+  ctx.fillRect(x + 4, y + 4, width - 8, height - 8);
+  ctx.strokeStyle = "#bfa765";
+  ctx.strokeRect(x, y, width, height);
+  ctx.fillStyle = "#fff0bd";
+  ctx.font = "700 11px Segoe UI, Arial";
+  ctx.fillText("TRAINING GROVE  |  STEADY TARGET", x + 12, y + 18);
+  ctx.fillStyle = "#dbe8d5";
+  ctx.font = "700 18px Segoe UI, Arial";
+  ctx.fillText(`${view.dps.toFixed(1)} DPS`, x + 12, y + 44);
+  ctx.textAlign = "right";
+  ctx.font = "11px Segoe UI, Arial";
+  ctx.fillStyle = "#aebdb6";
+  ctx.fillText(`${view.damage} damage  |  ${view.hits} hits`, x + width - 12, y + 43);
+  ctx.fillText(`${view.timeLeft.toFixed(1)}s`, x + width - 12, y + 61);
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#29332d";
+  ctx.fillRect(x + 12, y + 68, width - 24, 7);
+  ctx.fillStyle = timeRatio > 0.25 ? "#d7c16f" : "#e18166";
+  ctx.fillRect(x + 12, y + 68, (width - 24) * timeRatio, 7);
+}
+
 function drawQuestLogOverlay(ctx, state) {
   const panel = getQuestLogPanelData(state);
-  const { quests } = panel;
+  const { quests, selectedQuest, listRect, detailRect } = panel;
   const frame = getQuestLogFrame(state);
   const { x, y, width, height } = frame;
 
@@ -812,11 +849,11 @@ function drawQuestLogOverlay(ctx, state) {
   ctx.fillRect(x + 6, y + 6, width - 12, height - 12);
   ctx.fillStyle = "#f6fff1";
   ctx.font = "700 22px Segoe UI, Arial";
-  ctx.fillText("Quest Log", x + 18, y + 28);
+  ctx.fillText(state.progression.campaign?.journalUnlocked ? "Field Journal" : "Field Notes", x + 18, y + 28);
   ctx.font = "12px Segoe UI, Arial";
   ctx.fillStyle = "#d3e1cf";
   ctx.textAlign = "right";
-  ctx.fillText("L / Esc to close", x + width - 58, y + 28);
+  ctx.fillText("L / Esc close  |  Up / Down select", x + width - 58, y + 28);
   ctx.textAlign = "left";
   drawPanelChrome(ctx, x, y, width, height, "#7ca57b");
   drawOverlayCloseButton(ctx, getOverlayCloseButton(frame), state.ui.hoverTarget);
@@ -828,6 +865,11 @@ function drawQuestLogOverlay(ctx, state) {
     return;
   }
 
+  ctx.fillStyle = "rgba(0,0,0,0.3)";
+  ctx.fillRect(listRect.x, listRect.y, listRect.width, listRect.height);
+  ctx.strokeStyle = "#34433d";
+  ctx.strokeRect(listRect.x, listRect.y, listRect.width, listRect.height);
+
   panel.rows.forEach((row) => {
     const selected = row.index === state.ui.selectedQuestIndex;
     ctx.fillStyle = selected ? "rgba(116, 191, 255, 0.16)" : "rgba(0, 0, 0, 0.28)";
@@ -838,40 +880,109 @@ function drawQuestLogOverlay(ctx, state) {
         : row.quest.status === "complete"
           ? "#ffdc9c"
           : "#fff1c6";
-    ctx.font = "700 14px Segoe UI, Arial";
-    ctx.fillText(row.quest.title, row.rect.x + 12, row.rect.y + 18);
-    ctx.fillStyle = "#d8e6d4";
-    ctx.font = "12px Segoe UI, Arial";
-    row.descriptionLines.forEach((line, index) => {
-      ctx.fillText(line, row.rect.x + 12, row.rect.y + 38 + index * 16);
+    ctx.font = "700 12px Segoe UI, Arial";
+    ctx.fillText(row.quest.title, row.rect.x + 10, row.rect.y + 17);
+    ctx.fillStyle = "#9fb0aa";
+    ctx.font = "10px Segoe UI, Arial";
+    ctx.fillText(
+      `${row.quest.kind.toUpperCase()}  |  ${row.quest.chapter.toUpperCase()}  |  ${formatQuestStatus(row.quest.status)}`,
+      row.rect.x + 10,
+      row.rect.y + 34
+    );
+  });
+
+  ctx.fillStyle = "rgba(0,0,0,0.24)";
+  ctx.fillRect(detailRect.x, detailRect.y, detailRect.width, detailRect.height);
+  ctx.strokeStyle = "#34433d";
+  ctx.strokeRect(detailRect.x, detailRect.y, detailRect.width, detailRect.height);
+
+  if (!selectedQuest) return;
+  const bodyX = detailRect.x + 18;
+  const bodyWidth = detailRect.width - 36;
+  let cursorY = detailRect.y + 24;
+  ctx.fillStyle = getQuestStatusColor(selectedQuest.status);
+  ctx.font = "700 10px Segoe UI, Arial";
+  ctx.fillText(
+    `${selectedQuest.kind.toUpperCase()}  |  ${selectedQuest.chapter.toUpperCase()}  |  ${formatQuestStatus(selectedQuest.status)}`,
+    bodyX,
+    cursorY
+  );
+  cursorY += 28;
+  ctx.fillStyle = "#fff1c6";
+  ctx.font = panel.compact ? "700 18px Segoe UI, Arial" : "700 22px Segoe UI, Arial";
+  ctx.fillText(selectedQuest.title, bodyX, cursorY);
+  cursorY += 24;
+  ctx.fillStyle = "#d8e6d4";
+  ctx.font = "12px Segoe UI, Arial";
+  const descriptionLines = toWrappedLines(ctx, selectedQuest.description, bodyWidth, 3);
+  descriptionLines.forEach((line) => {
+    ctx.fillText(line, bodyX, cursorY);
+    cursorY += 16;
+  });
+  cursorY += 8;
+
+  ctx.fillStyle = "#fff2d5";
+  ctx.font = "700 12px Segoe UI, Arial";
+  ctx.fillText("OBJECTIVES", bodyX, cursorY);
+  cursorY += 18;
+  ctx.font = "11px Segoe UI, Arial";
+  for (const objective of selectedQuest.objectives) {
+    const complete = objective.current >= objective.required;
+    ctx.fillStyle = complete ? "#9de1a3" : "#d8e6d4";
+    ctx.fillText(
+      `${complete ? "[DONE]" : "[ ]"} ${objective.label}: ${Math.min(objective.current, objective.required)}/${objective.required}`,
+      bodyX,
+      cursorY
+    );
+    cursorY += 15;
+  }
+
+  const rewardText = getQuestRewardSummary(selectedQuest.rewards);
+  if (rewardText) {
+    cursorY += 5;
+    ctx.fillStyle = "#b7dcae";
+    ctx.font = "11px Segoe UI, Arial";
+    toWrappedLines(ctx, rewardText, bodyWidth, 2).forEach((line) => {
+      ctx.fillText(line, bodyX, cursorY);
+      cursorY += 14;
     });
+  }
 
-    let objectiveY = row.rect.y + 38 + row.descriptionLines.length * 16 + 8;
-    if (row.turnInLines.length > 0) {
-      ctx.fillStyle = "#ffd7a3";
-      row.turnInLines.forEach((line) => {
-        ctx.fillText(line, row.rect.x + 12, objectiveY);
-        objectiveY += 14;
-      });
-      objectiveY += 2;
-    }
+  drawJournalBestiary(ctx, state, panel, Math.max(cursorY + 14, detailRect.y + detailRect.height - (panel.compact ? 132 : 188)));
+}
 
-    for (const objective of row.quest.objectives) {
-      ctx.fillStyle = "rgba(255,255,255,0.8)";
-      ctx.fillText(
-        `${objective.label}: ${Math.min(objective.current, objective.required)}/${objective.required}`,
-        row.rect.x + 12,
-        objectiveY
-      );
-      objectiveY += 14;
-    }
+function drawJournalBestiary(ctx, state, panel, startY) {
+  const { detailRect, compact } = panel;
+  const entries = state.bestiaryEntries || [];
+  const x = detailRect.x + 18;
+  const width = detailRect.width - 36;
+  ctx.fillStyle = "#fff2d5";
+  ctx.font = "700 12px Segoe UI, Arial";
+  ctx.fillText("HEARTWOOD BESTIARY", x, startY);
 
-    if (row.rewardLines.length > 0) {
-      objectiveY += 4;
-      ctx.fillStyle = "#b7dcae";
-      row.rewardLines.forEach((line) => {
-        ctx.fillText(line, row.rect.x + 12, objectiveY);
-        objectiveY += 14;
+  const gap = 10;
+  const cardWidth = compact ? width : (width - gap) / 2;
+  entries.forEach((entry, index) => {
+    const cardX = compact ? x : x + index * (cardWidth + gap);
+    const cardY = compact ? startY + 12 + index * 54 : startY + 12;
+    const cardHeight = compact ? 48 : 104;
+    ctx.fillStyle = entry.discovered ? "rgba(48,77,57,0.58)" : "rgba(30,35,38,0.7)";
+    ctx.fillRect(cardX, cardY, cardWidth, cardHeight);
+    ctx.strokeStyle = entry.mastered ? "#8fd892" : entry.discovered ? "#8fbf9a" : "#4a5555";
+    ctx.strokeRect(cardX, cardY, cardWidth, cardHeight);
+    ctx.fillStyle = entry.discovered ? "#eaf4d9" : "#87938f";
+    ctx.font = "700 12px Segoe UI, Arial";
+    ctx.fillText(entry.displayName, cardX + 10, cardY + 17);
+    ctx.fillStyle = "#aebdb6";
+    ctx.font = "10px Segoe UI, Arial";
+    const clue = entry.clues?.slice(0, entry.visibleClues)[0];
+    const line = clue || "No reliable field clue recorded.";
+    toWrappedLines(ctx, line, cardWidth - 20, compact ? 2 : 3).forEach((text, lineIndex) => {
+      ctx.fillText(text, cardX + 10, cardY + 34 + lineIndex * 13);
+    });
+    if (!compact && entry.visibleClues > 1) {
+      toWrappedLines(ctx, entry.clues[1], cardWidth - 20, 2).forEach((text, lineIndex) => {
+        ctx.fillText(text, cardX + 10, cardY + 73 + lineIndex * 13);
       });
     }
   });
@@ -1008,6 +1119,32 @@ function drawCharacterTab(ctx, state, x, y, width, height, bonuses) {
 
   if (panel.unequipButton) {
     drawActionButton(ctx, panel.unequipButton, state.ui.hoverTarget, "#0f151c", "#f6ead0");
+  }
+
+  const loadout = panel.loadout;
+  ctx.fillStyle = "rgba(0,0,0,0.3)";
+  ctx.fillRect(loadout.rect.x, loadout.rect.y, loadout.rect.width, loadout.rect.height);
+  ctx.strokeStyle = loadout.unlocked ? "#698d6b" : "#3d4848";
+  ctx.strokeRect(loadout.rect.x, loadout.rect.y, loadout.rect.width, loadout.rect.height);
+  ctx.fillStyle = loadout.unlocked ? "#fff2d5" : "#8d9994";
+  ctx.font = "700 13px Segoe UI, Arial";
+  ctx.fillText("Grove Loadout I", loadout.rect.x + 12, loadout.rect.y + 20);
+  ctx.fillStyle = "#aebdb6";
+  ctx.font = "10px Segoe UI, Arial";
+  ctx.fillText(
+    loadout.unlocked
+      ? loadout.entry?.loadout
+        ? "Equipment and quick slots recorded"
+        : "No setup recorded yet"
+      : "Restore Heartwood to unlock",
+    loadout.rect.x + 12,
+    loadout.rect.y + 39
+  );
+  if (loadout.saveButton) {
+    drawActionButton(ctx, loadout.saveButton, state.ui.hoverTarget, "#17241b", "#eef7df");
+  }
+  if (loadout.activateButton) {
+    drawActionButton(ctx, loadout.activateButton, state.ui.hoverTarget, "#17202a", "#eef5ff");
   }
 }
 
@@ -2042,11 +2179,14 @@ function getCharacterOverlayFrame(state) {
 }
 
 function getQuestLogFrame(state) {
+  const compact = state.viewport.width < 760 || state.viewport.height < 640;
+  const marginX = compact ? 16 : Math.max(32, Math.min(56, state.viewport.width * 0.05));
+  const marginY = compact ? 18 : Math.max(34, Math.min(60, state.viewport.height * 0.08));
   return {
-    x: 56,
-    y: 84,
-    width: state.viewport.width - 112,
-    height: state.viewport.height - 180,
+    x: marginX,
+    y: marginY,
+    width: state.viewport.width - marginX * 2,
+    height: state.viewport.height - marginY * 2,
   };
 }
 
@@ -2254,6 +2394,9 @@ function getCharacterPanelData(state, frame) {
     rect: rect(slotX, slotY - 16 + index * 42, 220, 34),
   }));
   const selected = equipped[state.ui.selectedEquipmentIndex] || null;
+  const loadoutEntry = getLoadoutEntries(state.progression)[0];
+  const loadoutY = slotY + equipped.length * 42 + 44;
+  const loadoutRect = rect(slotX, loadoutY, 220, 92);
   return {
     equipped,
     rows,
@@ -2263,6 +2406,21 @@ function getCharacterPanelData(state, frame) {
             index: state.ui.selectedEquipmentIndex,
           })
         : null,
+    loadout: {
+      rect: loadoutRect,
+      entry: loadoutEntry,
+      unlocked: Boolean(loadoutEntry?.unlocked),
+      saveButton: loadoutEntry?.unlocked
+        ? makeButton(loadoutRect.x + 10, loadoutRect.y + 52, 92, 28, "Save Current", "loadout-save", "#79b886", {
+            index: 0,
+          })
+        : null,
+      activateButton: loadoutEntry?.unlocked && loadoutEntry.loadout
+        ? makeButton(loadoutRect.x + 112, loadoutRect.y + 52, 98, 28, "Equip", "loadout-activate", "#79b8ff", {
+            index: 0,
+          })
+        : null,
+    },
   };
 }
 
@@ -2504,48 +2662,65 @@ function getServicePanelData(state, frame) {
 }
 
 function getQuestLogPanelData(state) {
-  const quests = state.activeQuests || [];
-  const x = 56;
-  const y = 84;
-  const width = state.viewport.width - 112;
-  const measureCtx = getMeasureContext("12px Segoe UI, Arial");
-  const maxWidth = width - 60;
-  let rowY = y + 46;
+  const quests = state.journalQuests || state.activeQuests || [];
+  const frame = getQuestLogFrame(state);
+  const compact = frame.width < 760;
+  const contentY = frame.y + 52;
+  const contentHeight = frame.height - 68;
+  const listRect = compact
+    ? rect(frame.x + 16, contentY, frame.width - 32, 102)
+    : rect(frame.x + 16, contentY, Math.min(310, frame.width * 0.32), contentHeight);
+  const detailRect = compact
+    ? rect(frame.x + 16, contentY + 112, frame.width - 32, contentHeight - 112)
+    : rect(
+        listRect.x + listRect.width + 12,
+        contentY,
+        frame.x + frame.width - (listRect.x + listRect.width + 12) - 16,
+        contentHeight
+      );
+  const selectedIndex = Math.max(0, Math.min(quests.length - 1, state.ui.selectedQuestIndex || 0));
+  const rowHeight = 42;
+  const visibleCount = Math.max(1, Math.floor((listRect.height - 12) / rowHeight));
+  const startIndex = Math.max(
+    0,
+    Math.min(quests.length - visibleCount, selectedIndex - Math.floor(visibleCount / 2))
+  );
+  const rows = quests
+    .slice(startIndex, startIndex + visibleCount)
+    .map((quest, localIndex) => ({
+      quest,
+      index: startIndex + localIndex,
+      rect: rect(
+        listRect.x + 6,
+        listRect.y + 6 + localIndex * rowHeight,
+        listRect.width - 12,
+        rowHeight - 4
+      ),
+    }));
 
   return {
     quests,
-    rows: quests.map((quest, index) => {
-      const descriptionLines = measureCtx
-        ? toWrappedLines(measureCtx, quest.description, maxWidth)
-        : [quest.description];
-      const turnInLines =
-        quest.status === "complete" && measureCtx
-          ? toWrappedLines(measureCtx, getQuestTurnInLabel(quest), maxWidth, 2)
-          : [];
-      const rewardLines = measureCtx
-        ? toWrappedLines(measureCtx, getQuestRewardSummary(quest.rewards), maxWidth, 3)
-        : [];
-      const rowHeight = Math.max(
-        92,
-        38 +
-          descriptionLines.length * 16 +
-          turnInLines.length * 14 +
-          quest.objectives.length * 14 +
-          rewardLines.length * 14 +
-          20
-      );
-      const row = {
-        quest,
-        index,
-        descriptionLines,
-        turnInLines,
-        rewardLines,
-        rect: rect(x + 18, rowY, width - 36, rowHeight),
-      };
-      rowY += rowHeight + 14;
-      return row;
-    }),
+    rows,
+    selectedQuest: quests[selectedIndex] || null,
+    selectedIndex,
+    listRect,
+    detailRect,
+    compact,
   };
+}
+
+function formatQuestStatus(status) {
+  if (status === "done") return "ARCHIVED";
+  if (status === "complete") return "TURN IN";
+  if (status === "available") return "AVAILABLE";
+  return "ACTIVE";
+}
+
+function getQuestStatusColor(status) {
+  if (status === "done") return "#9de1a3";
+  if (status === "complete") return "#ffdc9c";
+  if (status === "available") return "#9fdba2";
+  return "#86c6ff";
 }
 
 function getQuestObjectiveLabel(quest) {
@@ -2700,6 +2875,29 @@ function getMenuHoverTarget(state, mouseX, mouseY) {
       return {
         ...panel.unequipButton,
         tooltip: { title: "Unequip", lines: ["Return the selected item to your inventory."], accent: panel.unequipButton.accent },
+      };
+    }
+    if (panel.loadout.saveButton && pointInRect(mouseX, mouseY, panel.loadout.saveButton.rect)) {
+      return {
+        ...panel.loadout.saveButton,
+        tooltip: {
+          title: "Save Current Loadout",
+          lines: ["Record equipped items and quick slots in Grove Loadout I."],
+          accent: panel.loadout.saveButton.accent,
+        },
+      };
+    }
+    if (
+      panel.loadout.activateButton &&
+      pointInRect(mouseX, mouseY, panel.loadout.activateButton.rect)
+    ) {
+      return {
+        ...panel.loadout.activateButton,
+        tooltip: {
+          title: "Equip Grove Loadout I",
+          lines: ["Restore its recorded equipment and available quick-slot items."],
+          accent: panel.loadout.activateButton.accent,
+        },
       };
     }
     return null;

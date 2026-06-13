@@ -125,6 +125,35 @@ function normalizeActionSlots(rawActionSlots = []) {
   return slots.map((itemId) => (itemId && getItemDef(itemId) ? itemId : null));
 }
 
+function normalizeLoadouts(rawLoadouts = []) {
+  if (!Array.isArray(rawLoadouts)) return [];
+
+  return rawLoadouts.slice(0, 3).map((entry, index) => {
+    if (!entry || typeof entry !== "object") return null;
+    const equipment = Object.fromEntries(
+      EQUIPMENT_SLOTS.map((slot) => {
+        const itemId = entry.equipment?.[slot];
+        const item = itemId ? getItemDef(itemId) : null;
+        return [slot, item?.slot === slot ? itemId : null];
+      })
+    );
+    return {
+      name: typeof entry.name === "string" ? entry.name.slice(0, 32) : `Grove Loadout ${index + 1}`,
+      equipment,
+      actionSlots: normalizeActionSlots(entry.actionSlots),
+    };
+  });
+}
+
+function normalizeTrainingStats(rawStats = {}) {
+  const bestDps = Number(rawStats?.bestDps || 0);
+  return {
+    bestDps: Number.isFinite(bestDps) ? Math.max(0, bestDps) : 0,
+    bestDamage: Math.max(0, Math.floor(rawStats?.bestDamage || 0)),
+    drillsCompleted: Math.max(0, Math.floor(rawStats?.drillsCompleted || 0)),
+  };
+}
+
 function normalizeBuyback(rawBuyback = []) {
   if (!Array.isArray(rawBuyback)) return [];
 
@@ -247,6 +276,8 @@ export function createProgression(snapshot = null) {
       relic: null,
     },
     actionSlots: ["health_potion", "spirit_tonic", null],
+    loadouts: [],
+    trainingStats: normalizeTrainingStats(),
     talentPoints: 0,
     talents: {},
     attunements: {},
@@ -276,6 +307,8 @@ export function createProgression(snapshot = null) {
   merged.stash = normalizeInventory({ ...merged.stash, ...(snapshot.stash || {}) });
   merged.equipment = { ...merged.equipment, ...(snapshot.equipment || {}) };
   merged.actionSlots = normalizeActionSlots(snapshot.actionSlots || merged.actionSlots);
+  merged.loadouts = normalizeLoadouts(snapshot.loadouts || merged.loadouts);
+  merged.trainingStats = normalizeTrainingStats(snapshot.trainingStats);
   merged.talents = normalizeTalents(snapshot.talents || {});
   merged.attunements = normalizeAttunements(snapshot.attunements || {});
   const spentTalents = Object.keys(merged.talents).length;
@@ -519,6 +552,72 @@ export function getEquippedItems(progression) {
       item: itemId ? getItemDef(itemId) : null,
     };
   });
+}
+
+export function getLoadoutEntries(progression) {
+  const unlocked = Math.max(0, Math.min(3, progression.campaign?.loadoutSlots || 0));
+  return Array.from({ length: 3 }, (_, index) => ({
+    index,
+    unlocked: index < unlocked,
+    loadout: progression.loadouts?.[index] || null,
+  }));
+}
+
+export function saveLoadout(progression, index) {
+  const unlocked = progression.campaign?.loadoutSlots || 0;
+  if (index < 0 || index >= unlocked || index >= 3) {
+    return { saved: false, reason: "That loadout slot is locked." };
+  }
+
+  progression.loadouts = normalizeLoadouts(progression.loadouts);
+  progression.loadouts[index] = {
+    name: `Grove Loadout ${index + 1}`,
+    equipment: { ...progression.equipment },
+    actionSlots: normalizeActionSlots(progression.actionSlots),
+  };
+  return { saved: true, loadout: progression.loadouts[index] };
+}
+
+export function activateLoadout(progression, index) {
+  const unlocked = progression.campaign?.loadoutSlots || 0;
+  const loadout = progression.loadouts?.[index];
+  if (index < 0 || index >= unlocked || !loadout) {
+    return { activated: false, reason: loadout ? "That loadout slot is locked." : "Save this loadout first." };
+  }
+
+  const missing = [];
+  for (const slot of EQUIPMENT_SLOTS) {
+    const desiredItemId = loadout.equipment?.[slot] || null;
+    if (
+      desiredItemId &&
+      progression.equipment[slot] !== desiredItemId &&
+      getItemCount(progression, desiredItemId) <= 0
+    ) {
+      missing.push(desiredItemId);
+    }
+  }
+  if (missing.length > 0) {
+    return {
+      activated: false,
+      reason: `Missing ${missing.map((itemId) => getItemDef(itemId)?.name || itemId).join(", ")}.`,
+      missing,
+    };
+  }
+
+  for (const slot of EQUIPMENT_SLOTS) {
+    const desiredItemId = loadout.equipment?.[slot] || null;
+    if (progression.equipment[slot] === desiredItemId) continue;
+    if (desiredItemId) {
+      equipItem(progression, desiredItemId);
+    } else {
+      unequipItem(progression, slot);
+    }
+  }
+
+  progression.actionSlots = normalizeActionSlots(loadout.actionSlots).map((itemId) =>
+    !itemId || getItemCount(progression, itemId) > 0 ? itemId : null
+  );
+  return { activated: true, loadout };
 }
 
 export function getItemAttunementLevel(progression, itemId) {

@@ -43,6 +43,7 @@ import {
 import { updateParticles } from "./systems/particles.js";
 import {
   assignItemToActionSlot,
+  activateLoadout,
   getCurrency,
   createProgression,
   equipItem,
@@ -50,6 +51,7 @@ import {
   getInventoryEntries,
   getPlayerBonuses,
   isActionSlotAssignable,
+  saveLoadout,
   toggleItemLock,
   unlockTalent,
   unequipItem,
@@ -75,6 +77,7 @@ import {
   consumeStoryEvents,
   createStoryState,
   getActiveQuestEntries,
+  getJournalQuestEntries,
   getNearestInteractionTarget,
   getHoveredInteractionTarget,
   moveQuestPanelSelection,
@@ -89,6 +92,12 @@ import {
   shouldStartCorruptionEcho,
 } from "./systems/regions.js";
 import { syncCampaignProgress } from "./systems/campaign.js";
+import { getBestiaryEntries } from "./systems/bestiary.js";
+import {
+  createTrainingState,
+  startTrainingDrill,
+  updateTrainingDrill,
+} from "./systems/training.js";
 import {
   createFrontendState,
   getFrontendEntries,
@@ -114,8 +123,9 @@ const input = createInput(canvas);
 const saveRecord = loadSave();
 const snapshot = saveRecord?.runtimeSnapshot || null;
 const settings = loadSettings();
-const progression = createProgression(snapshot?.progression);
 const debugBoot = readDebugBootConfig();
+const progression = createProgression(snapshot?.progression);
+applyDebugProgression(progression, debugBoot);
 let state = createState(progression, snapshot, {
   mode: debugBoot.mode || (debugBoot.overlay ? GAME_MODES.PLAYING : GAME_MODES.START_MENU),
   settings,
@@ -170,6 +180,7 @@ function createState(currentProgression, saveData = null, runtime = {}) {
     camera: { x: 0, y: 0 },
     mouseWorld: { x: 0, y: 0 },
     combatTimer: 0,
+    training: createTrainingState(),
     ui: createUiState(saveData?.ui),
     audio: runtime.audio || createAudioState(),
     settings: runtime.settings || settings,
@@ -237,8 +248,46 @@ function readDebugBootConfig() {
     forceGameOver: modeKey?.toLowerCase?.() === "gameover",
     overlay: params.get("debugUi")?.toLowerCase?.() || null,
     questNpc: params.get("debugNpc")?.toLowerCase?.() || null,
+    progress: params.get("debugProgress")?.toLowerCase?.() || null,
     collision: params.get("debugCollision") === "1",
   };
+}
+
+function applyDebugProgression(nextProgression, debugConfig) {
+  if (debugConfig?.progress !== "heartwood") return;
+  const completedHeartwoodQuests = [
+    "wake_hearthroot",
+    "first_moonleaf",
+    "thorn_at_gate",
+    "brew_before_blood",
+    "first_rootwarden",
+  ];
+  for (const questId of completedHeartwoodQuests) {
+    nextProgression.questStates[questId] = "done";
+  }
+  nextProgression.journal = [...new Set([...(nextProgression.journal || []), ...completedHeartwoodQuests])];
+  nextProgression.questCounters.gateThreatsDefeated = Math.max(
+    2,
+    nextProgression.questCounters.gateThreatsDefeated || 0
+  );
+  nextProgression.questCounters.hearthrootAwakened = Math.max(
+    1,
+    nextProgression.questCounters.hearthrootAwakened || 0
+  );
+  nextProgression.questCounters.moonleafHarvested = Math.max(
+    1,
+    nextProgression.questCounters.moonleafHarvested || 0
+  );
+  nextProgression.questCounters.barkskinBrewed = Math.max(
+    1,
+    nextProgression.questCounters.barkskinBrewed || 0
+  );
+  nextProgression.questCounters.rootwardenDefeated = Math.max(
+    1,
+    nextProgression.questCounters.rootwardenDefeated || 0
+  );
+  nextProgression.worldFlags.hearthroot_awake = true;
+  nextProgression.worldFlags.heartwood_restored = true;
 }
 
 function applyDebugBootState(nextState, debugConfig) {
@@ -895,7 +944,13 @@ function handleSceneCleared() {
 }
 
 function updateExitCharge(dt) {
-  if (state.gameOver || state.transition.active || state.story.dialogue || isUiOpen()) {
+  if (
+    state.gameOver ||
+    state.transition.active ||
+    state.story.dialogue ||
+    isUiOpen() ||
+    state.training?.active
+  ) {
     state.nearExit = null;
     state.exitCharge = 0;
     return;
@@ -959,6 +1014,10 @@ function handleInteractionAction(interaction) {
   if (!interaction?.action) return false;
 
   if (interaction.action === "sleep") {
+    if (state.training?.active) {
+      setToast("Finish the Training Grove drill before resting.", 2);
+      return true;
+    }
     return startSleepTransition();
   }
 
@@ -978,6 +1037,30 @@ function handleInteractionAction(interaction) {
     setToast(result.text, result.changed ? 2.6 : 2);
     queueAudio(state, result.event === "harvested" ? "quest" : "use-item");
     if (result.changed) saveCurrentGame();
+    return true;
+  }
+
+  if (interaction.action === "training-grove") {
+    if (!state.progression.campaign?.trainingGroveUnlocked) {
+      setToast("Restore Heartwood before using the Training Grove.", 2);
+      return true;
+    }
+    const target = state.arena.interactables.find(
+      (entry) => entry.id === interaction.interactableId
+    );
+    const result = startTrainingDrill(
+      state,
+      interaction.interactableId,
+      target?.x || state.player.x + 60,
+      target?.y || state.player.y
+    );
+    setToast(
+      result.started
+        ? "Training started: deal as much damage as possible in 20 seconds."
+        : result.reason,
+      result.started ? 3 : 2
+    );
+    if (result.started) queueAudio(state, "quest");
     return true;
   }
 
@@ -1504,6 +1587,33 @@ function unequipSelectedEntry() {
   return true;
 }
 
+function saveSelectedLoadout(index) {
+  const result = saveLoadout(state.progression, index);
+  setToast(
+    result.saved ? `${result.loadout.name} saved` : result.reason,
+    result.saved ? 1.8 : 2
+  );
+  if (result.saved) {
+    queueAudio(state, "quest");
+    saveCurrentGame();
+  }
+  return true;
+}
+
+function activateSelectedLoadout(index) {
+  const result = activateLoadout(state.progression, index);
+  setToast(
+    result.activated ? `${result.loadout.name} equipped` : result.reason,
+    result.activated ? 1.8 : 2.2
+  );
+  if (result.activated) {
+    refreshPlayerFromProgression();
+    queueAudio(state, "equip");
+    saveCurrentGame();
+  }
+  return true;
+}
+
 function unlockSelectedTalent() {
   const talent = TALENT_DEFS[state.ui.selectedTalentIndex];
   if (talent && unlockTalent(state.progression, talent.id)) {
@@ -1641,6 +1751,10 @@ function handleMouseUiInput() {
     case "equipment-unequip":
       state.ui.selectedEquipmentIndex = target.index;
       return unequipSelectedEntry();
+    case "loadout-save":
+      return saveSelectedLoadout(target.index);
+    case "loadout-activate":
+      return activateSelectedLoadout(target.index);
     case "talent-select":
       state.ui.selectedTalentIndex = target.index;
       return true;
@@ -1983,7 +2097,7 @@ function handleUiInput() {
   }
 
   if (state.ui.questLogOpen) {
-    const quests = getActiveQuestEntries(state.progression);
+    const quests = getJournalQuestEntries(state.progression);
     clampSelection("selectedQuestIndex", quests.length);
     if (wasPressed(input, "arrowup", "ArrowUp") || wasPressed(input, "w", "KeyW")) {
       moveSelection(-1, "selectedQuestIndex");
@@ -2096,6 +2210,15 @@ function update(dt) {
       }
 
       state.enemies = state.enemies.filter((enemy) => !enemy.dead);
+      const trainingResult = updateTrainingDrill(state, simulationDt);
+      if (trainingResult) {
+        setToast(
+          `Drill complete: ${trainingResult.dps} DPS, ${trainingResult.damage} damage, ${trainingResult.hits} hits.`,
+          4
+        );
+        queueAudio(state, "quest");
+        saveCurrentGame();
+      }
       resolveEnemyCrowding(state);
       updateEncounter(state, simulationDt);
       consumeStoryEvents(state);
@@ -2125,6 +2248,8 @@ function render() {
 
   try {
     state.activeQuests = getActiveQuestEntries(state.progression);
+    state.journalQuests = getJournalQuestEntries(state.progression);
+    state.bestiaryEntries = getBestiaryEntries(state.progression, "heartwood");
     if (isFrontendMode(state.mode)) {
       renderGame(ctx, state, {
         showHud: state.mode === GAME_MODES.PAUSED || state.mode === GAME_MODES.GAME_OVER,

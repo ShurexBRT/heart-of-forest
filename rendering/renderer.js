@@ -947,6 +947,10 @@ function drawInteractable(ctx, item, state, origin) {
     pixelRect(ctx, point.x - 4, point.y - 33, 8, 6, "#dfffb0");
   }
 
+  if (item.type === "trainingDummy") {
+    drawTrainingDummy(ctx, point.x, point.y, item, false);
+  }
+
   if (item.type === "scout") {
     drawIsoShadow(ctx, point.x, point.y, 14, 6);
     pixelRect(ctx, point.x - 12, point.y - 14, 24, 12, "#6b7b87");
@@ -1128,6 +1132,12 @@ function drawPlayer(ctx, player, origin) {
 
 function drawEnemy(ctx, enemy, state, origin) {
   const point = toScreen(origin, enemy.x, enemy.y, 16);
+  if (enemy.trainingDummy) {
+    drawTrainingDummy(ctx, point.x, point.y + 16, enemy, enemy.hitFlash > 0);
+    drawEnemyStatus(ctx, enemy, state, origin);
+    return;
+  }
+
   const frame = Math.floor(enemy.animTime) % 4;
   drawPixelSprite(ctx, getEnemySprite(enemy.config.sprite || enemy.type, resolveFacing(enemy.facing), frame, enemy.pose), point.x, point.y, {
     tint: enemy.hitFlash > 0 ? "#ffe0c9" : enemy.config.spriteTint || null,
@@ -1136,6 +1146,18 @@ function drawEnemy(ctx, enemy, state, origin) {
 
   drawEnemyStatus(ctx, enemy, state, origin);
   drawEnemyHealth(ctx, enemy, point.x, point.y);
+}
+
+function drawTrainingDummy(ctx, x, y, item, hit = false) {
+  drawIsoShadow(ctx, x, y, 18, 7);
+  pixelRect(ctx, x - 3, y - 36, 6, 32, "#5b3c26");
+  drawWorldMaterialRect(ctx, "timber", x - 3, y - 36, 6, 32, getPropVariant(item, 4), 0.86);
+  pixelRect(ctx, x - 15, y - 34, 30, 6, hit ? "#fff1b8" : "#b99559");
+  pixelRect(ctx, x - 12, y - 30, 24, 18, hit ? "#f4df91" : "#6f915e");
+  pixelRect(ctx, x - 9, y - 27, 18, 12, hit ? "#fff0b1" : "#91bd78");
+  pixelRect(ctx, x - 2, y - 24, 4, 6, "#31442d");
+  pixelRect(ctx, x - 11, y - 4, 8, 4, "#4f3422");
+  pixelRect(ctx, x + 3, y - 4, 8, 4, "#4f3422");
 }
 
 function drawBoss(ctx, boss, state, origin) {

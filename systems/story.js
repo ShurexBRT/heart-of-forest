@@ -390,6 +390,33 @@ export function getActiveQuestEntries(progression) {
     }));
 }
 
+export function getJournalQuestEntries(progression) {
+  const statusOrder = { active: 0, complete: 1, available: 2, done: 3 };
+  return Object.values(QUEST_DEFS)
+    .filter((quest) => {
+      const status = progression.questStates[quest.id];
+      return status && status !== "inactive";
+    })
+    .map((quest, storyOrder) => ({
+      ...quest,
+      storyOrder,
+      status: progression.questStates[quest.id],
+      objectives: quest.objectives.map((objective) => ({
+        ...objective,
+        current: getQuestCounter(progression, objective.key),
+      })),
+    }))
+    .sort((a, b) => {
+      const aCurrent = a.chapter === progression.campaign?.activeChapter ? 0 : 1;
+      const bCurrent = b.chapter === progression.campaign?.activeChapter ? 0 : 1;
+      return (
+        aCurrent - bCurrent ||
+        (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9) ||
+        a.storyOrder - b.storyOrder
+      );
+    });
+}
+
 function openNpcInteraction(state, npc) {
   const npcDef = NPC_DEFS[npc.id];
   if (!npcDef) return;
@@ -539,6 +566,10 @@ function isQuestDone(progression, questId) {
 function finalizeQuest(state, quest) {
   const progression = state.progression;
   progression.questStates[quest.id] = "done";
+  progression.journal = Array.isArray(progression.journal) ? progression.journal : [];
+  if (!progression.journal.includes(quest.id)) {
+    progression.journal.push(quest.id);
+  }
   const rewardSummary = awardRewards(progression, quest.rewards);
   for (const flag of quest.completeFlags || []) {
     setWorldFlag(progression, flag, true);

@@ -139,6 +139,9 @@ Sunken Reliquary ostaje opcioni dungeon i ne blokira glavnu kampanju.
 - Oprema pokazuje kojoj talent grani prirodno odgovara.
 - Loadout menja equipment, action slots i pripremu, ne potrosene talent poene.
 - Slotovi se otkljucavaju kroz Heartwood, Ember i Frost.
+- Loadout ne sme besplatno da aktivira vec potrosen preparation elixir. U prvoj
+  verziji cuva equipment i action slots; izbor preparation recepta se dodaje
+  uz punu alchemy/loadout integraciju.
 
 ### Training Grove
 
@@ -179,8 +182,8 @@ beskonacnu kupovinu talent poena.
 | Faza | Sadrzaj | Status |
 | --- | --- | --- |
 | 0 | Campaign/save temelj, combat citljivost, loot zastita, zivi dokument | Zavrseno |
-| 1 | Heartwood prica, Training Grove, Journal, prvi loadout | Sledece |
-| 2 | Stillwater, Bestiary i regionalna navigacija | Planirano |
+| 1 | Heartwood prica, Training Grove, Journal, prvi loadout | Zavrseno |
+| 2 | Stillwater, Bestiary i regionalna navigacija | Sledece |
 | 3 | Ember prica i drugi loadout | Planirano |
 | 4 | Frost prica i treci loadout | Planirano |
 | 5 | Scarroot prica i Signature ultimate izbor | Planirano |
@@ -215,16 +218,49 @@ beskonacnu kupovinu talent poena.
 - Options i inventory raspored su provereni na `1280x720` i `800x720`.
 - Automatizovana provera: `29/29` testova prolazi.
 
-### Sledeca faza - Faza 1
+### Faza 1
 
-1. Prosiriti Heartwood dijalog i quest ritam tako da prica jasno reaguje na
-   Wake the Hearthroot, Moonleaf, Barkskin i Rootwarden dogadjaje.
-2. Uvesti Journal kao jedinstvenu povrsinu za main/side questove i prvi
-   regionalni pregled.
-3. Napraviti Training Grove u okviru postojece Homestead scene.
-4. Uvesti prvi loadout slot i bezbedno cuvanje equipment/action slot postavke.
-5. Dodati prve Bestiary tragove za Thorn i Rootwarden napade, bez punog
-   Stillwater Bestiary sistema koji pripada Fazi 2.
+- Datum: 2026-06-13
+- Status: zavrseno
+- Cilj: zatvoriti prvi Heartwood vertikalni iseck kroz pricu, trajni Journal,
+  build test i prvi loadout.
+- Uvodni Heartwood questovi sada jasnije povezuju budjenje Hearthroota,
+  Moonleaf ritam, Barkskin pripremu i oslobadjanje Rootwardena.
+- Hearthroot ima dijalog pre budjenja, tokom Heartwood rane i nakon obnove.
+  Lysa igracu objasnjava Training Grove i cuvanje builda.
+- Quest Log je preradjen u `Field Journal`: cuva aktivne, dostupne, zavrsene i
+  arhivirane questove, prikazuje `main/side/optional`, poglavlje, objective i
+  reward podatke.
+- Journal dobija prve progresivne Bestiary zapise. Thornling se otkriva kroz
+  borbu na putu, Rootwarden kroz guardian quest; svaki dobija citljive combat
+  savete tek kada ih Ayla zaista sretne.
+- Obnovljeni Homestead dobija fizicki Training Grove i woven metu. Prvi
+  `Steady Target` drill traje 20 sekundi, prikazuje damage, hitove, trenutni
+  DPS i trajno pamti najbolji rezultat.
+- Training meta ne daje XP, silver ni loot i ne moze da pokrene quest kill
+  countere.
+- Heartwood otkljucava `Grove Loadout I`. Loadout bez dupliranja predmeta
+  cuva i vraca equipment i dostupne quick/action slotove.
+- Preparation elixir se namerno ne reaktivira kroz loadout, kako promena
+  builda ne bi stvarala besplatne potrosne buffove.
+- Dodat je `debugProgress=heartwood` QA fixture za stabilnu proveru obnovljenog
+  Homesteada, Journala i loadout UI-ja bez menjanja regularnog save toka.
+- Field Journal je vizuelno proveren na `1280x720` i `800x720`; Character
+  loadout i obnovljeni Homestead na `1280x720`.
+- Automatizovana provera: `33/33` testova prolazi.
+
+### Sledeca faza - Faza 2
+
+1. Implementirati Stillwater main quest ritam od ulaska u marsh do Bog Matron
+   povratka, sa reakcijama Nettle i obnovljenim hub stanjem.
+2. Prosiriti Journal u puni regionalni pregled: status regiona, otkrivene
+   lokacije, boss clue i priprema za sledeci guardian encounter.
+3. Dodati Stillwater Bestiary zapise za mire neprijatelje i Bog Matron, sa
+   postepenim otkrivanjem damage tipa i Antitoxin saveta.
+4. Povezati mapu i Journal tako da pokazu sledecu relevantnu zonu bez
+   neprekidne navigacione linije.
+5. Dodati grupni Training Grove drill; simulirani elite napad ostaje za
+   kasniju combat encounter fazu.
 
 ## Van trenutnog scopea
 

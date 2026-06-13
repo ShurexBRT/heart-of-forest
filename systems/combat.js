@@ -13,6 +13,7 @@ import { getPlayerBonuses, awardEliteBonusLoot, awardEnemyLoot, grantExperience 
 import { collidesWithObstacle } from "./collision.js";
 import { queueAudio } from "./audio.js";
 import { spawnBurst } from "./particles.js";
+import { recordTrainingDamage } from "./training.js";
 
 const STAFF_RANGE = 68;
 const STAFF_ARC = Math.PI * 0.78;
@@ -846,6 +847,23 @@ function damageHostile(state, target, amount, sourceX, sourceY, knockback, stun)
   const direction = normalize(target.x - sourceX, target.y - sourceY);
 
   markCombat(state);
+  if (target.trainingDummy) {
+    target.hitFlash = 0.12;
+    target.stun = Math.max(target.stun, Math.min(0.08, stun));
+    recordTrainingDamage(state, target, amount);
+    pushCombatText(state, target.x, target.y - 34, Math.round(amount), "#ffe5a8");
+    state.hitStop = Math.max(state.hitStop || 0, amount >= 24 ? 0.04 : 0.02);
+    spawnBurst(state, target.x, target.y - 8, {
+      count: amount >= 24 ? 12 : 8,
+      colors: ["#f1d78b", "#8fc982", "#fff0bc"],
+      speed: amount >= 24 ? 210 : 160,
+      size: [2, 4],
+      life: [0.14, 0.34],
+    });
+    queueAudio(state, "enemy-hit");
+    return;
+  }
+
   target.hp = Math.max(0, target.hp - amount);
   target.hitFlash = 0.12;
   target.stun = Math.max(target.stun, stun);

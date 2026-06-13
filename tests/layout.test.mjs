@@ -50,3 +50,20 @@ test("scene interactables always expose at least one reachable interaction point
 
   assert.deepEqual(failures, []);
 });
+
+test("restored Homestead keeps the Training Grove reachable", () => {
+  const scene = SCENES.ayla_homestead;
+  const arena = createArena({
+    ...scene,
+    worldFlags: {
+      heartwood_restored: true,
+      hearthroot_awake: true,
+    },
+  });
+  const trainingGrove = arena.interactables.find(
+    (interactable) => interactable.id === "training-grove-dummy"
+  );
+
+  assert.ok(trainingGrove);
+  assert.equal(hasReachableInteractionPoint(arena, trainingGrove), true);
+});

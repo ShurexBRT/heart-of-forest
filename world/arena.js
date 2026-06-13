@@ -421,6 +421,11 @@ function buildAylaHomestead(context, rng) {
   }
   scatterOverlay(tiles, rng, 8, 28, 26, 19, 40, "flowersWarm");
   scatterOverlay(tiles, rng, 86, 8, 10, 14, 18, "flowersCool");
+  if (flags.heartwood_restored) {
+    stampEllipse(tiles, 48, 42, 8, 5, "path", 0);
+    stampEllipse(tiles, 48, 42, 5, 3, "soil", 1);
+    paintPath(tiles, 33, 47, 43, 43, 2, "path", 0);
+  }
 
   const interactables = [
     interactable("hearthroot-shrine", "shrine", 742, 396, {
@@ -430,6 +435,20 @@ function buildAylaHomestead(context, rng) {
       toastText: flags.hearthroot_awake
         ? "The Hearthroot hums with a patient, familiar pulse."
         : "The old root answers Ayla and warmth returns to the homestead.",
+      dialogueLines: flags.heartwood_restored
+        ? [
+            "One root remembers your hands. Five remain beyond the quiet roads.",
+            "Prepare here, Ayla. Restoration begins at home, but it cannot end here.",
+          ]
+        : flags.hearthroot_awake
+          ? [
+              "The wound beyond the gate is tightening around an old guardian.",
+              "Grow what heals, brew what protects, then listen before you strike.",
+            ]
+          : [
+              "Ayla... the Heartroot is not dead. It is divided.",
+              "Wake the garden. Follow the pain beneath the thorns. Bring the first root home.",
+            ],
       repeatable: Boolean(flags.hearthroot_awake),
       interactionRadius: 78,
       w: 54,
@@ -475,6 +494,20 @@ function buildAylaHomestead(context, rng) {
         }
       )
     ),
+    ...(flags.heartwood_restored
+      ? [
+          interactable("training-grove-dummy", "trainingDummy", 768, 672, {
+            name: "Training Grove",
+            promptLabel: "Begin 20s combat drill",
+            action: "training-grove",
+            repeatable: true,
+            interactionRadius: 82,
+            w: 42,
+            h: 56,
+            sortY: 692,
+          }),
+        ]
+      : []),
   ];
 
   return createBaseArena(context, tiles, {
