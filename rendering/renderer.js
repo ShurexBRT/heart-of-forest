@@ -20,6 +20,7 @@ import {
   resolveFacing,
 } from "./pixelAssets.js";
 import { drawTerrainTile } from "./terrainAssets.js";
+import { drawWorldMaterialRect } from "./worldMaterialAssets.js";
 import { drawHud } from "../ui/hud.js";
 
 let backgroundCache = null;
@@ -456,7 +457,7 @@ function drawObstacle(ctx, obstacle, theme, sceneStyle, origin) {
   if (obstacle.type === "bush") drawBush(ctx, obstacle, sceneStyle, origin);
   if (obstacle.type === "water") drawWater(ctx, obstacle, origin);
   if (obstacle.type === "ruin") drawRuin(ctx, obstacle, sceneStyle, origin);
-  if (obstacle.type === "cottage") drawCottage(ctx, obstacle, origin);
+  if (obstacle.type === "cottage") drawCottage(ctx, obstacle, sceneStyle, origin);
   if (obstacle.type === "well") drawWell(ctx, obstacle, origin);
   if (obstacle.type === "fenceH" || obstacle.type === "fenceV") drawFence(ctx, obstacle, sceneStyle, origin);
   if (obstacle.type === "signpost") drawSignpost(ctx, obstacle, sceneStyle, origin);
@@ -591,32 +592,74 @@ function drawRuin(ctx, ruin, sceneStyle, origin) {
   const midH = Math.round(ruin.h * 0.22);
   fillBrickPattern(ctx, point.x - topW / 2, point.y - ruin.h * 0.52, topW, topH, "#807678", "#605759", "#b8abab");
   fillBrickPattern(ctx, point.x - midW / 2, point.y - ruin.h * 0.34, midW, midH, "#968c8a", "#6b6260", "#d1c5bc");
+  drawWorldMaterialRect(
+    ctx,
+    "ruin",
+    point.x - topW / 2,
+    point.y - ruin.h * 0.52,
+    topW,
+    topH,
+    getPropVariant(ruin, 4),
+    0.74
+  );
+  drawWorldMaterialRect(
+    ctx,
+    "ruin",
+    point.x - midW / 2,
+    point.y - ruin.h * 0.34,
+    midW,
+    midH,
+    getPropVariant(ruin, 4) + 1,
+    0.78
+  );
   pixelRect(ctx, point.x - ruin.w * 0.1, point.y - ruin.h * 0.2, ruin.w * 0.2, ruin.h * 0.12, "#cdbfae");
 }
 
-function drawCottage(ctx, cottage, origin) {
+function drawCottage(ctx, cottage, sceneStyle, origin) {
   const point = toScreen(origin, cottage.anchorX, cottage.anchorY);
+  const variant = getPropVariant(cottage, 4);
   drawIsoShadow(ctx, point.x, point.y, 54, 18);
+
+  pixelRect(ctx, point.x - 75, point.y - 63, 150, 63, "#4c4642");
   fillRoofPattern(ctx, point.x - 86, point.y - 116, 172, 30, "#c06f2f", "#8f451d", "#e79e54");
   fillRoofPattern(ctx, point.x - 100, point.y - 86, 200, 26, "#b85f27", "#83401b", "#dd9450");
   fillBrickPattern(ctx, point.x - 72, point.y - 60, 144, 58, "#8d8b88", "#686360", "#bbb7b2");
+  drawWorldMaterialRect(ctx, "roof", point.x - 86, point.y - 116, 172, 30, variant, 0.96);
+  drawWorldMaterialRect(ctx, "roof", point.x - 100, point.y - 86, 200, 26, variant + 1, 0.96);
+  drawWorldMaterialRect(ctx, "stone", point.x - 72, point.y - 60, 144, 58, variant, 0.82);
+
+  pixelRect(ctx, point.x - 74, point.y - 62, 5, 60, "#58402d");
+  pixelRect(ctx, point.x + 69, point.y - 62, 5, 60, "#3d2d22");
+  pixelRect(ctx, point.x - 72, point.y - 35, 144, 4, "#6f5036");
   pixelRect(ctx, point.x - 20, point.y - 44, 40, 46, "#6f4b30");
-  pixelRect(ctx, point.x - 16, point.y - 40, 32, 42, "#845835");
+  drawWorldMaterialRect(ctx, "timber", point.x - 16, point.y - 40, 32, 42, variant, 0.95);
+  pixelRect(ctx, point.x - 2, point.y - 29, 4, 4, "#d0aa61");
   pixelRect(ctx, point.x - 54, point.y - 46, 26, 18, "#abdff4");
   pixelRect(ctx, point.x - 50, point.y - 42, 18, 10, "#dff8ff");
+  pixelRect(ctx, point.x - 43, point.y - 46, 3, 18, "#5e4937");
   pixelRect(ctx, point.x + 28, point.y - 46, 26, 18, "#abdff4");
   pixelRect(ctx, point.x + 32, point.y - 42, 18, 10, "#dff8ff");
+  pixelRect(ctx, point.x + 39, point.y - 46, 3, 18, "#5e4937");
+  pixelRect(ctx, point.x + 55, point.y - 112, 20, 34, "#5d5149");
+  drawWorldMaterialRect(ctx, "stone", point.x + 58, point.y - 109, 14, 31, variant + 2, 0.88);
+  pixelRect(ctx, point.x + 54, point.y - 114, 22, 5, "#3d3532");
   pixelRect(ctx, point.x - 20, point.y - 4, 40, 4, "#c4b393");
+  pixelRect(ctx, point.x - 76, point.y - 4, 152, 5, sceneStyle === "aylaHomestead" ? "#b79c72" : "#7b705e");
 }
 
 function drawWell(ctx, well, origin) {
   const point = toScreen(origin, well.anchorX, well.anchorY);
+  const variant = getPropVariant(well, 4);
   drawIsoShadow(ctx, point.x, point.y, 18, 8);
   pixelRect(ctx, point.x - 12, point.y - 34, 4, 20, "#6f4b32");
   pixelRect(ctx, point.x + 8, point.y - 34, 4, 20, "#6f4b32");
   pixelRect(ctx, point.x - 16, point.y - 30, 32, 6, "#936645");
   fillBrickPattern(ctx, point.x - 14, point.y - 22, 28, 20, "#9fa9ad", "#718085", "#dfe7ea");
+  drawWorldMaterialRect(ctx, "timber", point.x - 16, point.y - 30, 32, 6, variant, 0.92);
+  drawWorldMaterialRect(ctx, "stone", point.x - 14, point.y - 22, 28, 20, variant, 0.86);
   pixelRect(ctx, point.x - 10, point.y - 14, 20, 8, "#4f7284");
+  pixelRect(ctx, point.x - 8, point.y - 13, 16, 2, "#8dc4d0");
+  pixelRect(ctx, point.x - 1, point.y - 35, 2, 13, "#3d3330");
 }
 
 function drawFence(ctx, fence, sceneStyle, origin) {
@@ -633,8 +676,11 @@ function drawFence(ctx, fence, sceneStyle, origin) {
   const left = Math.round(point.x - width / 2);
   pixelRect(ctx, left, point.y - 18, width, 4, "#cba16c");
   pixelRect(ctx, left, point.y - 10, width, 4, "#8f633d");
+  drawWorldMaterialRect(ctx, "planks", left, point.y - 18, width, 4, getPropVariant(fence, 4), 0.9);
+  drawWorldMaterialRect(ctx, "planks", left, point.y - 10, width, 4, getPropVariant(fence, 4) + 1, 0.9);
   for (let x = left + 4; x < left + width; x += 12) {
     pixelRect(ctx, x, point.y - 22, 4, 18, "#6c482f");
+    drawWorldMaterialRect(ctx, "timber", x, point.y - 22, 4, 18, getPropVariant(fence, 4), 0.82);
   }
 }
 
@@ -650,6 +696,8 @@ function drawSignpost(ctx, sign, sceneStyle, origin) {
   }
   pixelRect(ctx, point.x - 3, point.y - 22, 6, 20, "#6b4a2e");
   pixelRect(ctx, point.x - 16, point.y - 32, 32, 12, "#d7be86");
+  drawWorldMaterialRect(ctx, "timber", point.x - 3, point.y - 22, 6, 20, getPropVariant(sign, 4), 0.88);
+  drawWorldMaterialRect(ctx, "planks", point.x - 16, point.y - 32, 32, 12, getPropVariant(sign, 4), 0.76);
   pixelRect(ctx, point.x - 14, point.y - 30, 28, 2, "#f4ddb2");
   pixelRect(ctx, point.x - 12, point.y - 26, 20, 2, "#9c7a4a");
 }
@@ -666,6 +714,7 @@ function drawLantern(ctx, lantern, sceneStyle, origin) {
   }
   pixelRect(ctx, point.x - 2, point.y - 24, 4, 22, "#6e4a34");
   pixelRect(ctx, point.x - 8, point.y - 36, 16, 12, "#4e3a28");
+  drawWorldMaterialRect(ctx, "metal", point.x - 8, point.y - 36, 16, 12, getPropVariant(lantern, 4), 0.78);
   pixelRect(
     ctx,
     point.x - 5,
@@ -705,6 +754,28 @@ function drawBridge(ctx, bridge, sceneStyle, origin) {
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
+
+  const minX = Math.min(...corners.map((corner) => corner.x));
+  const maxX = Math.max(...corners.map((corner) => corner.x));
+  const minY = Math.min(...corners.map((corner) => corner.y));
+  const maxY = Math.max(...corners.map((corner) => corner.y));
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(corners[0].x, corners[0].y);
+  for (let i = 1; i < corners.length; i += 1) ctx.lineTo(corners[i].x, corners[i].y);
+  ctx.closePath();
+  ctx.clip();
+  drawWorldMaterialRect(
+    ctx,
+    "planks",
+    minX,
+    minY,
+    maxX - minX,
+    maxY - minY,
+    getPropVariant(bridge, 4),
+    0.78
+  );
+  ctx.restore();
 
   const longSize = bridge.w >= bridge.h ? bridge.w : bridge.h;
   const plankCount = Math.max(4, Math.floor(longSize / 18));
@@ -805,6 +876,7 @@ function drawInteractable(ctx, item, state, origin) {
   if (item.type === "bed") {
     drawIsoShadow(ctx, point.x, point.y, 20, 7);
     pixelRect(ctx, point.x - 22, point.y - 20, 44, 18, "#765238");
+    drawWorldMaterialRect(ctx, "planks", point.x - 22, point.y - 20, 44, 18, getPropVariant(item, 4), 0.84);
     pixelRect(ctx, point.x - 18, point.y - 26, 36, 18, "#d9c6a0");
     pixelRect(ctx, point.x - 16, point.y - 24, 13, 8, "#f4ecd6");
     pixelRect(ctx, point.x - 1, point.y - 22, 17, 12, "#7fa779");
@@ -828,6 +900,7 @@ function drawInteractable(ctx, item, state, origin) {
   if (item.type === "totem") {
     drawIsoShadow(ctx, point.x, point.y, 12, 6);
     pixelRect(ctx, point.x - 5, point.y - 26, 10, 24, "#7a5535");
+    drawWorldMaterialRect(ctx, "timber", point.x - 5, point.y - 26, 10, 24, getPropVariant(item, 4), 0.8);
     pixelRect(ctx, point.x - 11, point.y - 36, 22, 10, "#efb56d");
     pixelRect(ctx, point.x - 4, point.y - 33, 8, 6, "#dfffb0");
   }
@@ -841,6 +914,7 @@ function drawInteractable(ctx, item, state, origin) {
   if (item.type === "seal") {
     drawIsoShadow(ctx, point.x, point.y, 12, 6);
     pixelRect(ctx, point.x - 9, point.y - 18, 18, 14, "#7e6d67");
+    drawWorldMaterialRect(ctx, "stone", point.x - 9, point.y - 18, 18, 14, getPropVariant(item, 4), 0.82);
     pixelRect(ctx, point.x - 6, point.y - 15, 12, 8, "#d8c988");
     pixelRect(ctx, point.x - 2, point.y - 12, 4, 2, "#8f7b45");
   }
@@ -849,15 +923,31 @@ function drawInteractable(ctx, item, state, origin) {
     drawIsoShadow(ctx, point.x, point.y, 12, 6);
     pixelRect(ctx, point.x - 12, point.y - 16, 24, 12, "#6d4b30");
     pixelRect(ctx, point.x - 12, point.y - 10, 24, 8, "#8f613d");
+    drawWorldMaterialRect(ctx, "timber", point.x - 12, point.y - 16, 24, 14, getPropVariant(item, 4), 0.88);
+    pixelRect(ctx, point.x - 12, point.y - 10, 24, 2, "#4d3829");
     pixelRect(ctx, point.x - 2, point.y - 12, 4, 10, "#d3b67d");
   }
 
   if (item.type === "shrine") {
     drawIsoShadow(ctx, point.x, point.y, 16, 8);
-    pixelRect(ctx, point.x - 10, point.y - 28, 20, 24, "#6f6b71");
-    pixelRect(ctx, point.x - 6, point.y - 22, 12, 14, "#cfc6b7");
-    pixelRect(ctx, point.x - 2, point.y - 34, 4, 8, "#9ee88b");
-    pixelRect(ctx, point.x - 7, point.y - 36, 14, 2, "#f0de9a");
+    if (item.serviceId === "hearthroot_cauldron") {
+      pixelRect(ctx, point.x - 13, point.y - 18, 26, 14, "#30383a");
+      drawWorldMaterialRect(ctx, "metal", point.x - 13, point.y - 18, 26, 14, getPropVariant(item, 4), 0.9);
+      pixelRect(ctx, point.x - 10, point.y - 18, 20, 4, "#8ed17b");
+      pixelRect(ctx, point.x - 7, point.y - 17, 14, 2, "#d6f0a3");
+      pixelRect(ctx, point.x - 17, point.y - 17, 5, 4, "#4d5759");
+      pixelRect(ctx, point.x + 12, point.y - 17, 5, 4, "#4d5759");
+      pixelRect(ctx, point.x - 9, point.y - 4, 4, 8, "#343033");
+      pixelRect(ctx, point.x + 5, point.y - 4, 4, 8, "#343033");
+      pixelRect(ctx, point.x - 6, point.y - 27, 3, 6, "rgba(180, 236, 153, 0.72)");
+      pixelRect(ctx, point.x + 4, point.y - 31, 3, 8, "rgba(180, 236, 153, 0.56)");
+    } else {
+      pixelRect(ctx, point.x - 10, point.y - 28, 20, 24, "#6f6b71");
+      drawWorldMaterialRect(ctx, "stone", point.x - 10, point.y - 28, 20, 24, getPropVariant(item, 4), 0.82);
+      pixelRect(ctx, point.x - 6, point.y - 22, 12, 14, "#cfc6b7");
+      pixelRect(ctx, point.x - 2, point.y - 34, 4, 8, "#9ee88b");
+      pixelRect(ctx, point.x - 7, point.y - 36, 14, 2, "#f0de9a");
+    }
   }
 }
 
