@@ -7,6 +7,7 @@ const ATLAS_PATHS = {
   "mossy-ruins": "./assets/atlases/mossy-ruins.png",
   "ancient-heart": "./assets/atlases/ancient-heart.png",
   "verdant-grove": "./assets/atlases/verdant-grove.png",
+  terrain: "./assets/terrain/biome-terrain.png",
 };
 
 const ATLAS_WORLD_ART_ENABLED = true;
@@ -40,6 +41,35 @@ const FLOOR_SCENE_ATLAS_KEYS = {
   sunkenReliquary: "ancient-heart",
   chapelOfTides: "moonlit-marsh",
 };
+
+const TERRAIN_SCENE_ROWS = {
+  aylaHomestead: 0,
+  whisperingWoods: 0,
+  mossyRuins: 0,
+  mossrootMarsh: 1,
+  chapelOfTides: 1,
+  emberpineGrove: 3,
+  frostveilTundra: 4,
+  blightedWoods: 5,
+  hollowheartRuins: 5,
+  ancientHeart: 6,
+  starfallSanctum: 6,
+  sunkenReliquary: 6,
+};
+
+const TERRAIN_MATERIAL_INDEX = {
+  natural: 0,
+  path: 1,
+  soil: 2,
+  planks: 3,
+  stone: 4,
+  liquid: 5,
+  special: 6,
+};
+
+const TERRAIN_CELL_W = 24;
+const TERRAIN_CELL_H = 12;
+const TERRAIN_VARIANTS = 4;
 
 const DISABLED_WORLD_ATLASES = new Set(["blighted-woods", "verdant-grove"]);
 
@@ -215,6 +245,7 @@ const atlasState = {
   revision: 0,
   images: {},
   biomeArt: {},
+  terrainFloors: {},
   aylaFrames: null,
   aylaPortrait: null,
 };
@@ -284,6 +315,9 @@ export function getAylaPortrait() {
 
 export function getBiomeFloorTexture(sceneStyle, ground, variant = 0) {
   if (!ATLAS_FLOOR_TEXTURES_ENABLED || !atlasState.ready) return null;
+  const generatedFloor = getGeneratedFloorTexture(sceneStyle, ground, variant);
+  if (generatedFloor) return generatedFloor;
+
   const atlasKey = FLOOR_SCENE_ATLAS_KEYS[sceneStyle];
   const floorArt = atlasKey ? atlasState.biomeArt[atlasKey]?.floors : null;
   if (!floorArt) return null;
@@ -302,6 +336,24 @@ export function getBiomeFloorTexture(sceneStyle, ground, variant = 0) {
           : floorArt.natural;
 
   return bucket.length > 0 ? bucket[variant % bucket.length] : null;
+}
+
+function getGeneratedFloorTexture(sceneStyle, ground, variant) {
+  const row = TERRAIN_SCENE_ROWS[sceneStyle];
+  if (row === undefined) return null;
+  const material = getTerrainMaterial(ground);
+  const bucket = atlasState.terrainFloors[row]?.[material];
+  return bucket?.length ? bucket[variant % bucket.length] : null;
+}
+
+function getTerrainMaterial(ground) {
+  if (ground === "water" || ground === "ice") return "liquid";
+  if (ground === "path" || ground === "ashPath" || ground === "snowPath") return "path";
+  if (ground === "soil") return "soil";
+  if (ground === "planks") return "planks";
+  if (ground === "ruinStone") return "stone";
+  if (ground === "ash" || ground === "ember" || ground === "blight") return "special";
+  return "natural";
 }
 
 export function drawAylaAtlasSprite(ctx, x, y, facing, frame, pose, options = {}) {
@@ -391,6 +443,7 @@ function loadAtlases() {
         component: "cluster",
         padding: 6,
       });
+      atlasState.terrainFloors = buildGeneratedTerrainFloors(atlasState.images.terrain);
 
       for (const key of Object.keys(SCENE_ATLAS_KEYS)) {
         const atlasKey = SCENE_ATLAS_KEYS[key];
@@ -406,6 +459,38 @@ function loadAtlases() {
     .catch(() => {
       atlasState.failed = true;
     });
+}
+
+function buildGeneratedTerrainFloors(image) {
+  if (!image) return {};
+  const floors = {};
+  for (const row of Object.values(TERRAIN_SCENE_ROWS)) {
+    if (floors[row]) continue;
+    floors[row] = {};
+    for (const [material, materialIndex] of Object.entries(TERRAIN_MATERIAL_INDEX)) {
+      floors[row][material] = [];
+      for (let variant = 0; variant < TERRAIN_VARIANTS; variant += 1) {
+        const canvas = document.createElement("canvas");
+        canvas.width = TERRAIN_CELL_W;
+        canvas.height = TERRAIN_CELL_H;
+        const ctx = canvas.getContext("2d");
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(
+          image,
+          (materialIndex * TERRAIN_VARIANTS + variant) * TERRAIN_CELL_W,
+          row * TERRAIN_CELL_H,
+          TERRAIN_CELL_W,
+          TERRAIN_CELL_H,
+          0,
+          0,
+          TERRAIN_CELL_W,
+          TERRAIN_CELL_H
+        );
+        floors[row][material].push(canvas);
+      }
+    }
+  }
+  return floors;
 }
 
 function loadImage(key, path) {

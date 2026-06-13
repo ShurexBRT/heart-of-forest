@@ -25,7 +25,7 @@ export function drawTerrainTile(ctx, options) {
   drawAtlasFloorTexture(ctx, x, y, halfW, halfH, tile, sceneStyle, tx, ty);
 
   ctx.save();
-  clipDiamond(ctx, x, y, halfW - 1, halfH - 1);
+  clipDiamond(ctx, x, y, halfW, halfH);
   drawMaterialDetails(ctx, x, y, halfW, halfH, tile.ground, palette, seed, tx, ty);
   ctx.restore();
 
@@ -43,18 +43,20 @@ function drawAtlasFloorTexture(ctx, x, y, halfW, halfH, tile, sceneStyle, tx, ty
 
   const alpha =
     tile.ground === "water" || tile.ground === "ice"
-      ? 0.2
+      ? 0.46
       : tile.ground === "path" ||
           tile.ground === "ashPath" ||
           tile.ground === "snowPath" ||
           tile.ground === "ruinStone"
-        ? 0.16
-        : tile.ground === "ember"
-          ? 0.24
-          : 0.12;
+        ? 0.5
+        : tile.ground === "soil" || tile.ground === "planks"
+          ? 0.48
+          : tile.ground === "ember" || tile.ground === "ash" || tile.ground === "blight"
+            ? 0.52
+            : 0.4;
 
   ctx.save();
-  clipDiamond(ctx, x, y, halfW - 1, halfH - 1);
+  clipDiamond(ctx, x, y, halfW, halfH);
   ctx.globalAlpha = alpha;
   ctx.drawImage(texture, x - halfW, y - halfH, halfW * 2, halfH * 2);
   ctx.restore();
@@ -370,15 +372,19 @@ function drawTerrainEdges(ctx, x, y, halfW, halfH, ground, palette, neighbors) {
 
   if (!sameFamily(family, neighbors.topLeft)) {
     drawEdge(ctx, x, y, halfW, halfH, "topLeft", palette.light, edgeAlpha);
+    drawEdgeInset(ctx, x, y, halfW, halfH, "topLeft", palette.dark, edgeAlpha * 0.34);
   }
   if (!sameFamily(family, neighbors.topRight)) {
     drawEdge(ctx, x, y, halfW, halfH, "topRight", palette.light, edgeAlpha);
+    drawEdgeInset(ctx, x, y, halfW, halfH, "topRight", palette.dark, edgeAlpha * 0.34);
   }
   if (!sameFamily(family, neighbors.bottomRight)) {
     drawEdge(ctx, x, y, halfW, halfH, "bottomRight", palette.dark, edgeAlpha);
+    drawEdgeInset(ctx, x, y, halfW, halfH, "bottomRight", palette.light, edgeAlpha * 0.24);
   }
   if (!sameFamily(family, neighbors.bottomLeft)) {
     drawEdge(ctx, x, y, halfW, halfH, "bottomLeft", palette.dark, edgeAlpha);
+    drawEdgeInset(ctx, x, y, halfW, halfH, "bottomLeft", palette.light, edgeAlpha * 0.24);
   }
 }
 
@@ -392,6 +398,25 @@ function drawEdge(ctx, x, y, halfW, halfH, side, color, alpha) {
     topRight: [x, y - halfH, x + halfW, y],
     bottomRight: [x + halfW, y, x, y + halfH],
     bottomLeft: [x, y + halfH, x - halfW, y],
+  }[side];
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(points[0], points[1]);
+  ctx.lineTo(points[2], points[3]);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawEdgeInset(ctx, x, y, halfW, halfH, side, color, alpha) {
+  const points = {
+    topLeft: [x, y - halfH + 2, x - halfW + 3, y],
+    topRight: [x, y - halfH + 2, x + halfW - 3, y],
+    bottomRight: [x + halfW - 3, y, x, y + halfH - 2],
+    bottomLeft: [x, y + halfH - 2, x - halfW + 3, y],
   }[side];
 
   ctx.save();
@@ -457,6 +482,8 @@ function clipDiamond(ctx, x, y, halfW, halfH) {
 
 function drawDiamond(ctx, x, y, halfW, halfH, color) {
   ctx.fillStyle = color;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(x, y - halfH);
   ctx.lineTo(x + halfW, y);
@@ -464,6 +491,7 @@ function drawDiamond(ctx, x, y, halfW, halfH, color) {
   ctx.lineTo(x - halfW, y);
   ctx.closePath();
   ctx.fill();
+  ctx.stroke();
 }
 
 function drawPixelLine(ctx, x1, y1, x2, y2, color, alpha = 1) {
