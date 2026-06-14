@@ -185,8 +185,8 @@ beskonacnu kupovinu talent poena.
 | 1 | Heartwood prica, Training Grove, Journal, prvi loadout | Zavrseno |
 | 2 | Stillwater, Bestiary i regionalna navigacija | Zavrseno |
 | 3 | Ember prica i drugi loadout | Zavrseno |
-| 4 | Frost prica i treci loadout | Sledece |
-| 5 | Scarroot prica i Signature ultimate izbor | Planirano |
+| 4 | Frost prica i treci loadout | Zavrseno |
+| 5 | Scarroot prica i Signature ultimate izbor | Sledece |
 | 6 | Rootlight finale i zavrsna sekvenca | Planirano |
 | 7 | Second Spring postgame i optional challenge loop | Planirano |
 
@@ -316,17 +316,54 @@ beskonacnu kupovinu talent poena.
   `1280x720`; Character panel je proveren i na `800x720`.
 - Automatizovana provera: `43/43` testova prolazi.
 
-### Sledeca faza - Faza 4
+### Faza 4
 
-1. Prosiriti Frost quest chain tako da izgubljeni scout otkrije zasto Veil
-   Seraph odrzava pecat i pripremi emocionalni obrt o Aylinoj majci.
-2. Odvojiti poraz Veil Serapha od povratka Vesperu i pune obnove Frostpinea.
-3. Dodati Frost Bestiary, regionalni navigation lead i obnovljeni tundra hub
-   sa jasnim promenama svetla, NPC-jeva i waystone mreze.
-4. Otkljucati Grove Loadout III tek posle Frost povratka i proveriti sva tri
-   slota kroz Character panel i Training Grove.
-5. Dodati prvi simulirani elite attack drill u Training Grove kao bezbednu
-   proveru telegrapha, dodge ritma i loadout promene.
+- Datum: 2026-06-14
+- Status: zavrseno
+- Cilj: pretvoriti Frost u pricu o duznosti koja je postala zatvor, povezati
+  poslednju poruku Aylinoj majci sa obnovom waystone mreze i zatvoriti
+  campaign loadout progression.
+- Prvi Frost prolaz sada cisti lower ridge bez prevremenog Veil Seraph
+  susreta. Izgubljeni scout otkriva da guardian odrzava pecat zato sto veruje
+  da bi promena probudila zvezdani glas.
+- Zavrseni scout quest ponovo otvara staged scenu i tek tada aktivira Veil
+  Serapha. Poraz cuvara oslobadja pecat, ali vise ne obnavlja Frost direktno.
+- Posle borbe ostaje Seraphova poruka. Novi povratni quest `The Winter Letter`
+  vodi Aylu nazad Vesperu i otkriva da je njena majka trazila privremenu zimu
+  dok koreni ne budu spremni da se promene.
+- Frost dobija pravi tok `infested -> unstable -> secured -> restored`.
+  Obnova se desava tek po predaji poruke, kada se pali i puna waystone mreza.
+- Frost Bestiary uvodi Frost Wispa, Icebound Guardiana i Veil Serapha sa
+  postepenim frost damage i Cinderheart savetima.
+- Journal i regionalna navigacija razlikuju potragu za scoutom, guardian
+  prolaz, Seraphovu poruku i povratak Vesperu.
+- Obnovljeni Frost uklanja aktivnu borbu, dobija vidljiv waystone i mirnije
+  stanje regiona. Obnovljeni Homestead dobija novi Veil Drill poligon.
+- Frost povratak otkljucava `Grove Loadout III`. Character panel prikazuje sva
+  tri nezavisna loadouta bez dupliranja opreme ili preparation efekata.
+- Veil Drill simulira citljiv elite telegraph bez gubitka healtha, belezi
+  uspesna izmicanja i uhvacene udare i cuva rezultat odvojeno od DPS drillova.
+- Stari save koji je vec legitimno obnovio Frost automatski dobija zavrsen
+  Winter Letter povratak bez gubitka regionalnog progresa.
+- Dodati su `debugProgress=frost-active`, `frost-return` i `frost` QA fixturei.
+- Frost Journal, Character panel, obnovljena tundra i Homestead vizuelno su
+  provereni na `1280x720`; Homestead je proveren i na `800x720`.
+- Automatizovana provera: `47/47` testova prolazi.
+
+### Sledeca faza - Faza 5
+
+1. Prosiriti Scarroot u staged tok: ocistiti blight effigies, otvoriti
+   Hollowheart Ruins i tek zatim aktivirati Elder Hollow encounter.
+2. Povezati Elder Hollow sa prvim cuvarem koji je pokusao da prisili zvezdanu
+   moc, umesto da je uskladi sa sest korena.
+3. Odvojiti poraz Elder Hollowa od obnove Scarroota kroz povratni quest i
+   trajnu promenu Blighted Woods scene.
+4. Dodati Scarroot Bestiary, corruption navigation lead i Heartcleanse
+   pripremu pre guardian susreta.
+5. Pretvoriti poslednji node svake talent grane u pravi Signature ultimate i
+   otkljucati izbor tek po zavrsetku Scarroot povratka.
+6. Dodati side quest koji igracu daje mirniji predah i kroz obnovu jednog
+   zivog detalja pokazuje sta Scarroot moze ponovo da postane.
 
 ## Van trenutnog scopea
 

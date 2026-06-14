@@ -429,6 +429,9 @@ function buildAylaHomestead(context, rng) {
   if (flags.stillwater_restored) {
     stampEllipse(tiles, 55, 42, 5, 4, "path", 1);
   }
+  if (flags.frost_restored) {
+    stampEllipse(tiles, 62, 42, 5, 4, "path", 0);
+  }
 
   const interactables = [
     interactable("hearthroot-shrine", "shrine", 742, 396, {
@@ -517,6 +520,20 @@ function buildAylaHomestead(context, rng) {
             name: "Training Grove Target Circle",
             promptLabel: "Begin 20s group drill",
             action: "training-grove-group",
+            repeatable: true,
+            interactionRadius: 82,
+            w: 52,
+            h: 56,
+            sortY: 692,
+          }),
+        ]
+      : []),
+    ...(flags.frost_restored
+      ? [
+          interactable("training-grove-elite", "trainingElite", 992, 672, {
+            name: "Training Grove Veil Drill",
+            promptLabel: "Begin elite telegraph drill",
+            action: "training-grove-elite",
             repeatable: true,
             interactionRadius: 82,
             w: 52,
@@ -1021,6 +1038,11 @@ function buildEmberpineGrove(context, rng) {
 
 function buildFrostveilTundra(context, rng) {
   const flags = context.worldFlags || {};
+  const questStates = context.questStates || {};
+  const seraphReleased =
+    questStates.veil_seraph === "done" ||
+    questStates.veil_seraph === "complete" ||
+    flags.veil_seraph_released;
   const tiles = createTiles(rng);
   stampRect(tiles, 0, 0, COLS, ROWS, "snow", 0);
   clearOverlayRect(tiles, 0, 0, COLS, ROWS);
@@ -1042,12 +1064,49 @@ function buildFrostveilTundra(context, rng) {
       promptLabel: "Inspect Camp",
       collectKey: "scoutFound",
       toastText: "Scout signal recovered",
+      requiresCleared: true,
       sortY: 326,
       dialogueLines: [
         "A frozen satchel rests beside the collapsed tent.",
         "The scout's message points north. Whatever rules the ruins is awake.",
       ],
     }),
+    ...(seraphReleased && !flags.frost_restored
+      ? [
+          interactable("seraph-message", "seal", 936, 462, {
+            name: "Veil Seraph's Letter",
+            promptLabel: "Recover the Winter Letter",
+            collectKey: "seraphMessageRecovered",
+            toastText: "The letter still carries a trace of living warmth.",
+            dialogueLines: [
+              "The seal bears Ayla's mother's mark beside the Seraph's own.",
+              "Its final line asks the guardian to hold only until someone returns with a kinder answer.",
+            ],
+            requiresCleared: true,
+            interactionRadius: 82,
+            w: 38,
+            h: 38,
+            sortY: 478,
+          }),
+        ]
+      : []),
+    ...(flags.frost_restored
+      ? [
+          interactable("frost-waystone", "shrine", 848, 540, {
+            name: "Restored Ridge Waystone",
+            promptLabel: "Listen to the waystone network",
+            repeatable: true,
+            dialogueLines: [
+              "Warm light moves through every carved route.",
+              "Heartwood, Stillwater, Ember and Frost answer one another without delay.",
+            ],
+            interactionRadius: 82,
+            w: 44,
+            h: 50,
+            sortY: 560,
+          }),
+        ]
+      : []),
   ];
 
   return createBaseArena(context, tiles, {

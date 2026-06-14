@@ -14,6 +14,7 @@ export function createCampaignProgress(snapshot = null) {
     loadoutSlots: Math.max(0, Math.min(3, Math.floor(snapshot?.loadoutSlots || 0))),
     trainingGroveUnlocked: Boolean(snapshot?.trainingGroveUnlocked),
     trainingGroupUnlocked: Boolean(snapshot?.trainingGroupUnlocked),
+    trainingEliteUnlocked: Boolean(snapshot?.trainingEliteUnlocked),
     journalUnlocked: Boolean(snapshot?.journalUnlocked),
     campaignCompleted: Boolean(snapshot?.campaignCompleted),
   };
@@ -24,7 +25,7 @@ export function syncCampaignProgress(progression, sceneProgress = {}) {
   progression.worldFlags = progression.worldFlags || {};
   progression.regionProgress = progression.regionProgress || {};
 
-  migrateCompletedEmberReturn(progression, sceneProgress);
+  migrateCompletedRegionalReturns(progression, sceneProgress);
   for (const chapterId of ["stillwater", "ember", "frost"]) {
     reconcileRestoration(progression, sceneProgress, chapterId);
   }
@@ -45,6 +46,7 @@ export function syncCampaignProgress(progression, sceneProgress = {}) {
   progression.campaign.journalUnlocked = completedSet.has("heartwood");
   progression.campaign.trainingGroveUnlocked = completedSet.has("heartwood");
   progression.campaign.trainingGroupUnlocked = completedSet.has("stillwater");
+  progression.campaign.trainingEliteUnlocked = completedSet.has("frost");
   progression.campaign.loadoutSlots = completedSet.has("frost")
     ? 3
     : completedSet.has("ember")
@@ -57,15 +59,34 @@ export function syncCampaignProgress(progression, sceneProgress = {}) {
   return progression.campaign;
 }
 
-function migrateCompletedEmberReturn(progression, sceneProgress) {
-  if (
-    progression.worldFlags.ember_restored &&
-    progression.questStates?.cinder_warden === "done" &&
-    progression.questStates?.ember_homecoming !== "done" &&
-    (sceneProgress?.emberpine_grove?.cleared ||
-      progression.regionProgress?.ember?.bossDefeated)
-  ) {
-    progression.questStates.ember_homecoming = "done";
+function migrateCompletedRegionalReturns(progression, sceneProgress) {
+  const migrations = [
+    {
+      chapterId: "ember",
+      restoredFlag: "ember_restored",
+      guardianQuestId: "cinder_warden",
+      returnQuestId: "ember_homecoming",
+      bossSceneId: "emberpine_grove",
+    },
+    {
+      chapterId: "frost",
+      restoredFlag: "frost_restored",
+      guardianQuestId: "veil_seraph",
+      returnQuestId: "frost_homecoming",
+      bossSceneId: "frostveil_tundra",
+    },
+  ];
+
+  for (const migration of migrations) {
+    if (
+      progression.worldFlags[migration.restoredFlag] &&
+      progression.questStates?.[migration.guardianQuestId] === "done" &&
+      progression.questStates?.[migration.returnQuestId] !== "done" &&
+      (sceneProgress?.[migration.bossSceneId]?.cleared ||
+        progression.regionProgress?.[migration.chapterId]?.bossDefeated)
+    ) {
+      progression.questStates[migration.returnQuestId] = "done";
+    }
   }
 }
 

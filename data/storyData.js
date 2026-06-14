@@ -371,12 +371,14 @@ export const QUEST_DEFS = {
     chapter: "frost",
     kind: "main",
     title: "Frostbound Signal",
-    description: "A missing scout vanished in the tundra. Find their camp and recover the message they carried.",
+    description: "Clear the frozen ridge, find the missing scout's camp, and recover the warning they carried about the spirit maintaining the old seal.",
     giverId: "vesper",
     sceneId: "frostveil_tundra",
     prerequisiteId: "ember_homecoming",
     startState: "inactive",
     completeFlags: ["ridge_signal_recovered"],
+    refreshSceneOnComplete: true,
+    resetSceneClearOnComplete: true,
     rewards: {
       items: { stonebloom: 2, moonleaf: 2, frostband_charm: 1, spirit_tonic: 1 },
       recipes: ["heartcleanse_elixir"],
@@ -384,23 +386,73 @@ export const QUEST_DEFS = {
       xp: 128,
     },
     objectives: [{ key: "scoutFound", label: "Lost scout located", required: 1 }],
+    dialogue: {
+      intro: [
+        "My scout found a voice moving beneath the ice, then the ridge swallowed their signal.",
+        "Clear the lower path and recover the satchel. Do not assume the spirit beyond it is our enemy.",
+      ],
+      progress: [
+        "The camp lies beyond the first frozen line. Bring back the message before the wind erases its meaning.",
+      ],
+      complete: [
+        "This was not a distress call. It is a warning: the Veil Seraph is holding the seal because it believes change will wake the star below.",
+        "The signal gives us a path through the ridge. Go carefully, Ayla. This guardian may be protecting us from an older mistake.",
+      ],
+    },
   },
   veil_seraph: {
     id: "veil_seraph",
     chapter: "frost",
     kind: "main",
     title: "The Veil Seraph",
-    description: "Follow the recovered signal into the sealed ridge and release the spirit holding winter in place.",
+    description: "Follow the recovered signal into the sealed ridge and release the spirit that chose endless winter to keep the star-voice asleep.",
     autoActivateSceneId: "frostveil_tundra",
     prerequisiteId: "lost_scout",
-    completeFlags: ["frost_restored"],
+    completeFlags: ["veil_seraph_released"],
+    refreshSceneOnComplete: true,
     rewards: {
-      items: { seraphim_lens: 1, greater_spirit_tonic: 1 },
+      items: { greater_spirit_tonic: 1 },
       silver: 80,
       talentPoints: 1,
       xp: 220,
     },
     objectives: [{ key: "veilSeraphDefeated", label: "Veil Seraph defeated", required: 1 }],
+  },
+  frost_homecoming: {
+    id: "frost_homecoming",
+    chapter: "frost",
+    kind: "main",
+    title: "The Winter Letter",
+    description: "Recover the message Veil Seraph preserved for Ayla's mother and return it to Vesper so Frostpine can release the season it was forced to hold.",
+    giverId: "vesper",
+    sceneId: "frostveil_tundra",
+    prerequisiteId: "veil_seraph",
+    startState: "inactive",
+    availabilityObjective: {
+      key: "seraphMessageRecovered",
+      required: 1,
+    },
+    completeFlags: ["frost_restored", "waystone_network_restored"],
+    rewards: {
+      items: { seraphim_lens: 1, tundra_signet: 1, greater_spirit_tonic: 1 },
+      silver: 62,
+      xp: 185,
+    },
+    objectives: [{ key: "seraphMessageRecovered", label: "Seraph's message recovered", required: 1 }],
+    dialogue: {
+      intro: [
+        "The Seraph kept one message outside the seal. It was addressed to your mother, but perhaps it was always waiting for you.",
+        "Bring it back. Frostpine needs the truth before it can accept the thaw.",
+      ],
+      progress: [
+        "Return to the quieted ridge. The message should remain where the Seraph last held the veil.",
+      ],
+      complete: [
+        "Your mother asked the Seraph to hold winter only until the roots could choose change without waking the star.",
+        "No one returned to release it. Duty became a prison because grief made the keepers stop speaking to one another.",
+        "Frostpine can thaw now. The full waystone network and a third Grove Loadout are open to you.",
+      ],
+    },
   },
   blight_watch: {
     id: "blight_watch",
@@ -410,7 +462,7 @@ export const QUEST_DEFS = {
     description: "Break the blight effigies and cut down the wisps feeding the rot before it swallows the old court.",
     giverId: "bram",
     sceneId: "blighted_woods",
-    prerequisiteId: "veil_seraph",
+    prerequisiteId: "frost_homecoming",
     startState: "inactive",
     completeFlags: ["court_approach_secured"],
     rewards: { items: { greater_health_potion: 2, heartseed: 1 }, silver: 45, xp: 150 },
@@ -643,6 +695,15 @@ export const NPC_DEFS = {
         "Take the frostband charm. You'll want the extra pace in the blight line.",
       ],
       after: ["The message was worth the cost. We'll honor it by finishing the route."],
+      states: [
+        {
+          flag: "frost_restored",
+          lines: [
+            "The first thaw revealed roads we thought the ice had taken forever.",
+            "Every waystone is answering now. The forest is connected again, even where it still hurts.",
+          ],
+        },
+      ],
     },
   },
   bram: {

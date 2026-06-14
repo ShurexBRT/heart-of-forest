@@ -40,7 +40,7 @@ export const CAMPAIGN_CHAPTERS = {
     restoredFlag: "frost_restored",
     bossSceneId: "frostveil_tundra",
     bossQuestId: "veil_seraph",
-    restorationQuestId: "veil_seraph",
+    restorationQuestId: "frost_homecoming",
     restorationRequiresBossClear: true,
     aspect: "veilkeeper",
   },

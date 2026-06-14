@@ -77,6 +77,7 @@ export const REGION_DEFS = {
     hubSceneId: "frostveil_tundra",
     sceneIds: ["frostveil_tundra"],
     bossSceneId: "frostveil_tundra",
+    stagedBossScene: true,
     bossId: "veil_seraph",
     damageType: "frost",
     counterRecipeId: "cinderheart_cordial",

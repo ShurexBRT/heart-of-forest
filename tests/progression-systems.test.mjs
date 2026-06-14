@@ -242,6 +242,30 @@ test("campaign migration removes premature regional restoration", () => {
   assert.equal(progression.campaign.activeChapter, "heartwood");
 });
 
+test("legacy restored guardians gain their regional return quests", () => {
+  const progression = createProgression({
+    worldFlags: {
+      ember_restored: true,
+      frost_restored: true,
+    },
+    questStates: {
+      cinder_warden: "done",
+      veil_seraph: "done",
+    },
+    regionProgress: {
+      ember: { bossDefeated: true },
+      frost: { bossDefeated: true },
+    },
+  });
+
+  syncCampaignProgress(progression, {});
+
+  assert.equal(progression.questStates.ember_homecoming, "done");
+  assert.equal(progression.questStates.frost_homecoming, "done");
+  assert.equal(progression.worldFlags.ember_restored, true);
+  assert.equal(progression.worldFlags.frost_restored, true);
+});
+
 test("locked inventory items cannot be sold", () => {
   const progression = createProgression({
     inventory: { health_potion: 2 },

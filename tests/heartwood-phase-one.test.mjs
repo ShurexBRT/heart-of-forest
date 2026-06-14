@@ -233,6 +233,58 @@ test("Ember Journal navigation and Bestiary track the guardian return", () => {
   assert.equal(entries.find((entry) => entry.id === "cinder_warden").mastered, true);
 });
 
+test("Frost Journal navigation and Bestiary preserve the Winter Letter lead", () => {
+  const progression = createProgression({
+    worldFlags: {
+      heartwood_restored: true,
+      stillwater_restored: true,
+      ember_restored: true,
+      ridge_signal_recovered: true,
+      veil_seraph_released: true,
+    },
+    questStates: {
+      stillwater_homecoming: "done",
+      cinder_warden: "done",
+      ember_homecoming: "done",
+      lost_scout: "done",
+      veil_seraph: "done",
+      frost_homecoming: "inactive",
+    },
+    questCounters: {
+      enemy_frost_wisp_defeated: 3,
+      enemy_icebound_guardian_defeated: 1,
+      veilSeraphDefeated: 1,
+    },
+  });
+  const sceneProgress = {
+    frostveil_tundra: { cleared: true },
+  };
+  progression.regionProgress.ember = { bossDefeated: true };
+  progression.regionProgress.frost = { bossDefeated: true };
+  syncCampaignProgress(progression, sceneProgress);
+
+  let navigation = getCampaignNavigation(
+    progression,
+    sceneProgress,
+    "frostveil_tundra"
+  );
+  assert.equal(navigation.questId, "frost_homecoming");
+  assert.match(navigation.hint, /message Veil Seraph preserved/i);
+
+  progression.questCounters.seraphMessageRecovered = 1;
+  navigation = getCampaignNavigation(
+    progression,
+    sceneProgress,
+    "frostveil_tundra"
+  );
+  assert.match(navigation.hint, /Vesper/i);
+
+  const entries = getBestiaryEntries(progression, "frost");
+  assert.equal(entries.find((entry) => entry.id === "frost_wisp").mastered, true);
+  assert.equal(entries.find((entry) => entry.id === "icebound_guardian").mastered, false);
+  assert.equal(entries.find((entry) => entry.id === "veil_seraph").mastered, true);
+});
+
 test("Target Circle tracks three training targets and a per-mode best", () => {
   const interactable = { id: "training-grove-cluster", disabled: false };
   const state = {
@@ -259,4 +311,37 @@ test("Target Circle tracks three training targets and a per-mode best", () => {
   assert.equal(result.mode, "target-circle");
   assert.equal(result.damage, 300);
   assert.equal(state.progression.trainingStats.bestDpsByMode["target-circle"], 15);
+});
+
+test("Veil Drill records a telegraph dodge without damaging Ayla", () => {
+  const interactable = { id: "training-grove-elite", disabled: false };
+  const state = {
+    training: createTrainingState(),
+    enemies: [],
+    arena: { interactables: [interactable] },
+    progression: createProgression(),
+    player: { x: 100, y: 100, radius: 16, hp: 50 },
+  };
+
+  assert.equal(
+    startTrainingDrill(
+      state,
+      interactable.id,
+      400,
+      400,
+      "elite-pattern"
+    ).started,
+    true
+  );
+  assert.equal(updateTrainingDrill(state, 0.8), null);
+  assert.ok(state.training.pattern);
+  state.player.x = 240;
+  assert.equal(updateTrainingDrill(state, 0.9), null);
+  assert.equal(state.training.dodges, 1);
+  const result = updateTrainingDrill(state, 18.3);
+
+  assert.equal(result.mode, "elite-pattern");
+  assert.equal(result.dodges, 1);
+  assert.equal(result.patternHits, 0);
+  assert.equal(state.player.hp, 50);
 });

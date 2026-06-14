@@ -57,6 +57,7 @@ const BOSS_IDENTITY = {
     summonPhase3: [{ type: "frost_wisp", elite: true, affixes: ["swift"] }, "icebound_guardian", "frost_wisp"],
     summonBanner: "The White Veil Falls",
     phaseBanners: ["Seraph Descends", "Winter Without End"],
+    signatureLabel: "Veilfall Halo",
     summonBurstColors: ["#bce9ff", "#91cae8", "#f2fbff"],
     slamTelegraphColor: "#c8edff",
     volleyTelegraphColor: "#a9dcfa",

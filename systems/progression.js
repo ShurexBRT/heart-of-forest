@@ -149,6 +149,7 @@ function normalizeTrainingStats(rawStats = {}) {
   const bestDps = Number(rawStats?.bestDps || 0);
   const steadyBest = Number(rawStats?.bestDpsByMode?.["steady-target"] || 0);
   const groupBest = Number(rawStats?.bestDpsByMode?.["target-circle"] || 0);
+  const eliteBest = Number(rawStats?.bestDpsByMode?.["elite-pattern"] || 0);
   return {
     bestDps: Number.isFinite(bestDps) ? Math.max(0, bestDps) : 0,
     bestDamage: Math.max(0, Math.floor(rawStats?.bestDamage || 0)),
@@ -156,6 +157,7 @@ function normalizeTrainingStats(rawStats = {}) {
     bestDpsByMode: {
       "steady-target": Number.isFinite(steadyBest) ? Math.max(0, steadyBest) : 0,
       "target-circle": Number.isFinite(groupBest) ? Math.max(0, groupBest) : 0,
+      "elite-pattern": Number.isFinite(eliteBest) ? Math.max(0, eliteBest) : 0,
     },
   };
 }

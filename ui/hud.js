@@ -822,7 +822,11 @@ function drawTrainingPanel(ctx, state) {
   ctx.fillStyle = "#fff0bd";
   ctx.font = "700 11px Segoe UI, Arial";
   const modeLabel =
-    view.mode === "target-circle" ? "TARGET CIRCLE" : "STEADY TARGET";
+    view.mode === "target-circle"
+      ? "TARGET CIRCLE"
+      : view.mode === "elite-pattern"
+        ? "VEIL DRILL"
+        : "STEADY TARGET";
   ctx.fillText(`TRAINING GROVE  |  ${modeLabel}`, x + 12, y + 18);
   ctx.fillStyle = "#dbe8d5";
   ctx.font = "700 18px Segoe UI, Arial";
@@ -830,7 +834,13 @@ function drawTrainingPanel(ctx, state) {
   ctx.textAlign = "right";
   ctx.font = "11px Segoe UI, Arial";
   ctx.fillStyle = "#aebdb6";
-  ctx.fillText(`${view.damage} damage  |  ${view.hits} hits`, x + width - 12, y + 43);
+  ctx.fillText(
+    view.mode === "elite-pattern"
+      ? `${view.dodges} dodged  |  ${view.patternHits} caught`
+      : `${view.damage} damage  |  ${view.hits} hits`,
+    x + width - 12,
+    y + 43
+  );
   ctx.fillText(
     `${view.timeLeft.toFixed(1)}s  |  best ${view.modeBestDps.toFixed(1)}`,
     x + width - 12,

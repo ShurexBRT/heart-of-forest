@@ -234,6 +234,37 @@ function drawEncounterGround(ctx, state, origin) {
 }
 
 function drawGroundEffects(ctx, state, origin) {
+  const trainingPattern = state.training?.pattern;
+  if (trainingPattern) {
+    ctx.save();
+    ctx.globalAlpha = trainingPattern.warning > 0 ? 0.46 : 0.7;
+    const color =
+      trainingPattern.warning > 0
+        ? "#a9dcfa"
+        : trainingPattern.hit
+          ? "#ff8f7b"
+          : "#f2fbff";
+    drawIsoRing(
+      ctx,
+      origin,
+      trainingPattern.x,
+      trainingPattern.y,
+      trainingPattern.radius,
+      trainingPattern.warning > 0 ? 10 : 15,
+      color
+    );
+    drawIsoRing(
+      ctx,
+      origin,
+      trainingPattern.x,
+      trainingPattern.y,
+      Math.max(20, trainingPattern.radius - 20),
+      7,
+      color
+    );
+    ctx.restore();
+  }
+
   for (const root of state.roots) {
     const progress = Math.max(0, root.life / root.maxLife);
     const pulse = Math.sin((state.time + root.pulse) * 10) * 2;
@@ -954,6 +985,12 @@ function drawInteractable(ctx, item, state, origin) {
   if (item.type === "trainingCluster") {
     drawTrainingDummy(ctx, point.x - 12, point.y + 1, item, false);
     drawTrainingDummy(ctx, point.x + 12, point.y + 1, item, false);
+  }
+
+  if (item.type === "trainingElite") {
+    drawTrainingDummy(ctx, point.x, point.y + 1, item, false);
+    pixelRect(ctx, point.x - 9, point.y - 43, 18, 4, "#a9dcfa");
+    pixelRect(ctx, point.x - 5, point.y - 48, 10, 5, "#f2fbff");
   }
 
   if (item.type === "forgeEmber") {

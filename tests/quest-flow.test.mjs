@@ -148,17 +148,31 @@ test("Ember restores only after the totems, guardian, ember recovery, and Garric
   assert.equal(state.progression.campaign.loadoutSlots, 2);
 });
 
-test("Frost still requires its guardian quest and scene clear", () => {
+test("Frost restores only after the scout, Seraph, Winter Letter, and Vesper return", () => {
   const state = createQuestFlowState();
+  state.progression.questStates.ember_homecoming = "done";
+  state.progression.worldFlags.ember_restored = true;
   state.currentSceneId = "frostveil_tundra";
-  state.progression.questStates.lost_scout = "done";
+  state.sceneProgress.frostveil_tundra = { cleared: true };
+
+  updateQuestAvailability(state);
+  assert.equal(state.progression.questStates.lost_scout, "available");
+  completeNpcQuest(state, "vesper", "lost_scout", {
+    scoutFound: 1,
+  });
+  assert.equal(state.progression.worldFlags.ridge_signal_recovered, true);
+  assert.equal(state.sceneProgress.frostveil_tundra.cleared, false);
+
   updateQuestAvailability(state);
   state.storyEvents.push({ type: "bossDefeated", bossId: "veil_seraph" });
   consumeStoryEvents(state);
   assert.equal(state.progression.questStates.veil_seraph, "done");
+  assert.equal(state.progression.worldFlags.veil_seraph_released, true);
   assert.equal(state.progression.worldFlags.frost_restored, false);
+  updateQuestAvailability(state);
+  assert.equal(state.progression.questStates.frost_homecoming, "inactive");
 
-  state.sceneProgress.frostveil_tundra = { cleared: true };
+  state.sceneProgress.frostveil_tundra.cleared = true;
   markRegionSceneCleared(
     state.progression,
     state.sceneProgress,
@@ -166,8 +180,22 @@ test("Frost still requires its guardian quest and scene clear", () => {
     4
   );
   syncCampaignProgress(state.progression, state.sceneProgress);
+  assert.equal(state.progression.worldFlags.frost_restored, false);
+
+  state.storyEvents.push({
+    type: "collect",
+    key: "seraphMessageRecovered",
+    amount: 1,
+  });
+  consumeStoryEvents(state);
+  updateQuestAvailability(state);
+  assert.equal(state.progression.questStates.frost_homecoming, "available");
+  completeNpcQuest(state, "vesper", "frost_homecoming");
+
   assert.equal(state.progression.worldFlags.frost_restored, true);
+  assert.equal(state.progression.worldFlags.waystone_network_restored, true);
   assert.equal(state.progression.campaign.loadoutSlots, 3);
+  assert.equal(state.progression.campaign.trainingEliteUnlocked, true);
 });
 
 test("Stillwater restores only after Ayla returns the Matron's memory to Nettle", () => {

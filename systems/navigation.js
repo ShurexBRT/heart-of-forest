@@ -65,6 +65,24 @@ export function getCampaignNavigation(progression, sceneProgress = {}, currentSc
           : "Recover the steady ember left inside the quieted firewatch ring.",
       });
     }
+    if (
+      chapterId === "frost" &&
+      progression.questStates?.veil_seraph === "done" &&
+      progression.questStates?.frost_homecoming === "inactive"
+    ) {
+      const messageRecovered =
+        getQuestCounter(progression, "seraphMessageRecovered") > 0;
+      return buildNavigationView({
+        chapterId,
+        quest: QUEST_DEFS.frost_homecoming,
+        status: "regional-lead",
+        targetSceneIds: ["frostveil_tundra"],
+        currentSceneId,
+        hint: messageRecovered
+          ? "Carry the Winter Letter back to Vesper."
+          : "Recover the message Veil Seraph preserved at the quieted seal.",
+      });
+    }
 
     const entrySceneId = CHAPTER_ENTRY_SCENES[chapterId];
     return buildNavigationView({
@@ -172,6 +190,9 @@ function resolveQuestTargets(quest, status, progression, sceneProgress) {
   if (quest.id === "ember_homecoming") {
     return ["emberpine_grove"];
   }
+  if (quest.id === "frost_homecoming") {
+    return ["frostveil_tundra"];
+  }
 
   return [...(QUEST_TARGET_SCENES[quest.id] || (quest.sceneId ? [quest.sceneId] : []))];
 }
@@ -229,6 +250,17 @@ function getNavigationHint(questId, status, targetSceneIds) {
   }
   if (questId === "ember_homecoming") {
     return "Recover the Firewatch Ember, then return it to Garrick at the western watch.";
+  }
+  if (questId === "lost_scout") {
+    return status === "complete"
+      ? "Return the recovered ridge signal to Vesper."
+      : "Clear the lower ridge and inspect the scout camp.";
+  }
+  if (questId === "veil_seraph") {
+    return "Follow the recovered signal into the seal and move early when pale frost marks the ground.";
+  }
+  if (questId === "frost_homecoming") {
+    return "Recover the Winter Letter, then return it to Vesper before the thaw begins.";
   }
   return `Continue toward ${targetSceneIds.map((id) => SCENES[id]?.title || id).join(" / ")}.`;
 }

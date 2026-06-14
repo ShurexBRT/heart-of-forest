@@ -1,3 +1,5 @@
+import { distance } from "../core/math.js";
+
 const TRAINING_DURATION = 20;
 
 export function createTrainingState() {
@@ -8,6 +10,10 @@ export function createTrainingState() {
     elapsed: 0,
     damage: 0,
     hits: 0,
+    dodges: 0,
+    patternHits: 0,
+    patternTimer: 0,
+    pattern: null,
     dummyIds: [],
     interactableId: null,
   };
@@ -37,6 +43,7 @@ export function startTrainingDrill(
     mode,
     active: true,
     timeLeft: TRAINING_DURATION,
+    patternTimer: mode === "elite-pattern" ? 0.8 : 0,
     dummyIds: dummies.map((dummy) => dummy.id),
     interactableId,
   };
@@ -60,6 +67,10 @@ export function recordTrainingDamage(state, target, amount) {
 export function updateTrainingDrill(state, dt) {
   if (!state.training?.active) return null;
 
+  if (state.training.mode === "elite-pattern") {
+    updateElitePattern(state, dt);
+  }
+
   state.training.elapsed = Math.min(
     TRAINING_DURATION,
     state.training.elapsed + Math.max(0, dt)
@@ -71,6 +82,8 @@ export function updateTrainingDrill(state, dt) {
     damage: Math.round(state.training.damage),
     hits: state.training.hits,
     dps: Number((state.training.damage / Math.max(1, state.training.elapsed)).toFixed(1)),
+    dodges: state.training.dodges || 0,
+    patternHits: state.training.patternHits || 0,
   };
 
   const dummyIds = new Set(state.training.dummyIds || []);
@@ -122,7 +135,55 @@ export function getTrainingView(state) {
     modeBestDps: Number(
       state.progression.trainingStats?.bestDpsByMode?.[training.mode] || 0
     ),
+    dodges: training.dodges || 0,
+    patternHits: training.patternHits || 0,
+    pattern: training.pattern,
   };
+}
+
+function updateElitePattern(state, dt) {
+  const training = state.training;
+  if (training.pattern) {
+    if (training.pattern.warning > 0) {
+      training.pattern.warning = Math.max(0, training.pattern.warning - dt);
+      if (training.pattern.warning === 0) {
+        const hit =
+          distance(
+            state.player.x,
+            state.player.y,
+            training.pattern.x,
+            training.pattern.y
+          ) <= training.pattern.radius + state.player.radius;
+        training.pattern.hit = hit;
+        training.pattern.impact = 0.24;
+        if (hit) {
+          training.patternHits += 1;
+        } else {
+          training.dodges += 1;
+        }
+      }
+      return;
+    }
+
+    training.pattern.impact = Math.max(0, training.pattern.impact - dt);
+    if (training.pattern.impact === 0) {
+      training.pattern = null;
+      training.patternTimer = 1.1;
+    }
+    return;
+  }
+
+  training.patternTimer = Math.max(0, training.patternTimer - dt);
+  if (training.patternTimer === 0) {
+    training.pattern = {
+      x: state.player.x,
+      y: state.player.y,
+      radius: 74,
+      warning: 0.9,
+      impact: 0,
+      hit: false,
+    };
+  }
 }
 
 function createTrainingDummy(id, x, y) {

@@ -133,3 +133,37 @@ test("Ember recovery and restored forge remain reachable", () => {
   assert.equal(hasReachableInteractionPoint(restoredArena, forge), true);
   assert.equal(restoredArena.hazards.length, 0);
 });
+
+test("Frost restoration adds reachable waystone and Veil Drill", () => {
+  const frost = createArena({
+    ...SCENES.frostveil_tundra,
+    worldFlags: {
+      ridge_signal_recovered: true,
+      veil_seraph_released: true,
+      frost_restored: true,
+    },
+    questStates: {
+      veil_seraph: "done",
+      frost_homecoming: "done",
+    },
+  });
+  const waystone = frost.interactables.find(
+    (interactable) => interactable.id === "frost-waystone"
+  );
+  const homestead = createArena({
+    ...SCENES.ayla_homestead,
+    worldFlags: {
+      heartwood_restored: true,
+      stillwater_restored: true,
+      frost_restored: true,
+    },
+  });
+  const veilDrill = homestead.interactables.find(
+    (interactable) => interactable.id === "training-grove-elite"
+  );
+
+  assert.ok(waystone);
+  assert.ok(veilDrill);
+  assert.equal(hasReachableInteractionPoint(frost, waystone), true);
+  assert.equal(hasReachableInteractionPoint(homestead, veilDrill), true);
+});

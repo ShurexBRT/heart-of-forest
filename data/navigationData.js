@@ -22,6 +22,7 @@ export const QUEST_TARGET_SCENES = {
   ember_homecoming: ["emberpine_grove"],
   lost_scout: ["frostveil_tundra"],
   veil_seraph: ["frostveil_tundra"],
+  frost_homecoming: ["frostveil_tundra"],
   blight_watch: ["blighted_woods"],
   elder_hollow: ["hollowheart_ruins"],
   heart_of_ancients: ["ancient_heart"],

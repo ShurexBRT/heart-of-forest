@@ -128,9 +128,12 @@ const saveRecord = loadSave();
 const snapshot = saveRecord?.runtimeSnapshot || null;
 const settings = loadSettings();
 const debugBoot = readDebugBootConfig();
-const debugSceneCleared = ["ember-return", "ember"].includes(
-  debugBoot.progress
-);
+const debugSceneCleared = [
+  "ember-return",
+  "ember",
+  "frost-return",
+  "frost",
+].includes(debugBoot.progress);
 const bootSnapshot =
   debugBoot.sceneId && SCENES[debugBoot.sceneId]
     ? {
@@ -289,6 +292,9 @@ function applyDebugProgression(nextProgression, debugConfig) {
       "ember-active",
       "ember-return",
       "ember",
+      "frost-active",
+      "frost-return",
+      "frost",
     ].includes(debugProgress)
   ) {
     return;
@@ -336,6 +342,9 @@ function applyDebugProgression(nextProgression, debugConfig) {
     "ember-active",
     "ember-return",
     "ember",
+    "frost-active",
+    "frost-return",
+    "frost",
   ].includes(debugProgress);
   nextProgression.questStates.chapel_of_tides = stillwaterComplete
     ? "done"
@@ -359,10 +368,26 @@ function applyDebugProgression(nextProgression, debugConfig) {
     nextProgression.worldFlags.chapel_of_tides_cleansed = true;
     nextProgression.worldFlags.stillwater_restored = true;
   }
-  if (!["ember-active", "ember-return", "ember"].includes(debugProgress)) return;
+  const emberStage = [
+    "ember-active",
+    "ember-return",
+    "ember",
+    "frost-active",
+    "frost-return",
+    "frost",
+  ].includes(debugProgress);
+  if (!emberStage) return;
 
-  const emberComplete = debugProgress === "ember";
-  const cinderReleased = ["ember-return", "ember"].includes(debugProgress);
+  const emberComplete = ["ember", "frost-active", "frost-return", "frost"].includes(
+    debugProgress
+  );
+  const cinderReleased = [
+    "ember-return",
+    "ember",
+    "frost-active",
+    "frost-return",
+    "frost",
+  ].includes(debugProgress);
   nextProgression.questStates.ember_totems = "done";
   nextProgression.questStates.cinder_warden = cinderReleased ? "done" : "active";
   nextProgression.questStates.ember_homecoming = emberComplete
@@ -383,6 +408,34 @@ function applyDebugProgression(nextProgression, debugConfig) {
   }
   if (emberComplete) {
     nextProgression.worldFlags.ember_restored = true;
+  }
+  if (!["frost-active", "frost-return", "frost"].includes(debugProgress)) {
+    return;
+  }
+
+  const frostComplete = debugProgress === "frost";
+  const seraphReleased = ["frost-return", "frost"].includes(debugProgress);
+  nextProgression.questStates.lost_scout = "done";
+  nextProgression.questStates.veil_seraph = seraphReleased ? "done" : "active";
+  nextProgression.questStates.frost_homecoming = frostComplete
+    ? "done"
+    : "inactive";
+  nextProgression.questCounters.scoutFound = 1;
+  nextProgression.questCounters.veilSeraphDefeated = seraphReleased ? 1 : 0;
+  nextProgression.questCounters.seraphMessageRecovered = frostComplete ? 1 : 0;
+  nextProgression.questCounters.enemy_frost_wisp_defeated = 3;
+  nextProgression.questCounters.enemy_icebound_guardian_defeated = 3;
+  nextProgression.worldFlags.ridge_signal_recovered = true;
+  if (seraphReleased) {
+    nextProgression.worldFlags.veil_seraph_released = true;
+    nextProgression.regionProgress.frost = {
+      ...(nextProgression.regionProgress.frost || {}),
+      bossDefeated: true,
+    };
+  }
+  if (frostComplete) {
+    nextProgression.worldFlags.frost_restored = true;
+    nextProgression.worldFlags.waystone_network_restored = true;
   }
 }
 
@@ -710,6 +763,13 @@ function buildSceneState(sceneId, entryId, currentProgression, sceneProgress, vi
   ) {
     encounterConfig.bossEnabled = false;
     encounterConfig.completionText = "Ember Line Cleared";
+  }
+  if (
+    sceneId === "frostveil_tundra" &&
+    !currentProgression.worldFlags.ridge_signal_recovered
+  ) {
+    encounterConfig.bossEnabled = false;
+    encounterConfig.completionText = "Lower Ridge Cleared";
   }
 
   if (savedSceneState?.objectStates) {
@@ -1188,6 +1248,31 @@ function handleInteractionAction(interaction) {
     setToast(
       result.started
         ? "Target Circle started: control three woven targets for 20 seconds."
+        : result.reason,
+      result.started ? 3 : 2
+    );
+    if (result.started) queueAudio(state, "quest");
+    return true;
+  }
+
+  if (interaction.action === "training-grove-elite") {
+    if (!state.progression.campaign?.trainingEliteUnlocked) {
+      setToast("Restore Frost before using the Veil Drill.", 2);
+      return true;
+    }
+    const target = state.arena.interactables.find(
+      (entry) => entry.id === interaction.interactableId
+    );
+    const result = startTrainingDrill(
+      state,
+      interaction.interactableId,
+      target?.x || state.player.x + 60,
+      target?.y || state.player.y,
+      "elite-pattern"
+    );
+    setToast(
+      result.started
+        ? "Veil Drill started: leave each pale telegraph before it closes."
         : result.reason,
       result.started ? 3 : 2
     );
@@ -2357,9 +2442,15 @@ function update(dt) {
       const trainingResult = updateTrainingDrill(state, simulationDt);
       if (trainingResult) {
         const drillLabel =
-          trainingResult.mode === "target-circle" ? "Target Circle" : "Steady Target";
+          trainingResult.mode === "target-circle"
+            ? "Target Circle"
+            : trainingResult.mode === "elite-pattern"
+              ? "Veil Drill"
+              : "Steady Target";
         setToast(
-          `${drillLabel} complete: ${trainingResult.dps} DPS, ${trainingResult.damage} damage, ${trainingResult.hits} hits.`,
+          trainingResult.mode === "elite-pattern"
+            ? `${drillLabel} complete: ${trainingResult.dodges} dodged, ${trainingResult.patternHits} caught, ${trainingResult.dps} DPS.`
+            : `${drillLabel} complete: ${trainingResult.dps} DPS, ${trainingResult.damage} damage, ${trainingResult.hits} hits.`,
           4
         );
         queueAudio(state, "quest");
