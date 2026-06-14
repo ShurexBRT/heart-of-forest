@@ -105,7 +105,7 @@ export const QUEST_DEFS = {
     chapter: "stillwater",
     kind: "main",
     title: "Bogbound Rot",
-    description: "Nettle marked tainted roots in the marsh. Cleanse them before the mire swallows the road.",
+    description: "Nettle can hear old voices drowning beneath two swollen roots. Cleanse them before the mire seals the road.",
     giverId: "nettle",
     sceneId: "mossroot_marsh",
     prerequisiteId: "first_rootwarden",
@@ -118,13 +118,26 @@ export const QUEST_DEFS = {
       xp: 95,
     },
     objectives: [{ key: "rootsCleansed", label: "Corrupted roots cleansed", required: 2 }],
+    dialogue: {
+      intro: [
+        "The water is repeating names it should have forgotten.",
+        "Two black roots are pinning those voices under the mud. Clear the creatures away, then cut the rot loose.",
+      ],
+      progress: [
+        "The drowned voices are still caught below those roots. Settle the marsh, then cleanse both wounds.",
+      ],
+      complete: [
+        "There. The water can move again, and something beneath it is trying to remember.",
+        "Take the Antitoxin recipe. The deeper mire will bite harder than this crossing.",
+      ],
+    },
   },
   tidebound_threshold: {
     id: "tidebound_threshold",
     chapter: "stillwater",
     kind: "main",
     title: "Tidebound Threshold",
-    description: "Nettle found two tide seals tied to the drowned chapel beyond the marsh. Recover them and pry the chapel door back open.",
+    description: "Recover the paired Tide Seals from Moonlit Marsh and Mossy Ruins, then reopen the drowned chapel.",
     giverId: "nettle",
     sceneId: "mossroot_marsh",
     prerequisiteId: "bogbound_rot",
@@ -132,6 +145,19 @@ export const QUEST_DEFS = {
     completeFlags: ["chapel_of_tides_open"],
     rewards: { items: { ward_elixir: 1, clarity_phial: 1, chapelglass_relic: 1 }, silver: 36, xp: 112 },
     objectives: [{ key: "tideSealsRecovered", label: "Tide seals recovered", required: 2 }],
+    dialogue: {
+      intro: [
+        "The chapel door was not locked. It was divided.",
+        "One Tide Seal sank into this crossing. The other was carried back toward Mossy Ruins when the old keepers fled.",
+      ],
+      progress: [
+        "The seals answer each other across the water. Find both, and the chapel steps will rise.",
+      ],
+      complete: [
+        "Both halves remember the same promise. The path to the chapel is open.",
+        "Whatever waits below has guarded those memories for a very long time.",
+      ],
+    },
   },
   ruins_of_memory: {
     id: "ruins_of_memory",
@@ -198,10 +224,10 @@ export const QUEST_DEFS = {
     chapter: "stillwater",
     kind: "main",
     title: "Chapel of Tides",
-    description: "Step into the drowned chapel, rekindle its braziers, and break the matron nesting in the flooded crypt.",
+    description: "Relight the drowned braziers and release Bog Matron from the oath that trapped Stillwater's memories.",
     autoActivateSceneId: "chapel_of_tides",
     prerequisiteId: "tidebound_threshold",
-    completeFlags: ["chapel_of_tides_cleansed", "stillwater_restored"],
+    completeFlags: ["chapel_of_tides_cleansed"],
     rewards: {
       items: { marshwarden_idol: 1, rejuvenation_draught: 1, greater_spirit_tonic: 1 },
       silver: 65,
@@ -213,6 +239,40 @@ export const QUEST_DEFS = {
       { key: "bogMatronDefeated", label: "Bog Matron defeated", required: 1 },
     ],
   },
+  stillwater_homecoming: {
+    id: "stillwater_homecoming",
+    chapter: "stillwater",
+    kind: "main",
+    title: "What the Water Kept",
+    description: "Carry the memory guarded by Bog Matron back to Nettle and let Stillwater remember its part in the old sealing.",
+    giverId: "nettle",
+    sceneId: "mossroot_marsh",
+    prerequisiteId: "chapel_of_tides",
+    startState: "inactive",
+    completeFlags: ["stillwater_restored"],
+    rewards: {
+      items: { tideglass_band: 1, antitoxin_bloom: 1 },
+      silver: 45,
+      xp: 120,
+    },
+    objectives: [
+      { key: "tideMemoryRecovered", label: "Matron's memory recovered", required: 1 },
+    ],
+    dialogue: {
+      intro: [
+        "You quieted the chapel, but the water followed you home.",
+        "Show me what the Matron kept. If we name the memory together, Stillwater can carry it without drowning in it.",
+      ],
+      progress: [
+        "The chapel is quiet, but its memory is still there. Return to the place where the Matron fell and listen.",
+      ],
+      complete: [
+        "Your mother stood here once. She helped divide the six roots because every other choice looked worse.",
+        "That does not make the sealing right, but it means we can mend it without pretending the past was simple.",
+        "Stillwater remembers. The eastern fire road is yours.",
+      ],
+    },
+  },
   ember_totems: {
     id: "ember_totems",
     chapter: "ember",
@@ -221,7 +281,7 @@ export const QUEST_DEFS = {
     description: "The grove is burning from within. Reactivate the warding totems and reopen the mountain pass.",
     giverId: "garrick",
     sceneId: "emberpine_grove",
-    prerequisiteId: "chapel_of_tides",
+    prerequisiteId: "stillwater_homecoming",
     startState: "inactive",
     completeFlags: ["ember_pass_reopened"],
     rewards: {
@@ -398,9 +458,18 @@ export const NPC_DEFS = {
   nettle: {
     id: "nettle",
     name: "Nettle",
-    role: "Side Quest",
+    role: "Marsh Keeper",
     palette: { hood: "#ede2d7", cloak: "#8f6e45", accent: "#d6c39b" },
     dialogue: {
+      states: [
+        {
+          flag: "stillwater_restored",
+          lines: [
+            "The water speaks in its own voice again, not the echo forced into it.",
+            "Your mother helped close these roots. You are choosing to hear what that choice cost.",
+          ],
+        },
+      ],
       intro: [
         "If you head into Mossroot Marsh, keep an eye out for the swollen black roots.",
         "Burn the rot out of two of them and I will make it worth your trouble.",
@@ -412,7 +481,9 @@ export const NPC_DEFS = {
         "There it is. Cleaner water and less rot in the air.",
         "Take this talisman. It was wasted hanging by my stove.",
       ],
-      after: ["Marsh work never truly ends, but you bought us time."],
+      after: [
+        "Marsh work never truly ends, but the water is moving instead of circling the same grief.",
+      ],
     },
   },
   halen: {

@@ -92,6 +92,7 @@ const BOSS_IDENTITY = {
     summonPhase3: [{ type: "mire_spitter", elite: true, affixes: ["spiteful"] }, "bog_lurker", "mire_brute"],
     summonBanner: "The Tides Answer",
     phaseBanners: ["Floodwake Rising", "Matron of the Mire"],
+    signatureLabel: "Tidewake Crown",
     summonBurstColors: ["#9de9ea", "#6fbcc5", "#d6fff7"],
     slamTelegraphColor: "#9ce3ea",
     volleyTelegraphColor: "#b8f0ff",

@@ -951,6 +951,11 @@ function drawInteractable(ctx, item, state, origin) {
     drawTrainingDummy(ctx, point.x, point.y, item, false);
   }
 
+  if (item.type === "trainingCluster") {
+    drawTrainingDummy(ctx, point.x - 12, point.y + 1, item, false);
+    drawTrainingDummy(ctx, point.x + 12, point.y + 1, item, false);
+  }
+
   if (item.type === "scout") {
     drawIsoShadow(ctx, point.x, point.y, 14, 6);
     pixelRect(ctx, point.x - 12, point.y - 14, 24, 12, "#6b7b87");

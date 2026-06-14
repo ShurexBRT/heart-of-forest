@@ -69,6 +69,11 @@ export function consumeStoryEvents(state) {
     }
 
     if (event.type === "enemyDefeated") {
+      incrementQuestCounter(
+        state.progression,
+        `enemy_${event.enemyType}_defeated`,
+        1
+      );
       if (event.enemyType === "thornling" || event.enemyType === "barkling") {
         incrementQuestCounter(state.progression, "gateThreatsDefeated", 1);
       }
@@ -574,6 +579,9 @@ function finalizeQuest(state, quest) {
   for (const flag of quest.completeFlags || []) {
     setWorldFlag(progression, flag, true);
   }
+  if ((quest.completeFlags || []).some((flag) => flag.endsWith("_restored"))) {
+    state.pendingArenaRefresh = true;
+  }
   syncCampaignProgress(progression, state.sceneProgress);
   state.player.refreshFromModifiers(getPlayerBonuses(progression));
   queueAudio(state, rewardSummary.levelsGained > 0 ? "level-up" : "quest");
@@ -669,7 +677,7 @@ function resolveQuestPanelTopicState(state, npcDef, topic) {
       quest: null,
       title: npcDef.name,
       statusLabel: npcDef.role,
-      bodyLines: getDialogueLines(npcDef, "default"),
+      bodyLines: getAmbientDialogueLines(state.progression, npcDef),
       objectives: [],
       rewardSummary: "",
       actions: [{ id: "close-panel", label: "Goodbye", accent: "#84c5ff" }],
@@ -689,7 +697,7 @@ function resolveQuestPanelTopicState(state, npcDef, topic) {
       quest,
       title: quest.title,
       statusLabel: "Available Quest",
-      bodyLines: [quest.description, ...getDialogueLines(npcDef, "intro")],
+      bodyLines: [quest.description, ...getQuestDialogueLines(quest, "intro", npcDef)],
       objectives,
       rewardSummary: describeRewards(quest.rewards),
       actions: [
@@ -705,7 +713,7 @@ function resolveQuestPanelTopicState(state, npcDef, topic) {
       quest,
       title: quest.title,
       statusLabel: "Ready to Turn In",
-      bodyLines: getDialogueLines(npcDef, "complete"),
+      bodyLines: getQuestDialogueLines(quest, "complete", npcDef),
       objectives,
       rewardSummary: describeRewards(quest.rewards),
       actions: [
@@ -720,7 +728,7 @@ function resolveQuestPanelTopicState(state, npcDef, topic) {
     quest,
     title: quest.title,
     statusLabel: "In Progress",
-    bodyLines: getDialogueLines(npcDef, "progress"),
+    bodyLines: getQuestDialogueLines(quest, "progress", npcDef),
     objectives,
     rewardSummary: describeRewards(quest.rewards),
     actions: [{ id: "close-panel", label: "Close", accent: "#86b8d8" }],
@@ -742,6 +750,23 @@ function getDialogueLines(npcDef, key) {
   }
 
   return [npcDef.name];
+}
+
+function getQuestDialogueLines(quest, key, npcDef) {
+  const lines = quest.dialogue?.[key];
+  return Array.isArray(lines) && lines.length > 0
+    ? lines
+    : getDialogueLines(npcDef, key);
+}
+
+function getAmbientDialogueLines(progression, npcDef) {
+  const stateDialogue = (npcDef.dialogue?.states || []).find(
+    (entry) => entry.flag && progression.worldFlags?.[entry.flag]
+  );
+  if (Array.isArray(stateDialogue?.lines) && stateDialogue.lines.length > 0) {
+    return stateDialogue.lines;
+  }
+  return getDialogueLines(npcDef, "default");
 }
 
 function describeRewards(rewards) {

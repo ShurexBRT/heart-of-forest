@@ -99,6 +99,10 @@ import {
   updateTrainingDrill,
 } from "./systems/training.js";
 import {
+  getCampaignNavigation,
+  getRegionJournalView,
+} from "./systems/navigation.js";
+import {
   createFrontendState,
   getFrontendEntries,
   getFrontendHoverTarget,
@@ -181,6 +185,7 @@ function createState(currentProgression, saveData = null, runtime = {}) {
     mouseWorld: { x: 0, y: 0 },
     combatTimer: 0,
     training: createTrainingState(),
+    pendingArenaRefresh: false,
     ui: createUiState(saveData?.ui),
     audio: runtime.audio || createAudioState(),
     settings: runtime.settings || settings,
@@ -254,7 +259,10 @@ function readDebugBootConfig() {
 }
 
 function applyDebugProgression(nextProgression, debugConfig) {
-  if (debugConfig?.progress !== "heartwood") return;
+  const debugProgress = debugConfig?.progress;
+  if (!["heartwood", "stillwater-active", "stillwater"].includes(debugProgress)) {
+    return;
+  }
   const completedHeartwoodQuests = [
     "wake_hearthroot",
     "first_moonleaf",
@@ -288,6 +296,31 @@ function applyDebugProgression(nextProgression, debugConfig) {
   );
   nextProgression.worldFlags.hearthroot_awake = true;
   nextProgression.worldFlags.heartwood_restored = true;
+
+  if (debugProgress === "heartwood") return;
+
+  nextProgression.questStates.bogbound_rot = "done";
+  nextProgression.questStates.tidebound_threshold = "done";
+  nextProgression.questStates.chapel_of_tides =
+    debugProgress === "stillwater" ? "done" : "active";
+  nextProgression.questStates.stillwater_homecoming =
+    debugProgress === "stillwater" ? "done" : "inactive";
+  nextProgression.questCounters.rootsCleansed = 2;
+  nextProgression.questCounters.tideSealsRecovered = 2;
+  nextProgression.questCounters.tideBraziersLit =
+    debugProgress === "stillwater" ? 2 : 0;
+  nextProgression.questCounters.bogMatronDefeated =
+    debugProgress === "stillwater" ? 1 : 0;
+  nextProgression.questCounters.tideMemoryRecovered =
+    debugProgress === "stillwater" ? 1 : 0;
+  nextProgression.questCounters.enemy_mire_spitter_defeated = 3;
+  nextProgression.questCounters.enemy_bog_lurker_defeated = 3;
+  nextProgression.worldFlags.marsh_rot_purged = true;
+  nextProgression.worldFlags.chapel_of_tides_open = true;
+  if (debugProgress === "stillwater") {
+    nextProgression.worldFlags.chapel_of_tides_cleansed = true;
+    nextProgression.worldFlags.stillwater_restored = true;
+  }
 }
 
 function applyDebugBootState(nextState, debugConfig) {
@@ -1052,11 +1085,37 @@ function handleInteractionAction(interaction) {
       state,
       interaction.interactableId,
       target?.x || state.player.x + 60,
-      target?.y || state.player.y
+      target?.y || state.player.y,
+      "steady-target"
     );
     setToast(
       result.started
         ? "Training started: deal as much damage as possible in 20 seconds."
+        : result.reason,
+      result.started ? 3 : 2
+    );
+    if (result.started) queueAudio(state, "quest");
+    return true;
+  }
+
+  if (interaction.action === "training-grove-group") {
+    if (!state.progression.campaign?.trainingGroupUnlocked) {
+      setToast("Restore Stillwater before using the Target Circle.", 2);
+      return true;
+    }
+    const target = state.arena.interactables.find(
+      (entry) => entry.id === interaction.interactableId
+    );
+    const result = startTrainingDrill(
+      state,
+      interaction.interactableId,
+      target?.x || state.player.x + 60,
+      target?.y || state.player.y,
+      "target-circle"
+    );
+    setToast(
+      result.started
+        ? "Target Circle started: control three woven targets for 20 seconds."
         : result.reason,
       result.started ? 3 : 2
     );
@@ -2175,6 +2234,19 @@ function update(dt) {
     updateStoryRuntime(state, dt);
     updateInteractionState();
 
+    if (
+      state.pendingArenaRefresh &&
+      !state.story.dialogue &&
+      !state.story.questPanel &&
+      !state.transition.active &&
+      !isUiOpen()
+    ) {
+      state.pendingArenaRefresh = false;
+      applySceneState(state.currentSceneId, state.currentEntryId || "default");
+      saveCurrentGame();
+      return;
+    }
+
     if (state.gameOver) {
       state.mode = GAME_MODES.GAME_OVER;
     } else if (state.mode !== GAME_MODES.PLAYING) {
@@ -2212,8 +2284,10 @@ function update(dt) {
       state.enemies = state.enemies.filter((enemy) => !enemy.dead);
       const trainingResult = updateTrainingDrill(state, simulationDt);
       if (trainingResult) {
+        const drillLabel =
+          trainingResult.mode === "target-circle" ? "Target Circle" : "Steady Target";
         setToast(
-          `Drill complete: ${trainingResult.dps} DPS, ${trainingResult.damage} damage, ${trainingResult.hits} hits.`,
+          `${drillLabel} complete: ${trainingResult.dps} DPS, ${trainingResult.damage} damage, ${trainingResult.hits} hits.`,
           4
         );
         queueAudio(state, "quest");
@@ -2249,7 +2323,35 @@ function render() {
   try {
     state.activeQuests = getActiveQuestEntries(state.progression);
     state.journalQuests = getJournalQuestEntries(state.progression);
-    state.bestiaryEntries = getBestiaryEntries(state.progression, "heartwood");
+    const selectedJournalQuest =
+      state.journalQuests[
+        Math.max(
+          0,
+          Math.min(
+            state.journalQuests.length - 1,
+            state.ui.selectedQuestIndex || 0
+          )
+        )
+      ];
+    const journalChapter =
+      selectedJournalQuest?.chapter ||
+      state.progression.campaign?.activeChapter ||
+      "heartwood";
+    state.bestiaryEntries = getBestiaryEntries(
+      state.progression,
+      journalChapter
+    );
+    state.navigation = getCampaignNavigation(
+      state.progression,
+      state.sceneProgress,
+      state.currentSceneId,
+      journalChapter
+    );
+    state.regionJournal = getRegionJournalView(
+      state.progression,
+      state.sceneProgress,
+      state.currentSceneId
+    );
     if (isFrontendMode(state.mode)) {
       renderGame(ctx, state, {
         showHud: state.mode === GAME_MODES.PAUSED || state.mode === GAME_MODES.GAME_OVER,

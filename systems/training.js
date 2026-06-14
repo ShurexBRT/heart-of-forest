@@ -8,25 +8,39 @@ export function createTrainingState() {
     elapsed: 0,
     damage: 0,
     hits: 0,
-    dummyId: null,
+    dummyIds: [],
     interactableId: null,
   };
 }
 
-export function startTrainingDrill(state, interactableId, x, y) {
+export function startTrainingDrill(
+  state,
+  interactableId,
+  x,
+  y,
+  mode = "steady-target"
+) {
   if (state.training?.active) {
     return { started: false, reason: "A training drill is already running." };
   }
 
-  const dummy = createTrainingDummy(x, y);
+  const dummies =
+    mode === "target-circle"
+      ? [
+          createTrainingDummy(`${interactableId}-left`, x - 64, y + 8),
+          createTrainingDummy(`${interactableId}-center`, x, y - 38),
+          createTrainingDummy(`${interactableId}-right`, x + 64, y + 8),
+        ]
+      : [createTrainingDummy(`${interactableId}-steady`, x, y)];
   state.training = {
     ...createTrainingState(),
+    mode,
     active: true,
     timeLeft: TRAINING_DURATION,
-    dummyId: dummy.id,
+    dummyIds: dummies.map((dummy) => dummy.id),
     interactableId,
   };
-  state.enemies.push(dummy);
+  state.enemies.push(...dummies);
 
   const interactable = state.arena.interactables.find((entry) => entry.id === interactableId);
   if (interactable) {
@@ -59,7 +73,8 @@ export function updateTrainingDrill(state, dt) {
     dps: Number((state.training.damage / Math.max(1, state.training.elapsed)).toFixed(1)),
   };
 
-  state.enemies = state.enemies.filter((enemy) => enemy.id !== state.training.dummyId);
+  const dummyIds = new Set(state.training.dummyIds || []);
+  state.enemies = state.enemies.filter((enemy) => !dummyIds.has(enemy.id));
   const interactable = state.arena.interactables.find(
     (entry) => entry.id === state.training.interactableId
   );
@@ -71,6 +86,7 @@ export function updateTrainingDrill(state, dt) {
     bestDps: 0,
     bestDamage: 0,
     drillsCompleted: 0,
+    bestDpsByMode: {},
   };
   state.progression.trainingStats.bestDps = Math.max(
     state.progression.trainingStats.bestDps,
@@ -81,6 +97,13 @@ export function updateTrainingDrill(state, dt) {
     result.damage
   );
   state.progression.trainingStats.drillsCompleted += 1;
+  state.progression.trainingStats.bestDpsByMode =
+    state.progression.trainingStats.bestDpsByMode || {};
+  state.progression.trainingStats.bestDpsByMode[state.training.mode] = Math.max(
+    state.progression.trainingStats.bestDpsByMode[state.training.mode] || 0,
+    result.dps
+  );
+  result.mode = state.training.mode;
   state.training = createTrainingState();
   return result;
 }
@@ -90,17 +113,21 @@ export function getTrainingView(state) {
   const elapsed = Math.max(0.01, training.elapsed || 0);
   return {
     active: training.active,
+    mode: training.mode,
     timeLeft: training.timeLeft,
     damage: Math.round(training.damage || 0),
     hits: training.hits || 0,
     dps: Number(((training.damage || 0) / elapsed).toFixed(1)),
     bestDps: Number(state.progression.trainingStats?.bestDps || 0),
+    modeBestDps: Number(
+      state.progression.trainingStats?.bestDpsByMode?.[training.mode] || 0
+    ),
   };
 }
 
-function createTrainingDummy(x, y) {
+function createTrainingDummy(id, x, y) {
   return {
-    id: "training-grove-dummy",
+    id,
     type: "training_dummy",
     name: "Woven Target",
     trainingDummy: true,

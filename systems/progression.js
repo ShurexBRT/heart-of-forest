@@ -147,10 +147,16 @@ function normalizeLoadouts(rawLoadouts = []) {
 
 function normalizeTrainingStats(rawStats = {}) {
   const bestDps = Number(rawStats?.bestDps || 0);
+  const steadyBest = Number(rawStats?.bestDpsByMode?.["steady-target"] || 0);
+  const groupBest = Number(rawStats?.bestDpsByMode?.["target-circle"] || 0);
   return {
     bestDps: Number.isFinite(bestDps) ? Math.max(0, bestDps) : 0,
     bestDamage: Math.max(0, Math.floor(rawStats?.bestDamage || 0)),
     drillsCompleted: Math.max(0, Math.floor(rawStats?.drillsCompleted || 0)),
+    bestDpsByMode: {
+      "steady-target": Number.isFinite(steadyBest) ? Math.max(0, steadyBest) : 0,
+      "target-circle": Number.isFinite(groupBest) ? Math.max(0, groupBest) : 0,
+    },
   };
 }
 

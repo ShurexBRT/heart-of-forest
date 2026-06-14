@@ -821,7 +821,9 @@ function drawTrainingPanel(ctx, state) {
   ctx.strokeRect(x, y, width, height);
   ctx.fillStyle = "#fff0bd";
   ctx.font = "700 11px Segoe UI, Arial";
-  ctx.fillText("TRAINING GROVE  |  STEADY TARGET", x + 12, y + 18);
+  const modeLabel =
+    view.mode === "target-circle" ? "TARGET CIRCLE" : "STEADY TARGET";
+  ctx.fillText(`TRAINING GROVE  |  ${modeLabel}`, x + 12, y + 18);
   ctx.fillStyle = "#dbe8d5";
   ctx.font = "700 18px Segoe UI, Arial";
   ctx.fillText(`${view.dps.toFixed(1)} DPS`, x + 12, y + 44);
@@ -829,7 +831,11 @@ function drawTrainingPanel(ctx, state) {
   ctx.font = "11px Segoe UI, Arial";
   ctx.fillStyle = "#aebdb6";
   ctx.fillText(`${view.damage} damage  |  ${view.hits} hits`, x + width - 12, y + 43);
-  ctx.fillText(`${view.timeLeft.toFixed(1)}s`, x + width - 12, y + 61);
+  ctx.fillText(
+    `${view.timeLeft.toFixed(1)}s  |  best ${view.modeBestDps.toFixed(1)}`,
+    x + width - 12,
+    y + 61
+  );
   ctx.textAlign = "left";
   ctx.fillStyle = "#29332d";
   ctx.fillRect(x + 12, y + 68, width - 24, 7);
@@ -948,24 +954,74 @@ function drawQuestLogOverlay(ctx, state) {
     });
   }
 
-  drawJournalBestiary(ctx, state, panel, Math.max(cursorY + 14, detailRect.y + detailRect.height - (panel.compact ? 132 : 188)));
+  const footerHeight = panel.compact ? 246 : 214;
+  const footerY = Math.max(
+    cursorY + 14,
+    detailRect.y + detailRect.height - footerHeight
+  );
+  const bestiaryY = drawJournalRegionOverview(ctx, state, panel, footerY);
+  drawJournalBestiary(ctx, state, panel, bestiaryY);
+}
+
+function drawJournalRegionOverview(ctx, state, panel, startY) {
+  const { detailRect, compact } = panel;
+  const region = state.regionJournal;
+  if (!region) return startY;
+
+  const x = detailRect.x + 18;
+  const width = detailRect.width - 36;
+  const height = compact ? 72 : 64;
+  const discovered = region.locations.filter((entry) => entry.discovered).length;
+  const recipe = ITEM_DEFS[region.counterRecipeId];
+
+  ctx.fillStyle = "rgba(18,31,35,0.84)";
+  ctx.fillRect(x, startY, width, height);
+  ctx.strokeStyle = region.status.color;
+  ctx.strokeRect(x, startY, width, height);
+  ctx.fillStyle = "#f5ead4";
+  ctx.font = "700 12px Segoe UI, Arial";
+  ctx.fillText(
+    `${region.name.toUpperCase()}  |  ${region.status.label.toUpperCase()}`,
+    x + 10,
+    startY + 17
+  );
+  ctx.fillStyle = "#9fb3ac";
+  ctx.font = "10px Segoe UI, Arial";
+  ctx.fillText(
+    `${discovered}/${region.locations.length} locations  |  ${region.damageType.toUpperCase()}  |  ${
+      region.preparationActive ? "WARD ACTIVE" : recipe?.name || "NO WARD"
+    }`,
+    x + 10,
+    startY + 34
+  );
+  ctx.fillStyle = "#d9e7d3";
+  ctx.font = "11px Segoe UI, Arial";
+  const lead = `${region.navigation.questTitle}: ${region.navigation.targetLabel}. ${region.navigation.hint}`;
+  toWrappedLines(ctx, lead, width - 20, compact ? 2 : 1).forEach((line, index) => {
+    ctx.fillText(line, x + 10, startY + 51 + index * 13);
+  });
+  return startY + height + 12;
 }
 
 function drawJournalBestiary(ctx, state, panel, startY) {
   const { detailRect, compact } = panel;
   const entries = state.bestiaryEntries || [];
+  const region = state.regionJournal;
   const x = detailRect.x + 18;
   const width = detailRect.width - 36;
   ctx.fillStyle = "#fff2d5";
   ctx.font = "700 12px Segoe UI, Arial";
-  ctx.fillText("HEARTWOOD BESTIARY", x, startY);
+  ctx.fillText(`${(region?.name || "FIELD").toUpperCase()} BESTIARY`, x, startY);
 
   const gap = 10;
-  const cardWidth = compact ? width : (width - gap) / 2;
+  const cardWidth = compact
+    ? width
+    : (width - gap * Math.max(0, entries.length - 1)) /
+      Math.max(1, entries.length);
   entries.forEach((entry, index) => {
     const cardX = compact ? x : x + index * (cardWidth + gap);
-    const cardY = compact ? startY + 12 + index * 54 : startY + 12;
-    const cardHeight = compact ? 48 : 104;
+    const cardY = compact ? startY + 12 + index * 46 : startY + 12;
+    const cardHeight = compact ? 42 : 112;
     ctx.fillStyle = entry.discovered ? "rgba(48,77,57,0.58)" : "rgba(30,35,38,0.7)";
     ctx.fillRect(cardX, cardY, cardWidth, cardHeight);
     ctx.strokeStyle = entry.mastered ? "#8fd892" : entry.discovered ? "#8fbf9a" : "#4a5555";
@@ -975,15 +1031,26 @@ function drawJournalBestiary(ctx, state, panel, startY) {
     ctx.fillText(entry.displayName, cardX + 10, cardY + 17);
     ctx.fillStyle = "#aebdb6";
     ctx.font = "10px Segoe UI, Arial";
-    const clue = entry.clues?.slice(0, entry.visibleClues)[0];
-    const line = clue || "No reliable field clue recorded.";
-    toWrappedLines(ctx, line, cardWidth - 20, compact ? 2 : 3).forEach((text, lineIndex) => {
-      ctx.fillText(text, cardX + 10, cardY + 34 + lineIndex * 13);
-    });
-    if (!compact && entry.visibleClues > 1) {
-      toWrappedLines(ctx, entry.clues[1], cardWidth - 20, 2).forEach((text, lineIndex) => {
-        ctx.fillText(text, cardX + 10, cardY + 73 + lineIndex * 13);
+    if (entry.discovered) {
+      const counterName = entry.mastered
+        ? ITEM_DEFS[entry.counterItemId]?.name
+        : null;
+      const fieldTag = counterName
+        ? `${entry.damageType.toUpperCase()}  |  ${counterName}`
+        : `${entry.damageType.toUpperCase()}  |  ${entry.role}`;
+      ctx.fillText(fieldTag, cardX + 10, cardY + 31);
+    }
+    if (!compact) {
+      const clue = entry.clues?.slice(0, entry.visibleClues)[0];
+      const line = clue || "No reliable field clue recorded.";
+      toWrappedLines(ctx, line, cardWidth - 20, 3).forEach((text, lineIndex) => {
+        ctx.fillText(text, cardX + 10, cardY + (entry.discovered ? 46 : 34) + lineIndex * 13);
       });
+      if (entry.visibleClues > 1) {
+        toWrappedLines(ctx, entry.clues[1], cardWidth - 20, 2).forEach((text, lineIndex) => {
+          ctx.fillText(text, cardX + 10, cardY + 84 + lineIndex * 13);
+        });
+      }
     }
   });
 }
@@ -1786,6 +1853,7 @@ function drawWorldMapOverlay(ctx, state) {
   ctx.strokeRect(contentX + 2, contentY + 2, graphW - 4, graphH - 4);
 
   const nodePositions = {};
+  const navigationTargets = new Set(state.navigation?.targetSceneIds || []);
   for (const [sceneId, point] of Object.entries(WORLD_MAP_LAYOUT)) {
     nodePositions[sceneId] = {
       x: contentX + 36 + point.x * Math.max(40, graphW - 72),
@@ -1826,10 +1894,27 @@ function drawWorldMapOverlay(ctx, state) {
     if (!point) continue;
 
     const current = sceneId === state.currentSceneId;
+    const navigationTarget = navigationTargets.has(sceneId);
     const cleared = Boolean(state.sceneProgress[sceneId]?.cleared);
     const status = getRegionStatus(state.progression, state.sceneProgress, sceneId);
     const color = getBiomeMapColor(scene.biomeId);
     const radius = current ? 14 : 10;
+
+    if (navigationTarget) {
+      const markerRadius = radius + 10;
+      ctx.save();
+      ctx.translate(point.x, point.y);
+      ctx.rotate(Math.PI / 4);
+      ctx.strokeStyle = "#f2d27d";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(
+        -markerRadius,
+        -markerRadius,
+        markerRadius * 2,
+        markerRadius * 2
+      );
+      ctx.restore();
+    }
 
     ctx.fillStyle = current ? "#f4ead3" : "rgba(10, 14, 18, 0.92)";
     ctx.beginPath();
@@ -1868,9 +1953,12 @@ function drawWorldMapOverlay(ctx, state) {
     state.sceneProgress,
     state.currentSceneId
   );
+  const nextLead = state.navigation?.targetLabel
+    ? ` Next lead: ${state.navigation.targetLabel}.`
+    : "";
   const footer = state.scene?.title
-    ? `Current zone: ${state.scene.title}. Region ${currentStatus.label}. Hold E on a gate to confirm travel.`
-    : "Hold E on a gate to confirm travel.";
+    ? `Current zone: ${state.scene.title}. Region ${currentStatus.label}.${nextLead} Hold E on a gate to confirm travel.`
+    : `Hold E on a gate to confirm travel.${nextLead}`;
   ctx.fillStyle = "#c8d4bd";
   ctx.font = "12px Segoe UI, Arial";
   drawWrappedText(ctx, footer, contentX, y + panelH - 28, panelW - 56, 15, 2);

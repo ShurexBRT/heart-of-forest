@@ -1,0 +1,29 @@
+export const CHAPTER_ENTRY_SCENES = {
+  heartwood: "ayla_homestead",
+  stillwater: "mossroot_marsh",
+  ember: "emberpine_grove",
+  frost: "frostveil_tundra",
+  scarroot: "blighted_woods",
+  rootlight: "ancient_heart",
+};
+
+export const QUEST_TARGET_SCENES = {
+  wake_hearthroot: ["ayla_homestead"],
+  first_moonleaf: ["ayla_homestead"],
+  thorn_at_gate: ["whispering_woods"],
+  brew_before_blood: ["ayla_homestead"],
+  first_rootwarden: ["mossy_ruins"],
+  bogbound_rot: ["mossroot_marsh"],
+  tidebound_threshold: ["mossroot_marsh", "mossy_ruins"],
+  chapel_of_tides: ["chapel_of_tides"],
+  stillwater_homecoming: ["mossroot_marsh"],
+  ember_totems: ["emberpine_grove"],
+  cinder_warden: ["emberpine_grove"],
+  lost_scout: ["frostveil_tundra"],
+  veil_seraph: ["frostveil_tundra"],
+  blight_watch: ["blighted_woods"],
+  elder_hollow: ["hollowheart_ruins"],
+  heart_of_ancients: ["ancient_heart"],
+  pilgrims_lantern: ["ancient_heart"],
+  starfall_sanctum: ["starfall_sanctum"],
+};

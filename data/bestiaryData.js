@@ -6,6 +6,10 @@ export const BESTIARY_DEFS = {
     unknownName: "Briar Footprints",
     role: "Close-range harrier",
     damageType: "thorn",
+    seenQuestId: "thorn_at_gate",
+    masteryQuestId: "thorn_at_gate",
+    counterKeys: ["enemy_thornling_defeated", "gateThreatsDefeated"],
+    masteryCount: 2,
     summary:
       "A young forest spirit twisted into a territorial hunter by the pressure around the broken Heartroot.",
     clues: [
@@ -21,11 +25,70 @@ export const BESTIARY_DEFS = {
     role: "Heartwood guardian",
     damageType: "thorn",
     counterItemId: "barkskin_draught",
+    seenQuestId: "first_rootwarden",
+    masteryQuestId: "first_rootwarden",
+    counterKeys: ["rootwardenDefeated"],
+    masteryCount: 1,
     summary:
       "An ancient keeper forced to defend the wounded root. Its rage is a symptom of the forest's fracture, not simple malice.",
     clues: [
       "Barkskin softens thorn damage but is preparation, not a gate.",
       "Root Crown always leaves a readable escape gap before the thorns close.",
+    ],
+  },
+  mire_spitter: {
+    id: "mire_spitter",
+    chapter: "stillwater",
+    name: "Mire Spitter",
+    unknownName: "Ripples at Range",
+    role: "Ranged pressure",
+    damageType: "mire",
+    counterItemId: "antitoxin_bloom",
+    seenQuestId: "bogbound_rot",
+    counterKeys: ["enemy_mire_spitter_defeated"],
+    masteryCount: 3,
+    summary:
+      "A marsh spirit that condenses tainted water into slow, readable projectiles while retreating from close pressure.",
+    clues: [
+      "Its pale windup marks the line of the next mire shot.",
+      "Dash across the firing line, then use staff pressure before it rebuilds distance.",
+    ],
+  },
+  bog_lurker: {
+    id: "bog_lurker",
+    chapter: "stillwater",
+    name: "Bog Lurker",
+    unknownName: "Wake Beneath the Reeds",
+    role: "Durable ambusher",
+    damageType: "mire",
+    counterItemId: "antitoxin_bloom",
+    seenQuestId: "bogbound_rot",
+    counterKeys: ["enemy_bog_lurker_defeated"],
+    masteryCount: 3,
+    summary:
+      "A heavy mire predator that closes slowly, absorbs light pressure, and punishes players who stand inside its lunge.",
+    clues: [
+      "Root interrupts its approach, but its mire-soaked body shortens root duration.",
+      "Wait for the lunge windup, evade sideways, then spend Spirit during recovery.",
+    ],
+  },
+  bog_matron: {
+    id: "bog_matron",
+    chapter: "stillwater",
+    name: "Bog Matron",
+    unknownName: "Voice Below the Chapel",
+    role: "Stillwater guardian",
+    damageType: "mire",
+    counterItemId: "antitoxin_bloom",
+    seenQuestId: "chapel_of_tides",
+    masteryQuestId: "chapel_of_tides",
+    counterKeys: ["bogMatronDefeated"],
+    masteryCount: 1,
+    summary:
+      "The keeper of memories cast into Stillwater. Corruption turned her duty to preserve into an order never to release.",
+    clues: [
+      "Antitoxin reduces mire damage but does not replace reading the flooded arena.",
+      "Tidewake Crown marks its eruption spaces before the water answers.",
     ],
   },
 };

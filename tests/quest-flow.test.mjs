@@ -8,6 +8,7 @@ import {
   incrementQuestCounter,
 } from "../systems/progression.js";
 import {
+  activateQuestPanelSelection,
   consumeStoryEvents,
   createStoryState,
   refreshQuestStates,
@@ -139,3 +140,70 @@ test("Ember and Frost restore only after their guardian quest and scene clear", 
   assert.equal(state.progression.worldFlags.frost_restored, true);
   assert.equal(state.progression.campaign.loadoutSlots, 3);
 });
+
+test("Stillwater restores only after Ayla returns the Matron's memory to Nettle", () => {
+  const state = createQuestFlowState();
+  state.progression.questStates.first_rootwarden = "done";
+  state.progression.worldFlags.heartwood_restored = true;
+  state.currentSceneId = "mossroot_marsh";
+
+  updateQuestAvailability(state);
+  assert.equal(state.progression.questStates.bogbound_rot, "available");
+  completeNpcQuest(state, "nettle", "bogbound_rot", {
+    rootsCleansed: 2,
+  });
+  assert.equal(state.progression.questStates.bogbound_rot, "done");
+  assert.equal(state.progression.unlockedRecipes.antitoxin_bloom, true);
+
+  updateQuestAvailability(state);
+  assert.equal(state.progression.questStates.tidebound_threshold, "available");
+  completeNpcQuest(state, "nettle", "tidebound_threshold", {
+    tideSealsRecovered: 2,
+  });
+  assert.equal(state.progression.worldFlags.chapel_of_tides_open, true);
+
+  state.currentSceneId = "chapel_of_tides";
+  updateQuestAvailability(state);
+  assert.equal(state.progression.questStates.chapel_of_tides, "active");
+  state.storyEvents.push(
+    { type: "collect", key: "tideBraziersLit", amount: 2 },
+    { type: "bossDefeated", bossId: "bog_matron" }
+  );
+  consumeStoryEvents(state);
+  assert.equal(state.progression.questStates.chapel_of_tides, "done");
+  assert.equal(state.progression.worldFlags.chapel_of_tides_cleansed, true);
+  assert.equal(state.progression.worldFlags.stillwater_restored, false);
+
+  state.storyEvents.push({
+    type: "collect",
+    key: "tideMemoryRecovered",
+    amount: 1,
+  });
+  consumeStoryEvents(state);
+  state.currentSceneId = "mossroot_marsh";
+  updateQuestAvailability(state);
+  assert.equal(state.progression.questStates.stillwater_homecoming, "available");
+  completeNpcQuest(state, "nettle", "stillwater_homecoming");
+
+  assert.equal(state.progression.worldFlags.stillwater_restored, true);
+  assert.equal(state.progression.campaign.activeChapter, "ember");
+  assert.equal(state.progression.campaign.trainingGroupUnlocked, true);
+  updateQuestAvailability(state);
+  assert.equal(state.progression.questStates.ember_totems, "inactive");
+});
+
+function completeNpcQuest(state, npcId, questId, counters = {}) {
+  state.progression.questStates[questId] = "active";
+  for (const [key, amount] of Object.entries(counters)) {
+    incrementQuestCounter(state.progression, key, amount);
+  }
+  refreshQuestStates(state);
+  assert.equal(state.progression.questStates[questId], "complete");
+  state.story.questPanel = {
+    npcId,
+    selectedTopicIndex: 0,
+    selectedActionIndex: 0,
+    focus: "actions",
+  };
+  activateQuestPanelSelection(state);
+}

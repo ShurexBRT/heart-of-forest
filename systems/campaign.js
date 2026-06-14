@@ -13,6 +13,7 @@ export function createCampaignProgress(snapshot = null) {
     ),
     loadoutSlots: Math.max(0, Math.min(3, Math.floor(snapshot?.loadoutSlots || 0))),
     trainingGroveUnlocked: Boolean(snapshot?.trainingGroveUnlocked),
+    trainingGroupUnlocked: Boolean(snapshot?.trainingGroupUnlocked),
     journalUnlocked: Boolean(snapshot?.journalUnlocked),
     campaignCompleted: Boolean(snapshot?.campaignCompleted),
   };
@@ -23,8 +24,9 @@ export function syncCampaignProgress(progression, sceneProgress = {}) {
   progression.worldFlags = progression.worldFlags || {};
   progression.regionProgress = progression.regionProgress || {};
 
-  reconcileBossGatedRestoration(progression, sceneProgress, "ember");
-  reconcileBossGatedRestoration(progression, sceneProgress, "frost");
+  for (const chapterId of ["stillwater", "ember", "frost"]) {
+    reconcileRestoration(progression, sceneProgress, chapterId);
+  }
 
   const completed = CAMPAIGN_CHAPTER_ORDER.filter((chapterId) => {
     const chapter = CAMPAIGN_CHAPTERS[chapterId];
@@ -41,6 +43,7 @@ export function syncCampaignProgress(progression, sceneProgress = {}) {
     CAMPAIGN_CHAPTER_ORDER.find((chapterId) => !completedSet.has(chapterId)) || "rootlight";
   progression.campaign.journalUnlocked = completedSet.has("heartwood");
   progression.campaign.trainingGroveUnlocked = completedSet.has("heartwood");
+  progression.campaign.trainingGroupUnlocked = completedSet.has("stillwater");
   progression.campaign.loadoutSlots = completedSet.has("frost")
     ? 3
     : completedSet.has("ember")
@@ -53,16 +56,21 @@ export function syncCampaignProgress(progression, sceneProgress = {}) {
   return progression.campaign;
 }
 
-function reconcileBossGatedRestoration(progression, sceneProgress, chapterId) {
+function reconcileRestoration(progression, sceneProgress, chapterId) {
   const chapter = CAMPAIGN_CHAPTERS[chapterId];
+  const restorationComplete =
+    progression.questStates?.[chapter.restorationQuestId] === "done";
   const bossDefeated = Boolean(
     sceneProgress?.[chapter.bossSceneId]?.cleared ||
       progression.regionProgress?.[chapterId]?.bossDefeated
   );
 
-  if (!bossDefeated) {
+  if (
+    !restorationComplete ||
+    (chapter.restorationRequiresBossClear && !bossDefeated)
+  ) {
     progression.worldFlags[chapter.restoredFlag] = false;
-  } else if (progression.questStates?.[chapter.bossQuestId] === "done") {
+  } else {
     progression.worldFlags[chapter.restoredFlag] = true;
   }
 }

@@ -183,8 +183,8 @@ beskonacnu kupovinu talent poena.
 | --- | --- | --- |
 | 0 | Campaign/save temelj, combat citljivost, loot zastita, zivi dokument | Zavrseno |
 | 1 | Heartwood prica, Training Grove, Journal, prvi loadout | Zavrseno |
-| 2 | Stillwater, Bestiary i regionalna navigacija | Sledece |
-| 3 | Ember prica i drugi loadout | Planirano |
+| 2 | Stillwater, Bestiary i regionalna navigacija | Zavrseno |
+| 3 | Ember prica i drugi loadout | Sledece |
 | 4 | Frost prica i treci loadout | Planirano |
 | 5 | Scarroot prica i Signature ultimate izbor | Planirano |
 | 6 | Rootlight finale i zavrsna sekvenca | Planirano |
@@ -249,18 +249,47 @@ beskonacnu kupovinu talent poena.
   loadout i obnovljeni Homestead na `1280x720`.
 - Automatizovana provera: `33/33` testova prolazi.
 
-### Sledeca faza - Faza 2
+### Faza 2
 
-1. Implementirati Stillwater main quest ritam od ulaska u marsh do Bog Matron
-   povratka, sa reakcijama Nettle i obnovljenim hub stanjem.
-2. Prosiriti Journal u puni regionalni pregled: status regiona, otkrivene
-   lokacije, boss clue i priprema za sledeci guardian encounter.
-3. Dodati Stillwater Bestiary zapise za mire neprijatelje i Bog Matron, sa
-   postepenim otkrivanjem damage tipa i Antitoxin saveta.
-4. Povezati mapu i Journal tako da pokazu sledecu relevantnu zonu bez
-   neprekidne navigacione linije.
-5. Dodati grupni Training Grove drill; simulirani elite napad ostaje za
-   kasniju combat encounter fazu.
+- Datum: 2026-06-14
+- Status: zavrseno
+- Cilj: zatvoriti Stillwater pricu povratkom u hub i povezati Journal,
+  Bestiary, mapu i drugi Training Grove drill u jedan citljiv regionalni loop.
+- Bog Matron vise ne obnavlja region samim porazom. Ayla prvo cisti crne
+  korene, vraca dva Tide Seala, pali chapel braziere i oslobadja Matron.
+- Nakon borbe u Chapel of Tides ostaje interaktivno secanje. Tek kada ga Ayla
+  odnese Nettle kroz novi quest `What the Water Kept`, Stillwater dobija status
+  `restored` i kampanja prelazi u Ember.
+- Nettle dobija quest-specific dijalog pre i posle svake glavne Stillwater
+  etape. Obnovljeni marsh vraca stanovnike, tople lanterns i mirnije okruzenje.
+- Field Journal sada prikazuje regionalni status, broj otkrivenih lokacija,
+  dominantni damage tip, counter recept i sledeci campaign lead.
+- Travel Map oznacava relevantnu sledecu zonu diskretnim markerom. Posebna
+  logika vodi ka preostalom Tide Sealu, Matroninom secanju ili povratku Nettle.
+- Stillwater Bestiary uvodi Mire Spittera, Bog Lurkera i Bog Matron. Zapisi
+  postepeno otkrivaju ulogu neprijatelja, mire damage i Antitoxin savet.
+- Obnovljeni Stillwater otkljucava `Target Circle`, grupni Training Grove
+  drill sa tri mete i zasebnim najboljim DPS rezultatom po modu.
+- Chapel hazards nestaju nakon ciscenja, a Stillwater interactables i novo
+  secanje imaju proverene dostupne interaction tacke.
+- Dodat je `debugProgress=stillwater-active` i `debugProgress=stillwater` QA
+  fixture za proveru aktivnog i obnovljenog regiona.
+- Journal je vizuelno proveren na `1280x720` i `800x720`, a Travel Map i
+  obnovljeni Homestead na `1280x720`.
+- Automatizovana provera: `38/38` testova prolazi.
+
+### Sledeca faza - Faza 3
+
+1. Prosiriti Ember quest chain tako da totemi vode do Cinder Wardena, a
+   pobeda do povratka u Ember Hollow i vidljive obnove kovacnice.
+2. Dodati Ember Bestiary i regionalnu navigaciju za fire neprijatelje,
+   warding toteme, guardian arenu i povratak keeperu.
+3. Otkljucati drugi loadout tek po zavrsetku Ember povratka i preraditi
+   Character prikaz za biranje, cuvanje i aktiviranje vise loadout slotova.
+4. Povezati drugi loadout sa action slotovima bez dupliranja opreme ili
+   besplatnog vracanja preparation elixira.
+5. Dodati Ember Training Grove proveru za prelazak iz jednog loadouta u drugi;
+   simulirani elite napad ostaje za kasniju combat encounter fazu.
 
 ## Van trenutnog scopea
 

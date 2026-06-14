@@ -201,11 +201,13 @@ test("regional preparation reduces only its matching damage type", () => {
 test("campaign migration removes premature regional restoration", () => {
   const progression = createProgression({
     worldFlags: {
+      stillwater_restored: true,
       ember_pass_reopened: true,
       ember_restored: true,
       frost_restored: true,
     },
     questStates: {
+      chapel_of_tides: "done",
       ember_totems: "done",
       lost_scout: "done",
     },
@@ -213,6 +215,7 @@ test("campaign migration removes premature regional restoration", () => {
 
   syncCampaignProgress(progression, {});
 
+  assert.equal(progression.worldFlags.stillwater_restored, false);
   assert.equal(progression.worldFlags.ember_restored, false);
   assert.equal(progression.worldFlags.frost_restored, false);
   assert.equal(progression.campaign.activeChapter, "heartwood");

@@ -20,6 +20,8 @@ export const CAMPAIGN_CHAPTERS = {
     title: "The Drowned Road",
     restoredFlag: "stillwater_restored",
     bossSceneId: "chapel_of_tides",
+    bossQuestId: "chapel_of_tides",
+    restorationQuestId: "stillwater_homecoming",
     aspect: "tidekeeper",
   },
   ember: {
@@ -28,6 +30,8 @@ export const CAMPAIGN_CHAPTERS = {
     restoredFlag: "ember_restored",
     bossSceneId: "emberpine_grove",
     bossQuestId: "cinder_warden",
+    restorationQuestId: "cinder_warden",
+    restorationRequiresBossClear: true,
     aspect: "firekeeper",
   },
   frost: {
@@ -36,6 +40,8 @@ export const CAMPAIGN_CHAPTERS = {
     restoredFlag: "frost_restored",
     bossSceneId: "frostveil_tundra",
     bossQuestId: "veil_seraph",
+    restorationQuestId: "veil_seraph",
+    restorationRequiresBossClear: true,
     aspect: "veilkeeper",
   },
   scarroot: {

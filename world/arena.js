@@ -426,6 +426,9 @@ function buildAylaHomestead(context, rng) {
     stampEllipse(tiles, 48, 42, 5, 3, "soil", 1);
     paintPath(tiles, 33, 47, 43, 43, 2, "path", 0);
   }
+  if (flags.stillwater_restored) {
+    stampEllipse(tiles, 55, 42, 5, 4, "path", 1);
+  }
 
   const interactables = [
     interactable("hearthroot-shrine", "shrine", 742, 396, {
@@ -503,6 +506,20 @@ function buildAylaHomestead(context, rng) {
             repeatable: true,
             interactionRadius: 82,
             w: 42,
+            h: 56,
+            sortY: 692,
+          }),
+        ]
+      : []),
+    ...(flags.stillwater_restored
+      ? [
+          interactable("training-grove-cluster", "trainingCluster", 880, 672, {
+            name: "Training Grove Target Circle",
+            promptLabel: "Begin 20s group drill",
+            action: "training-grove-group",
+            repeatable: true,
+            interactionRadius: 82,
+            w: 52,
             h: 56,
             sortY: 692,
           }),
@@ -736,6 +753,10 @@ function buildMossrootMarsh(context, rng) {
   clearOverlayRect(tiles, 0, 22, 100, 14);
   scatterOverlay(tiles, rng, 10, 8, 18, 10, 20, "reeds");
   scatterOverlay(tiles, rng, 60, 40, 16, 8, 18, "reeds");
+  if (flags.stillwater_restored) {
+    scatterOverlay(tiles, rng, 16, 12, 64, 36, 42, "flowersCool");
+    scatterOverlay(tiles, rng, 18, 18, 58, 28, 24, "flowersWarm");
+  }
 
   const interactables = [
     interactable("marsh-root-1", "corruptedRoot", 852, 260, {
@@ -835,11 +856,21 @@ function buildMossrootMarsh(context, rng) {
       lantern(820, 322, "cool"),
       ...(flags.marsh_route_lit ? [lantern(1234, 370, "cool"), lantern(1338, 818, "cool")] : []),
       ...(flags.chapel_of_tides_open ? [bridge(1224, 826, 180, 38), signpost(1292, 794)] : []),
+      ...(flags.stillwater_restored
+        ? [
+            lantern(286, 438, "warm"),
+            lantern(650, 398, "warm"),
+            lantern(1044, 568, "warm"),
+          ]
+        : []),
       signpost(448, 402),
     ],
     npcs: [
       npc("nettle", 236, 462),
-      ...(flags.marsh_route_lit ? [npc("mara", 486, 420)] : []),
+      ...(flags.marsh_route_lit || flags.stillwater_restored
+        ? [npc("mara", 486, 420)]
+        : []),
+      ...(flags.stillwater_restored ? [npc("halen", 660, 438)] : []),
     ],
     interactables,
     hazards: [],
@@ -1319,6 +1350,22 @@ function buildChapelOfTides(context, rng) {
       requiresCleared: true,
       sortY: 338,
     }),
+    interactable("tide-memory", "shrine", 934, 690, {
+      name: "Matron's Memory",
+      promptLabel: "Listen to the Stillwater memory",
+      collectKey: "tideMemoryRecovered",
+      toastText: "The Matron's memory settles into Ayla's keeping.",
+      requiresCleared: true,
+      w: 44,
+      h: 36,
+      interactionRadius: 74,
+      sortY: 708,
+      dialogueLines: [
+        "The water remembers Ayla's mother standing beside five frightened keepers.",
+        "They divided the roots to contain the star-borne wound, knowing the sealed memories would poison every region slowly.",
+        "The Matron did not betray them. She stayed behind so one witness would survive the forgetting.",
+      ],
+    }),
   ];
 
   return createBaseArena(context, tiles, {
@@ -1366,11 +1413,13 @@ function buildChapelOfTides(context, rng) {
     ],
     npcs: [],
     interactables,
-    hazards: [
-      { id: "chapel-pool-1", x: 824, y: 378, w: 88, h: 62, damage: 8, interval: 0.74, type: "blight" },
-      { id: "chapel-pool-2", x: 960, y: 440, w: 92, h: 66, damage: 8, interval: 0.74, type: "blight" },
-      { id: "chapel-pool-3", x: 300, y: 214, w: 100, h: 76, damage: 7, interval: 0.8, type: "blight" },
-    ],
+    hazards: flags.chapel_of_tides_cleansed
+      ? []
+      : [
+          { id: "chapel-pool-1", x: 824, y: 378, w: 88, h: 62, damage: 8, interval: 0.74, type: "mire" },
+          { id: "chapel-pool-2", x: 960, y: 440, w: 92, h: 66, damage: 8, interval: 0.74, type: "mire" },
+          { id: "chapel-pool-3", x: 300, y: 214, w: 100, h: 76, damage: 7, interval: 0.8, type: "mire" },
+        ],
   });
 }
 

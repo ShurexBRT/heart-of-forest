@@ -15,31 +15,26 @@ export function getBestiaryEntries(progression, chapterId = "heartwood") {
 }
 
 function getDiscoveryState(progression, entryId) {
-  if (entryId === "thornling") {
-    const seen =
-      getQuestCounter(progression, "gateThreatsDefeated") > 0 ||
-      isQuestStarted(progression, "thorn_at_gate");
-    const mastered = isQuestDone(progression, "thorn_at_gate");
-    return {
-      discovered: seen,
-      mastered,
-      visibleClues: mastered ? 2 : seen ? 1 : 0,
-    };
-  }
+  const entry = BESTIARY_DEFS[entryId];
+  if (!entry) return { discovered: false, mastered: false, visibleClues: 0 };
 
-  if (entryId === "rootwarden") {
-    const seen =
-      getQuestCounter(progression, "rootwardenDefeated") > 0 ||
-      isQuestStarted(progression, "first_rootwarden");
-    const mastered = isQuestDone(progression, "first_rootwarden");
-    return {
-      discovered: seen,
-      mastered,
-      visibleClues: mastered ? 2 : seen ? 1 : 0,
-    };
-  }
-
-  return { discovered: false, mastered: false, visibleClues: 0 };
+  const counterValue = Math.max(
+    0,
+    ...(entry.counterKeys || []).map((key) => getQuestCounter(progression, key))
+  );
+  const discovered = Boolean(
+    counterValue > 0 ||
+      (entry.seenQuestId && isQuestStarted(progression, entry.seenQuestId))
+  );
+  const mastered = Boolean(
+    counterValue >= (entry.masteryCount || 1) ||
+      (entry.masteryQuestId && isQuestDone(progression, entry.masteryQuestId))
+  );
+  return {
+    discovered,
+    mastered,
+    visibleClues: mastered ? 2 : discovered ? 1 : 0,
+  };
 }
 
 function isQuestStarted(progression, questId) {

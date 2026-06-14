@@ -67,3 +67,32 @@ test("restored Homestead keeps the Training Grove reachable", () => {
   assert.ok(trainingGrove);
   assert.equal(hasReachableInteractionPoint(arena, trainingGrove), true);
 });
+
+test("Stillwater interactables remain reachable after restoration", () => {
+  const homestead = createArena({
+    ...SCENES.ayla_homestead,
+    worldFlags: {
+      heartwood_restored: true,
+      stillwater_restored: true,
+    },
+  });
+  const targetCircle = homestead.interactables.find(
+    (interactable) => interactable.id === "training-grove-cluster"
+  );
+  const chapel = createArena({
+    ...SCENES.chapel_of_tides,
+    worldFlags: {
+      chapel_of_tides_cleansed: true,
+      stillwater_restored: true,
+    },
+  });
+  const memory = chapel.interactables.find(
+    (interactable) => interactable.id === "tide-memory"
+  );
+
+  assert.ok(targetCircle);
+  assert.ok(memory);
+  assert.equal(hasReachableInteractionPoint(homestead, targetCircle), true);
+  assert.equal(hasReachableInteractionPoint(chapel, memory), true);
+  assert.equal(chapel.hazards.length, 0);
+});
