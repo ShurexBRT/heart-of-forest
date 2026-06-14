@@ -956,6 +956,27 @@ function drawInteractable(ctx, item, state, origin) {
     drawTrainingDummy(ctx, point.x + 12, point.y + 1, item, false);
   }
 
+  if (item.type === "forgeEmber") {
+    drawIsoShadow(ctx, point.x, point.y, 14, 7);
+    pixelRect(ctx, point.x - 13, point.y - 12, 26, 10, "#58453d");
+    drawWorldMaterialRect(ctx, "stone", point.x - 13, point.y - 12, 26, 10, getPropVariant(item, 4), 0.84);
+    pixelRect(ctx, point.x - 8, point.y - 17, 16, 8, "#b94f37");
+    pixelRect(ctx, point.x - 5, point.y - 22, 10, 9, "#ff9a51");
+    pixelRect(ctx, point.x - 2, point.y - 26, 4, 9, "#ffe09a");
+  }
+
+  if (item.type === "forge") {
+    drawIsoShadow(ctx, point.x, point.y, 26, 9);
+    pixelRect(ctx, point.x - 25, point.y - 26, 38, 24, "#633c31");
+    drawWorldMaterialRect(ctx, "ruin", point.x - 25, point.y - 26, 38, 24, getPropVariant(item, 4), 0.86);
+    pixelRect(ctx, point.x - 16, point.y - 19, 18, 13, "#342f2d");
+    pixelRect(ctx, point.x - 13, point.y - 16, 12, 8, "#ef7044");
+    pixelRect(ctx, point.x - 10, point.y - 14, 6, 5, "#ffd27c");
+    pixelRect(ctx, point.x + 13, point.y - 17, 20, 7, "#5d6566");
+    pixelRect(ctx, point.x + 18, point.y - 10, 5, 8, "#3f4748");
+    pixelRect(ctx, point.x - 22, point.y - 34, 8, 10, "rgba(173, 151, 137, 0.55)");
+  }
+
   if (item.type === "scout") {
     drawIsoShadow(ctx, point.x, point.y, 14, 6);
     pixelRect(ctx, point.x - 12, point.y - 14, 24, 12, "#6b7b87");

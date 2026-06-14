@@ -98,19 +98,33 @@ test("new game can complete the Homestead to Rootwarden preparation loop", () =>
   assert.equal(state.progression.talentPoints, 1);
 });
 
-test("Ember and Frost restore only after their guardian quest and scene clear", () => {
+test("Ember restores only after the totems, guardian, ember recovery, and Garrick return", () => {
   const state = createQuestFlowState();
+  state.progression.questStates.stillwater_homecoming = "done";
+  state.progression.worldFlags.stillwater_restored = true;
   state.currentSceneId = "emberpine_grove";
-  state.progression.questStates.ember_totems = "done";
+  state.sceneProgress.emberpine_grove = { cleared: true };
+
+  updateQuestAvailability(state);
+  assert.equal(state.progression.questStates.ember_totems, "available");
+  completeNpcQuest(state, "garrick", "ember_totems", {
+    totemsActivated: 3,
+  });
+  assert.equal(state.progression.worldFlags.ember_pass_reopened, true);
+  assert.equal(state.sceneProgress.emberpine_grove.cleared, false);
+
   updateQuestAvailability(state);
   assert.equal(state.progression.questStates.cinder_warden, "active");
 
   state.storyEvents.push({ type: "bossDefeated", bossId: "cinder_warden" });
   consumeStoryEvents(state);
   assert.equal(state.progression.questStates.cinder_warden, "done");
+  assert.equal(state.progression.worldFlags.cinder_warden_released, true);
   assert.equal(state.progression.worldFlags.ember_restored, false);
+  updateQuestAvailability(state);
+  assert.equal(state.progression.questStates.ember_homecoming, "inactive");
 
-  state.sceneProgress.emberpine_grove = { cleared: true };
+  state.sceneProgress.emberpine_grove.cleared = true;
   markRegionSceneCleared(
     state.progression,
     state.sceneProgress,
@@ -118,9 +132,24 @@ test("Ember and Frost restore only after their guardian quest and scene clear", 
     3
   );
   syncCampaignProgress(state.progression, state.sceneProgress);
+  assert.equal(state.progression.worldFlags.ember_restored, false);
+
+  state.storyEvents.push({
+    type: "collect",
+    key: "forgeEmberRecovered",
+    amount: 1,
+  });
+  consumeStoryEvents(state);
+  updateQuestAvailability(state);
+  assert.equal(state.progression.questStates.ember_homecoming, "available");
+  completeNpcQuest(state, "garrick", "ember_homecoming");
+
   assert.equal(state.progression.worldFlags.ember_restored, true);
   assert.equal(state.progression.campaign.loadoutSlots, 2);
+});
 
+test("Frost still requires its guardian quest and scene clear", () => {
+  const state = createQuestFlowState();
   state.currentSceneId = "frostveil_tundra";
   state.progression.questStates.lost_scout = "done";
   updateQuestAvailability(state);
@@ -173,6 +202,8 @@ test("Stillwater restores only after Ayla returns the Matron's memory to Nettle"
   assert.equal(state.progression.questStates.chapel_of_tides, "done");
   assert.equal(state.progression.worldFlags.chapel_of_tides_cleansed, true);
   assert.equal(state.progression.worldFlags.stillwater_restored, false);
+  updateQuestAvailability(state);
+  assert.equal(state.progression.questStates.stillwater_homecoming, "inactive");
 
   state.storyEvents.push({
     type: "collect",

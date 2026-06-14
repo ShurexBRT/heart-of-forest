@@ -24,6 +24,7 @@ export function syncCampaignProgress(progression, sceneProgress = {}) {
   progression.worldFlags = progression.worldFlags || {};
   progression.regionProgress = progression.regionProgress || {};
 
+  migrateCompletedEmberReturn(progression, sceneProgress);
   for (const chapterId of ["stillwater", "ember", "frost"]) {
     reconcileRestoration(progression, sceneProgress, chapterId);
   }
@@ -54,6 +55,18 @@ export function syncCampaignProgress(progression, sceneProgress = {}) {
   progression.campaign.campaignCompleted = completedSet.has("rootlight");
 
   return progression.campaign;
+}
+
+function migrateCompletedEmberReturn(progression, sceneProgress) {
+  if (
+    progression.worldFlags.ember_restored &&
+    progression.questStates?.cinder_warden === "done" &&
+    progression.questStates?.ember_homecoming !== "done" &&
+    (sceneProgress?.emberpine_grove?.cleared ||
+      progression.regionProgress?.ember?.bossDefeated)
+  ) {
+    progression.questStates.ember_homecoming = "done";
+  }
 }
 
 function reconcileRestoration(progression, sceneProgress, chapterId) {

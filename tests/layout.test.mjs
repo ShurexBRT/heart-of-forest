@@ -96,3 +96,40 @@ test("Stillwater interactables remain reachable after restoration", () => {
   assert.equal(hasReachableInteractionPoint(chapel, memory), true);
   assert.equal(chapel.hazards.length, 0);
 });
+
+test("Ember recovery and restored forge remain reachable", () => {
+  const recoveryArena = createArena({
+    ...SCENES.emberpine_grove,
+    worldFlags: {
+      ember_pass_reopened: true,
+      cinder_warden_released: true,
+    },
+    questStates: {
+      cinder_warden: "done",
+    },
+  });
+  const firewatchEmber = recoveryArena.interactables.find(
+    (interactable) => interactable.id === "firewatch-ember"
+  );
+  const restoredArena = createArena({
+    ...SCENES.emberpine_grove,
+    worldFlags: {
+      ember_pass_reopened: true,
+      cinder_warden_released: true,
+      ember_restored: true,
+    },
+    questStates: {
+      cinder_warden: "done",
+      ember_homecoming: "done",
+    },
+  });
+  const forge = restoredArena.interactables.find(
+    (interactable) => interactable.id === "ember-forge"
+  );
+
+  assert.ok(firewatchEmber);
+  assert.ok(forge);
+  assert.equal(hasReachableInteractionPoint(recoveryArena, firewatchEmber), true);
+  assert.equal(hasReachableInteractionPoint(restoredArena, forge), true);
+  assert.equal(restoredArena.hazards.length, 0);
+});

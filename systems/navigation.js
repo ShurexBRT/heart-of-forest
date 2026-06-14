@@ -47,6 +47,24 @@ export function getCampaignNavigation(progression, sceneProgress = {}, currentSc
           : "Listen to the memory left in the quieted chapel.",
       });
     }
+    if (
+      chapterId === "ember" &&
+      progression.questStates?.cinder_warden === "done" &&
+      progression.questStates?.ember_homecoming === "inactive"
+    ) {
+      const emberRecovered =
+        getQuestCounter(progression, "forgeEmberRecovered") > 0;
+      return buildNavigationView({
+        chapterId,
+        quest: QUEST_DEFS.ember_homecoming,
+        status: "regional-lead",
+        targetSceneIds: ["emberpine_grove"],
+        currentSceneId,
+        hint: emberRecovered
+          ? "Carry the Firewatch Ember back to Garrick."
+          : "Recover the steady ember left inside the quieted firewatch ring.",
+      });
+    }
 
     const entrySceneId = CHAPTER_ENTRY_SCENES[chapterId];
     return buildNavigationView({
@@ -151,6 +169,9 @@ function resolveQuestTargets(quest, status, progression, sceneProgress) {
       ? ["mossroot_marsh"]
       : ["chapel_of_tides"];
   }
+  if (quest.id === "ember_homecoming") {
+    return ["emberpine_grove"];
+  }
 
   return [...(QUEST_TARGET_SCENES[quest.id] || (quest.sceneId ? [quest.sceneId] : []))];
 }
@@ -197,6 +218,17 @@ function getNavigationHint(questId, status, targetSceneIds) {
     return targetSceneIds.includes("chapel_of_tides")
       ? "Recover the Matron's memory from the quieted chapel."
       : "Carry the recovered memory back to Nettle.";
+  }
+  if (questId === "ember_totems") {
+    return status === "complete"
+      ? "Return to Garrick so the totems can open the guardian road."
+      : "Clear the ember line, then rekindle all three warding totems.";
+  }
+  if (questId === "cinder_warden") {
+    return "Cross the reopened firewatch line and read the gaps between marked eruptions.";
+  }
+  if (questId === "ember_homecoming") {
+    return "Recover the Firewatch Ember, then return it to Garrick at the western watch.";
   }
   return `Continue toward ${targetSceneIds.map((id) => SCENES[id]?.title || id).join(" / ")}.`;
 }

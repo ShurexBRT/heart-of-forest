@@ -5,6 +5,8 @@ import { getBestiaryEntries } from "../systems/bestiary.js";
 import {
   activateLoadout,
   createProgression,
+  equipItem,
+  getLoadoutEntries,
   saveLoadout,
   unequipItem,
 } from "../systems/progression.js";
@@ -57,6 +59,27 @@ test("Grove Loadout restores recorded equipment without duplicating it", () => {
   assert.equal(activateLoadout(progression, 0).activated, true);
   assert.equal(progression.equipment.trinket, "warden_brooch");
   assert.equal(progression.inventory.warden_brooch || 0, 0);
+});
+
+test("Ember unlock supports two distinct loadouts and reports the active setup", () => {
+  const progression = createProgression({
+    campaign: { loadoutSlots: 2 },
+    inventory: { emberwake_seal: 1 },
+  });
+
+  assert.equal(saveLoadout(progression, 0).saved, true);
+  assert.equal(equipItem(progression, "emberwake_seal"), true);
+  assert.equal(saveLoadout(progression, 1).saved, true);
+  assert.equal(getLoadoutEntries(progression)[1].active, true);
+
+  assert.equal(activateLoadout(progression, 0).activated, true);
+  assert.equal(progression.equipment.amulet, null);
+  assert.equal(getLoadoutEntries(progression)[0].active, true);
+  assert.equal(getLoadoutEntries(progression)[1].active, false);
+
+  assert.equal(activateLoadout(progression, 1).activated, true);
+  assert.equal(progression.equipment.amulet, "emberwake_seal");
+  assert.equal(progression.inventory.emberwake_seal || 0, 0);
 });
 
 test("Training Grove records DPS and never resolves through enemy rewards", () => {
@@ -160,6 +183,54 @@ test("Stillwater Bestiary reveals enemy roles before full counter advice", () =>
   assert.equal(lurker.mastered, true);
   assert.equal(lurker.visibleClues, 2);
   assert.equal(matron.discovered, false);
+});
+
+test("Ember Journal navigation and Bestiary track the guardian return", () => {
+  const progression = createProgression({
+    worldFlags: {
+      heartwood_restored: true,
+      stillwater_restored: true,
+      ember_pass_reopened: true,
+      cinder_warden_released: true,
+    },
+    questStates: {
+      stillwater_homecoming: "done",
+      ember_totems: "done",
+      cinder_warden: "done",
+      ember_homecoming: "inactive",
+    },
+    questCounters: {
+      enemy_cinder_imp_defeated: 3,
+      enemy_ash_brute_defeated: 1,
+      cinderWardenDefeated: 1,
+    },
+  });
+  const sceneProgress = {
+    emberpine_grove: { cleared: true },
+  };
+  progression.regionProgress.ember = { bossDefeated: true };
+  syncCampaignProgress(progression, sceneProgress);
+
+  let navigation = getCampaignNavigation(
+    progression,
+    sceneProgress,
+    "emberpine_grove"
+  );
+  assert.equal(navigation.questId, "ember_homecoming");
+  assert.match(navigation.hint, /steady ember/i);
+
+  progression.questCounters.forgeEmberRecovered = 1;
+  navigation = getCampaignNavigation(
+    progression,
+    sceneProgress,
+    "emberpine_grove"
+  );
+  assert.match(navigation.hint, /Garrick/i);
+
+  const entries = getBestiaryEntries(progression, "ember");
+  assert.equal(entries.find((entry) => entry.id === "cinder_imp").mastered, true);
+  assert.equal(entries.find((entry) => entry.id === "ash_brute").mastered, false);
+  assert.equal(entries.find((entry) => entry.id === "cinder_warden").mastered, true);
 });
 
 test("Target Circle tracks three training targets and a per-mode best", () => {

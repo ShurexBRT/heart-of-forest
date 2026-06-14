@@ -249,9 +249,14 @@ export const QUEST_DEFS = {
     sceneId: "mossroot_marsh",
     prerequisiteId: "chapel_of_tides",
     startState: "inactive",
+    availabilityObjective: {
+      key: "tideMemoryRecovered",
+      required: 1,
+    },
     completeFlags: ["stillwater_restored"],
     rewards: {
       items: { tideglass_band: 1, antitoxin_bloom: 1 },
+      recipes: ["emberward_infusion"],
       silver: 45,
       xp: 120,
     },
@@ -278,12 +283,14 @@ export const QUEST_DEFS = {
     chapter: "ember",
     kind: "main",
     title: "Totems in the Ash",
-    description: "The grove is burning from within. Reactivate the warding totems and reopen the mountain pass.",
+    description: "Clear the ember line, then rekindle three warding totems so the old firewatch road can hold long enough to reach its guardian.",
     giverId: "garrick",
     sceneId: "emberpine_grove",
     prerequisiteId: "stillwater_homecoming",
     startState: "inactive",
     completeFlags: ["ember_pass_reopened"],
+    refreshSceneOnComplete: true,
+    resetSceneClearOnComplete: true,
     rewards: {
       items: { cinder_resin: 2, emberglass_relic: 1, greater_health_potion: 1 },
       recipes: ["cinderheart_cordial"],
@@ -291,23 +298,73 @@ export const QUEST_DEFS = {
       xp: 120,
     },
     objectives: [{ key: "totemsActivated", label: "Totems rekindled", required: 3 }],
+    dialogue: {
+      intro: [
+        "The fire is not spreading at random. It is circling the old watch like a guard that forgot who it serves.",
+        "Break the ashbound line, then wake all three totems. They will open one clean path to the Warden.",
+      ],
+      progress: [
+        "The line is thinner, but the road will not hold until all three totems answer.",
+      ],
+      complete: [
+        "The totems remember their order. The firewatch road is open.",
+        "Now the Cinder Warden can see you clearly. Carry Emberward if you have it, but trust the shape of the flames first.",
+      ],
+    },
   },
   cinder_warden: {
     id: "cinder_warden",
     chapter: "ember",
     kind: "main",
     title: "The Cinder Warden",
-    description: "Cross the reopened ember line and release the firekeeper bound inside the burning grove.",
+    description: "Cross the reopened firewatch line and release the guardian trapped inside a command to burn every changing thing.",
     autoActivateSceneId: "emberpine_grove",
     prerequisiteId: "ember_totems",
-    completeFlags: ["ember_restored"],
+    completeFlags: ["cinder_warden_released"],
+    refreshSceneOnComplete: true,
     rewards: {
-      items: { emberwake_seal: 1, greater_health_potion: 1 },
+      items: { greater_health_potion: 1 },
       silver: 70,
       talentPoints: 1,
       xp: 200,
     },
     objectives: [{ key: "cinderWardenDefeated", label: "Cinder Warden defeated", required: 1 }],
+  },
+  ember_homecoming: {
+    id: "ember_homecoming",
+    chapter: "ember",
+    kind: "main",
+    title: "A Fire Worth Keeping",
+    description: "Recover the Firewatch Ember left by the released Warden and return it to Garrick so Ember Hollow can burn without consuming itself.",
+    giverId: "garrick",
+    sceneId: "emberpine_grove",
+    prerequisiteId: "cinder_warden",
+    startState: "inactive",
+    availabilityObjective: {
+      key: "forgeEmberRecovered",
+      required: 1,
+    },
+    completeFlags: ["ember_restored"],
+    rewards: {
+      items: { emberwake_seal: 1, cinder_resin: 2, greater_spirit_tonic: 1 },
+      silver: 54,
+      xp: 165,
+    },
+    objectives: [{ key: "forgeEmberRecovered", label: "Firewatch Ember recovered", required: 1 }],
+    dialogue: {
+      intro: [
+        "The Warden is free, but the old forge is still cold beneath all this heat.",
+        "Its true ember should remain where the guardian fell. Bring it back, and we can teach the fire to build again.",
+      ],
+      progress: [
+        "Go back to the firewatch ring. The ember we need burns steady, without reaching for anything around it.",
+      ],
+      complete: [
+        "That is it. Heat with a memory, not a hunger.",
+        "The forge lives again, and the keepers have made room for a second field loadout. One setup for the road, one for what waits at its end.",
+        "Vesper's signal is calling from the frozen ridge.",
+      ],
+    },
   },
   lost_scout: {
     id: "lost_scout",
@@ -317,7 +374,7 @@ export const QUEST_DEFS = {
     description: "A missing scout vanished in the tundra. Find their camp and recover the message they carried.",
     giverId: "vesper",
     sceneId: "frostveil_tundra",
-    prerequisiteId: "cinder_warden",
+    prerequisiteId: "ember_homecoming",
     startState: "inactive",
     completeFlags: ["ridge_signal_recovered"],
     rewards: {
@@ -542,7 +599,7 @@ export const NPC_DEFS = {
   garrick: {
     id: "garrick",
     name: "Garrick",
-    role: "Warden Captain",
+    role: "Firewatch Captain",
     palette: { hood: "#ece2d6", cloak: "#994f34", accent: "#ffbb7d" },
     dialogue: {
       intro: [
@@ -557,6 +614,15 @@ export const NPC_DEFS = {
         "Vesper's scouts were last seen beyond the frozen ridge.",
       ],
       after: ["Keep the fire behind you. The cold won't be kinder."],
+      states: [
+        {
+          flag: "ember_restored",
+          lines: [
+            "The forge keeps a low, honest flame now. That is rarer than any weapon it will make.",
+            "Use the second loadout well. Preparation is choice, not a tax paid before every fight.",
+          ],
+        },
+      ],
     },
   },
   vesper: {

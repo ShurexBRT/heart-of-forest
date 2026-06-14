@@ -128,9 +128,29 @@ const saveRecord = loadSave();
 const snapshot = saveRecord?.runtimeSnapshot || null;
 const settings = loadSettings();
 const debugBoot = readDebugBootConfig();
+const debugSceneCleared = ["ember-return", "ember"].includes(
+  debugBoot.progress
+);
+const bootSnapshot =
+  debugBoot.sceneId && SCENES[debugBoot.sceneId]
+    ? {
+        ...(snapshot || {}),
+        currentSceneId: debugBoot.sceneId,
+        currentEntryId: "default",
+        sceneProgress: debugSceneCleared
+          ? {
+              ...(snapshot?.sceneProgress || {}),
+              [debugBoot.sceneId]: {
+                ...(snapshot?.sceneProgress?.[debugBoot.sceneId] || {}),
+                cleared: true,
+              },
+            }
+          : snapshot?.sceneProgress,
+      }
+    : snapshot;
 const progression = createProgression(snapshot?.progression);
 applyDebugProgression(progression, debugBoot);
-let state = createState(progression, snapshot, {
+let state = createState(progression, bootSnapshot, {
   mode: debugBoot.mode || (debugBoot.overlay ? GAME_MODES.PLAYING : GAME_MODES.START_MENU),
   settings,
 });
@@ -254,13 +274,23 @@ function readDebugBootConfig() {
     overlay: params.get("debugUi")?.toLowerCase?.() || null,
     questNpc: params.get("debugNpc")?.toLowerCase?.() || null,
     progress: params.get("debugProgress")?.toLowerCase?.() || null,
+    sceneId: params.get("debugScene")?.toLowerCase?.() || null,
     collision: params.get("debugCollision") === "1",
   };
 }
 
 function applyDebugProgression(nextProgression, debugConfig) {
   const debugProgress = debugConfig?.progress;
-  if (!["heartwood", "stillwater-active", "stillwater"].includes(debugProgress)) {
+  if (
+    ![
+      "heartwood",
+      "stillwater-active",
+      "stillwater",
+      "ember-active",
+      "ember-return",
+      "ember",
+    ].includes(debugProgress)
+  ) {
     return;
   }
   const completedHeartwoodQuests = [
@@ -301,25 +331,58 @@ function applyDebugProgression(nextProgression, debugConfig) {
 
   nextProgression.questStates.bogbound_rot = "done";
   nextProgression.questStates.tidebound_threshold = "done";
-  nextProgression.questStates.chapel_of_tides =
-    debugProgress === "stillwater" ? "done" : "active";
-  nextProgression.questStates.stillwater_homecoming =
-    debugProgress === "stillwater" ? "done" : "inactive";
+  const stillwaterComplete = [
+    "stillwater",
+    "ember-active",
+    "ember-return",
+    "ember",
+  ].includes(debugProgress);
+  nextProgression.questStates.chapel_of_tides = stillwaterComplete
+    ? "done"
+    : "active";
+  nextProgression.questStates.stillwater_homecoming = stillwaterComplete
+    ? "done"
+    : "inactive";
   nextProgression.questCounters.rootsCleansed = 2;
   nextProgression.questCounters.tideSealsRecovered = 2;
   nextProgression.questCounters.tideBraziersLit =
-    debugProgress === "stillwater" ? 2 : 0;
+    stillwaterComplete ? 2 : 0;
   nextProgression.questCounters.bogMatronDefeated =
-    debugProgress === "stillwater" ? 1 : 0;
+    stillwaterComplete ? 1 : 0;
   nextProgression.questCounters.tideMemoryRecovered =
-    debugProgress === "stillwater" ? 1 : 0;
+    stillwaterComplete ? 1 : 0;
   nextProgression.questCounters.enemy_mire_spitter_defeated = 3;
   nextProgression.questCounters.enemy_bog_lurker_defeated = 3;
   nextProgression.worldFlags.marsh_rot_purged = true;
   nextProgression.worldFlags.chapel_of_tides_open = true;
-  if (debugProgress === "stillwater") {
+  if (stillwaterComplete) {
     nextProgression.worldFlags.chapel_of_tides_cleansed = true;
     nextProgression.worldFlags.stillwater_restored = true;
+  }
+  if (!["ember-active", "ember-return", "ember"].includes(debugProgress)) return;
+
+  const emberComplete = debugProgress === "ember";
+  const cinderReleased = ["ember-return", "ember"].includes(debugProgress);
+  nextProgression.questStates.ember_totems = "done";
+  nextProgression.questStates.cinder_warden = cinderReleased ? "done" : "active";
+  nextProgression.questStates.ember_homecoming = emberComplete
+    ? "done"
+    : "inactive";
+  nextProgression.questCounters.totemsActivated = 3;
+  nextProgression.questCounters.cinderWardenDefeated = cinderReleased ? 1 : 0;
+  nextProgression.questCounters.forgeEmberRecovered = emberComplete ? 1 : 0;
+  nextProgression.questCounters.enemy_cinder_imp_defeated = 3;
+  nextProgression.questCounters.enemy_ash_brute_defeated = 3;
+  nextProgression.worldFlags.ember_pass_reopened = true;
+  if (cinderReleased) {
+    nextProgression.worldFlags.cinder_warden_released = true;
+    nextProgression.regionProgress.ember = {
+      ...(nextProgression.regionProgress.ember || {}),
+      bossDefeated: true,
+    };
+  }
+  if (emberComplete) {
+    nextProgression.worldFlags.ember_restored = true;
   }
 }
 
@@ -640,6 +703,14 @@ function buildSceneState(sceneId, entryId, currentProgression, sceneProgress, vi
     questStates: currentProgression.questStates,
   });
   const savedSceneState = sceneProgress[sceneId];
+  const encounterConfig = { ...scene };
+  if (
+    sceneId === "emberpine_grove" &&
+    !currentProgression.worldFlags.ember_pass_reopened
+  ) {
+    encounterConfig.bossEnabled = false;
+    encounterConfig.completionText = "Ember Line Cleared";
+  }
 
   if (savedSceneState?.objectStates) {
     for (const interactable of arena.interactables) {
@@ -650,7 +721,7 @@ function buildSceneState(sceneId, entryId, currentProgression, sceneProgress, vi
   }
 
   const spawn = arena.entrySpawns?.[entryId] || arena.entrySpawns?.default || arena.playerSpawn;
-  const encounter = createEncounterState(arena, scene);
+  const encounter = createEncounterState(arena, encounterConfig);
 
   if (
     savedSceneState?.cleared &&
@@ -962,7 +1033,8 @@ function handleSceneCleared() {
     state.progression,
     state.sceneProgress,
     state.currentSceneId,
-    state.clock.day
+    state.clock.day,
+    { bossDefeated: Boolean(state.boss?.dead) }
   );
   syncCampaignProgress(state.progression, state.sceneProgress);
   state.areaCleared = false;

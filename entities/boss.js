@@ -38,6 +38,7 @@ const BOSS_IDENTITY = {
     summonPhase3: [{ type: "cinder_imp", elite: true, affixes: ["spiteful"] }, "ash_brute", "cinder_imp"],
     summonBanner: "The Cinders Answer",
     phaseBanners: ["Firewatch Broken", "Cinderheart Fury"],
+    signatureLabel: "Ashen Ring",
     summonBurstColors: ["#ff9a5f", "#f4c875", "#e86c48"],
     slamTelegraphColor: "#ffad6c",
     volleyTelegraphColor: "#ffc679",

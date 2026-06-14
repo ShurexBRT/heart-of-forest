@@ -29,7 +29,10 @@ export function getRegionStatus(progression, sceneProgress, regionOrSceneId) {
     return REGION_STATUS.restored;
   }
 
-  if (regionProgress.bossDefeated || sceneProgress?.[region.bossSceneId]?.cleared) {
+  if (
+    regionProgress.bossDefeated ||
+    (!region.stagedBossScene && sceneProgress?.[region.bossSceneId]?.cleared)
+  ) {
     return REGION_STATUS.secured;
   }
 
@@ -37,7 +40,13 @@ export function getRegionStatus(progression, sceneProgress, regionOrSceneId) {
   return opened ? REGION_STATUS.unstable : REGION_STATUS.infested;
 }
 
-export function markRegionSceneCleared(progression, sceneProgress, sceneId, day = 1) {
+export function markRegionSceneCleared(
+  progression,
+  sceneProgress,
+  sceneId,
+  day = 1,
+  options = {}
+) {
   const region = getRegionForScene(sceneId);
   if (!region) return null;
 
@@ -46,7 +55,7 @@ export function markRegionSceneCleared(progression, sceneProgress, sceneId, day 
     progress.firstOpenedDay = Math.max(1, Math.floor(day || 1));
   }
 
-  if (sceneId === region.bossSceneId) {
+  if (sceneId === region.bossSceneId && options.bossDefeated !== false) {
     progress.bossDefeated = true;
   }
 

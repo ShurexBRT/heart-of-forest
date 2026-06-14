@@ -43,6 +43,13 @@ export function updateQuestAvailability(state) {
     const status = progression.questStates[quest.id];
     if (status !== "inactive") continue;
     if (quest.prerequisiteId && !isQuestDone(progression, quest.prerequisiteId)) continue;
+    if (
+      quest.availabilityObjective &&
+      getQuestCounter(progression, quest.availabilityObjective.key) <
+        quest.availabilityObjective.required
+    ) {
+      continue;
+    }
 
     if (quest.giverId && state.currentSceneId === quest.sceneId) {
       progression.questStates[quest.id] = "available";
@@ -579,7 +586,16 @@ function finalizeQuest(state, quest) {
   for (const flag of quest.completeFlags || []) {
     setWorldFlag(progression, flag, true);
   }
-  if ((quest.completeFlags || []).some((flag) => flag.endsWith("_restored"))) {
+  if (quest.resetSceneClearOnComplete) {
+    const sceneProgress = state.sceneProgress?.[state.currentSceneId];
+    if (sceneProgress) {
+      sceneProgress.cleared = false;
+    }
+  }
+  if (
+    quest.refreshSceneOnComplete ||
+    (quest.completeFlags || []).some((flag) => flag.endsWith("_restored"))
+  ) {
     state.pendingArenaRefresh = true;
   }
   syncCampaignProgress(progression, state.sceneProgress);

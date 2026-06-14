@@ -1188,31 +1188,37 @@ function drawCharacterTab(ctx, state, x, y, width, height, bonuses) {
     drawActionButton(ctx, panel.unequipButton, state.ui.hoverTarget, "#0f151c", "#f6ead0");
   }
 
-  const loadout = panel.loadout;
-  ctx.fillStyle = "rgba(0,0,0,0.3)";
-  ctx.fillRect(loadout.rect.x, loadout.rect.y, loadout.rect.width, loadout.rect.height);
-  ctx.strokeStyle = loadout.unlocked ? "#698d6b" : "#3d4848";
-  ctx.strokeRect(loadout.rect.x, loadout.rect.y, loadout.rect.width, loadout.rect.height);
-  ctx.fillStyle = loadout.unlocked ? "#fff2d5" : "#8d9994";
-  ctx.font = "700 13px Segoe UI, Arial";
-  ctx.fillText("Grove Loadout I", loadout.rect.x + 12, loadout.rect.y + 20);
-  ctx.fillStyle = "#aebdb6";
-  ctx.font = "10px Segoe UI, Arial";
-  ctx.fillText(
-    loadout.unlocked
-      ? loadout.entry?.loadout
-        ? "Equipment and quick slots recorded"
-        : "No setup recorded yet"
-      : "Restore Heartwood to unlock",
-    loadout.rect.x + 12,
-    loadout.rect.y + 39
-  );
-  if (loadout.saveButton) {
-    drawActionButton(ctx, loadout.saveButton, state.ui.hoverTarget, "#17241b", "#eef7df");
-  }
-  if (loadout.activateButton) {
-    drawActionButton(ctx, loadout.activateButton, state.ui.hoverTarget, "#17202a", "#eef5ff");
-  }
+  panel.loadouts.forEach((loadout) => {
+    ctx.fillStyle = loadout.entry.active
+      ? "rgba(48, 82, 62, 0.48)"
+      : "rgba(0,0,0,0.3)";
+    ctx.fillRect(loadout.rect.x, loadout.rect.y, loadout.rect.width, loadout.rect.height);
+    ctx.strokeStyle = loadout.entry.active
+      ? "#9bd89d"
+      : loadout.unlocked
+        ? "#698d6b"
+        : "#3d4848";
+    ctx.strokeRect(loadout.rect.x, loadout.rect.y, loadout.rect.width, loadout.rect.height);
+    ctx.fillStyle = loadout.unlocked ? "#fff2d5" : "#8d9994";
+    ctx.font = "700 12px Segoe UI, Arial";
+    ctx.fillText(loadout.label, loadout.rect.x + 10, loadout.rect.y + 17);
+    if (loadout.entry.active) {
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#a9e8ac";
+      ctx.font = "700 9px Segoe UI, Arial";
+      ctx.fillText("ACTIVE", loadout.rect.x + loadout.rect.width - 10, loadout.rect.y + 17);
+      ctx.textAlign = "left";
+    }
+    ctx.fillStyle = "#aebdb6";
+    ctx.font = "9px Segoe UI, Arial";
+    ctx.fillText(loadout.statusText, loadout.rect.x + 10, loadout.rect.y + 33);
+    if (loadout.saveButton) {
+      drawActionButton(ctx, loadout.saveButton, state.ui.hoverTarget, "#17241b", "#eef7df");
+    }
+    if (loadout.activateButton) {
+      drawActionButton(ctx, loadout.activateButton, state.ui.hoverTarget, "#17202a", "#eef5ff");
+    }
+  });
 }
 
 function drawInventoryTab(ctx, state, x, y, width, height) {
@@ -2482,9 +2488,39 @@ function getCharacterPanelData(state, frame) {
     rect: rect(slotX, slotY - 16 + index * 42, 220, 34),
   }));
   const selected = equipped[state.ui.selectedEquipmentIndex] || null;
-  const loadoutEntry = getLoadoutEntries(state.progression)[0];
   const loadoutY = slotY + equipped.length * 42 + 44;
-  const loadoutRect = rect(slotX, loadoutY, 220, 92);
+  const unlockLabels = [
+    "Restore Heartwood to unlock",
+    "Restore Ember to unlock",
+    "Restore Frost to unlock",
+  ];
+  const loadoutLabels = ["Grove Loadout I", "Grove Loadout II", "Grove Loadout III"];
+  const loadouts = getLoadoutEntries(state.progression).map((entry, index) => {
+    const loadoutRect = rect(slotX, loadoutY + index * 78, 220, 72);
+    return {
+      rect: loadoutRect,
+      entry,
+      label: loadoutLabels[index],
+      unlocked: Boolean(entry.unlocked),
+      statusText: !entry.unlocked
+        ? unlockLabels[index]
+        : entry.active
+          ? "Current equipment and quick slots"
+          : entry.loadout
+            ? "Equipment and quick slots recorded"
+            : "No setup recorded yet",
+      saveButton: entry.unlocked
+        ? makeButton(loadoutRect.x + 10, loadoutRect.y + 42, 92, 22, "Save Current", "loadout-save", "#79b886", {
+            index,
+          })
+        : null,
+      activateButton: entry.unlocked && entry.loadout
+        ? makeButton(loadoutRect.x + 112, loadoutRect.y + 42, 98, 22, "Equip", "loadout-activate", "#79b8ff", {
+            index,
+          })
+        : null,
+    };
+  });
   return {
     equipped,
     rows,
@@ -2494,21 +2530,7 @@ function getCharacterPanelData(state, frame) {
             index: state.ui.selectedEquipmentIndex,
           })
         : null,
-    loadout: {
-      rect: loadoutRect,
-      entry: loadoutEntry,
-      unlocked: Boolean(loadoutEntry?.unlocked),
-      saveButton: loadoutEntry?.unlocked
-        ? makeButton(loadoutRect.x + 10, loadoutRect.y + 52, 92, 28, "Save Current", "loadout-save", "#79b886", {
-            index: 0,
-          })
-        : null,
-      activateButton: loadoutEntry?.unlocked && loadoutEntry.loadout
-        ? makeButton(loadoutRect.x + 112, loadoutRect.y + 52, 98, 28, "Equip", "loadout-activate", "#79b8ff", {
-            index: 0,
-          })
-        : null,
-    },
+    loadouts,
   };
 }
 
@@ -2965,28 +2987,30 @@ function getMenuHoverTarget(state, mouseX, mouseY) {
         tooltip: { title: "Unequip", lines: ["Return the selected item to your inventory."], accent: panel.unequipButton.accent },
       };
     }
-    if (panel.loadout.saveButton && pointInRect(mouseX, mouseY, panel.loadout.saveButton.rect)) {
-      return {
-        ...panel.loadout.saveButton,
-        tooltip: {
-          title: "Save Current Loadout",
-          lines: ["Record equipped items and quick slots in Grove Loadout I."],
-          accent: panel.loadout.saveButton.accent,
-        },
-      };
-    }
-    if (
-      panel.loadout.activateButton &&
-      pointInRect(mouseX, mouseY, panel.loadout.activateButton.rect)
-    ) {
-      return {
-        ...panel.loadout.activateButton,
-        tooltip: {
-          title: "Equip Grove Loadout I",
-          lines: ["Restore its recorded equipment and available quick-slot items."],
-          accent: panel.loadout.activateButton.accent,
-        },
-      };
+    for (const loadout of panel.loadouts) {
+      if (loadout.saveButton && pointInRect(mouseX, mouseY, loadout.saveButton.rect)) {
+        return {
+          ...loadout.saveButton,
+          tooltip: {
+            title: `Save ${loadout.label}`,
+            lines: ["Record equipped items and available quick slots in this setup."],
+            accent: loadout.saveButton.accent,
+          },
+        };
+      }
+      if (
+        loadout.activateButton &&
+        pointInRect(mouseX, mouseY, loadout.activateButton.rect)
+      ) {
+        return {
+          ...loadout.activateButton,
+          tooltip: {
+            title: `Equip ${loadout.label}`,
+            lines: ["Restore its recorded equipment and available quick-slot items."],
+            accent: loadout.activateButton.accent,
+          },
+        };
+      }
     }
     return null;
   }

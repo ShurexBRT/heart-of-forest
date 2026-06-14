@@ -879,6 +879,11 @@ function buildMossrootMarsh(context, rng) {
 
 function buildEmberpineGrove(context, rng) {
   const flags = context.worldFlags || {};
+  const questStates = context.questStates || {};
+  const cinderReleased =
+    questStates.cinder_warden === "done" ||
+    questStates.cinder_warden === "complete" ||
+    flags.cinder_warden_released;
   const tiles = createTiles(rng);
   stampRect(tiles, 0, 0, COLS, ROWS, "emberGrass", 0);
   clearOverlayRect(tiles, 0, 0, COLS, ROWS);
@@ -918,6 +923,42 @@ function buildEmberpineGrove(context, rng) {
       requiresCleared: true,
       sortY: 652,
     }),
+    ...(cinderReleased && !flags.ember_restored
+      ? [
+          interactable("firewatch-ember", "forgeEmber", 922, 470, {
+            name: "Firewatch Ember",
+            promptLabel: "Recover the steady ember",
+            collectKey: "forgeEmberRecovered",
+            toastText: "The Firewatch Ember burns without hunger.",
+            dialogueLines: [
+              "This flame does not reach for the ash around it.",
+              "It remembers warmth, craft, and the hands that once kept both in balance.",
+            ],
+            requiresCleared: true,
+            interactionRadius: 82,
+            w: 42,
+            h: 42,
+            sortY: 486,
+          }),
+        ]
+      : []),
+    ...(flags.ember_restored
+      ? [
+          interactable("ember-forge", "forge", 844, 690, {
+            name: "Restored Firewatch Forge",
+            promptLabel: "Listen to the forge",
+            repeatable: true,
+            dialogueLines: [
+              "The forge keeps a low, even flame.",
+              "Its heat now follows the work instead of consuming it.",
+            ],
+            interactionRadius: 86,
+            w: 58,
+            h: 52,
+            sortY: 710,
+          }),
+        ]
+      : []),
   ];
 
   return createBaseArena(context, tiles, {

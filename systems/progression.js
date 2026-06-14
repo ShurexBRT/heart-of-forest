@@ -562,11 +562,15 @@ export function getEquippedItems(progression) {
 
 export function getLoadoutEntries(progression) {
   const unlocked = Math.max(0, Math.min(3, progression.campaign?.loadoutSlots || 0));
-  return Array.from({ length: 3 }, (_, index) => ({
-    index,
-    unlocked: index < unlocked,
-    loadout: progression.loadouts?.[index] || null,
-  }));
+  return Array.from({ length: 3 }, (_, index) => {
+    const loadout = progression.loadouts?.[index] || null;
+    return {
+      index,
+      unlocked: index < unlocked,
+      loadout,
+      active: Boolean(loadout && loadoutMatchesCurrentSetup(progression, loadout)),
+    };
+  });
 }
 
 export function saveLoadout(progression, index) {
@@ -624,6 +628,18 @@ export function activateLoadout(progression, index) {
     !itemId || getItemCount(progression, itemId) > 0 ? itemId : null
   );
   return { activated: true, loadout };
+}
+
+function loadoutMatchesCurrentSetup(progression, loadout) {
+  const equipmentMatches = EQUIPMENT_SLOTS.every(
+    (slot) => (progression.equipment?.[slot] || null) === (loadout.equipment?.[slot] || null)
+  );
+  const currentSlots = normalizeActionSlots(progression.actionSlots);
+  const savedSlots = normalizeActionSlots(loadout.actionSlots);
+  return (
+    equipmentMatches &&
+    currentSlots.every((itemId, index) => itemId === savedSlots[index])
+  );
 }
 
 export function getItemAttunementLevel(progression, itemId) {

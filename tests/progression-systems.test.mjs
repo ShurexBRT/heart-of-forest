@@ -115,6 +115,27 @@ test("region status advances without rolling scene progress back", () => {
   assert.equal(sceneProgress.whispering_woods.cleared, true);
 });
 
+test("Ember line clear does not count as the guardian defeat", () => {
+  const progression = createProgression();
+  const sceneProgress = {
+    emberpine_grove: { cleared: true },
+  };
+
+  markRegionSceneCleared(
+    progression,
+    sceneProgress,
+    "emberpine_grove",
+    2,
+    { bossDefeated: false }
+  );
+
+  assert.equal(progression.regionProgress.ember.bossDefeated, false);
+  assert.equal(
+    getRegionStatus(progression, sceneProgress, "ember").id,
+    "unstable"
+  );
+});
+
 test("campaign preparations unlock before their target regions", () => {
   const progression = createProgression({
     silver: 120,

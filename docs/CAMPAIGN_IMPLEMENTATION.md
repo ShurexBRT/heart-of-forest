@@ -184,8 +184,8 @@ beskonacnu kupovinu talent poena.
 | 0 | Campaign/save temelj, combat citljivost, loot zastita, zivi dokument | Zavrseno |
 | 1 | Heartwood prica, Training Grove, Journal, prvi loadout | Zavrseno |
 | 2 | Stillwater, Bestiary i regionalna navigacija | Zavrseno |
-| 3 | Ember prica i drugi loadout | Sledece |
-| 4 | Frost prica i treci loadout | Planirano |
+| 3 | Ember prica i drugi loadout | Zavrseno |
+| 4 | Frost prica i treci loadout | Sledece |
 | 5 | Scarroot prica i Signature ultimate izbor | Planirano |
 | 6 | Rootlight finale i zavrsna sekvenca | Planirano |
 | 7 | Second Spring postgame i optional challenge loop | Planirano |
@@ -278,18 +278,55 @@ beskonacnu kupovinu talent poena.
   obnovljeni Homestead na `1280x720`.
 - Automatizovana provera: `38/38` testova prolazi.
 
-### Sledeca faza - Faza 3
+### Faza 3
 
-1. Prosiriti Ember quest chain tako da totemi vode do Cinder Wardena, a
-   pobeda do povratka u Ember Hollow i vidljive obnove kovacnice.
-2. Dodati Ember Bestiary i regionalnu navigaciju za fire neprijatelje,
-   warding toteme, guardian arenu i povratak keeperu.
-3. Otkljucati drugi loadout tek po zavrsetku Ember povratka i preraditi
-   Character prikaz za biranje, cuvanje i aktiviranje vise loadout slotova.
-4. Povezati drugi loadout sa action slotovima bez dupliranja opreme ili
-   besplatnog vracanja preparation elixira.
-5. Dodati Ember Training Grove proveru za prelazak iz jednog loadouta u drugi;
-   simulirani elite napad ostaje za kasniju combat encounter fazu.
+- Datum: 2026-06-14
+- Status: zavrseno
+- Cilj: pretvoriti Ember u smislen dvostepeni guardian region i otkljucati
+  drugi build loadout tek kada Ayla vrati kontrolisanu vatru ljudima.
+- Prvi ulazak u Ember Hollow vise ne pokrece Cinder Wardena. Ayla prvo cisti
+  ashbound encounter, zatim pali tri warding totema i vraca se Garricku.
+- Zavrseni totem quest ponovo otvara istu scenu u guardian rezimu. Tek tada
+  drugi combat prolaz vodi do Cinder Wardena.
+- Prvi clear staged boss scene vise ne oznacava guardian defeat. Ember status
+  ide `infested -> unstable -> secured -> restored` pravim redosledom.
+- Cinder Warden vise ne obnavlja region direktno. Posle borbe ostavlja
+  Firewatch Ember; novi quest `A Fire Worth Keeping` trazi da ga Ayla vrati
+  Garricku i tek tada pali obnovljenu kovacnicu.
+- Povratni questovi za Stillwater i Ember postaju dostupni tek kada je njihov
+  memory/ember predmet pronadjen, pa nema nepotrebnog trcanja keeper -> arena
+  -> keeper.
+- Obnovljeni Ember Hollow uklanja fire hazards, vraca ljude i dobija vidljivu,
+  interaktivnu Firewatch kovacnicu sa mirnom vatrom.
+- Stillwater povratak sada sigurno otkljucava Emberward Infusion pre glavnog
+  Ember guardian susreta. Ember totemi i dalje otkljucavaju frost preparation.
+- Ember Bestiary uvodi Cinder Impa, Ash Brutea i Cinder Wardena sa postepenim
+  fire damage i Emberward savetima.
+- Journal i mapa vode kroz toteme, guardian road, Firewatch Ember i Garrickov
+  povratak bez neprekidne navigacione linije.
+- Character panel sada prikazuje sva tri campaign loadout slota sa
+  `locked`, `saved` i `active` stanjem. Ember otkljucava Grove Loadout II.
+- Svaki loadout nezavisno cuva equipment i quick slots. Aktiviranje vraca
+  predmete bez dupliranja i ne obnavlja potroseni preparation elixir.
+- Stari save koji je vec legitimno obnovio Ember automatski dobija zavrsen
+  povratni korak bez ponovnog oduzimanja progresa ili dupliranja nagrade.
+- Dodat je `debugScene` QA parametar, kao i `debugProgress=ember-active`,
+  `ember-return` i `ember`.
+- Ember Journal, povratni lead i Character loadouti vizuelno su provereni na
+  `1280x720`; Character panel je proveren i na `800x720`.
+- Automatizovana provera: `43/43` testova prolazi.
+
+### Sledeca faza - Faza 4
+
+1. Prosiriti Frost quest chain tako da izgubljeni scout otkrije zasto Veil
+   Seraph odrzava pecat i pripremi emocionalni obrt o Aylinoj majci.
+2. Odvojiti poraz Veil Serapha od povratka Vesperu i pune obnove Frostpinea.
+3. Dodati Frost Bestiary, regionalni navigation lead i obnovljeni tundra hub
+   sa jasnim promenama svetla, NPC-jeva i waystone mreze.
+4. Otkljucati Grove Loadout III tek posle Frost povratka i proveriti sva tri
+   slota kroz Character panel i Training Grove.
+5. Dodati prvi simulirani elite attack drill u Training Grove kao bezbednu
+   proveru telegrapha, dodge ritma i loadout promene.
 
 ## Van trenutnog scopea
 

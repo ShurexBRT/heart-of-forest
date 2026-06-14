@@ -65,6 +65,7 @@ export const REGION_DEFS = {
     hubSceneId: "emberpine_grove",
     sceneIds: ["emberpine_grove"],
     bossSceneId: "emberpine_grove",
+    stagedBossScene: true,
     bossId: "cinder_warden",
     damageType: "fire",
     counterRecipeId: "emberward_infusion",

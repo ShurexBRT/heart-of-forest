@@ -19,6 +19,7 @@ export const QUEST_TARGET_SCENES = {
   stillwater_homecoming: ["mossroot_marsh"],
   ember_totems: ["emberpine_grove"],
   cinder_warden: ["emberpine_grove"],
+  ember_homecoming: ["emberpine_grove"],
   lost_scout: ["frostveil_tundra"],
   veil_seraph: ["frostveil_tundra"],
   blight_watch: ["blighted_woods"],

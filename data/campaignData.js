@@ -30,7 +30,7 @@ export const CAMPAIGN_CHAPTERS = {
     restoredFlag: "ember_restored",
     bossSceneId: "emberpine_grove",
     bossQuestId: "cinder_warden",
-    restorationQuestId: "cinder_warden",
+    restorationQuestId: "ember_homecoming",
     restorationRequiresBossClear: true,
     aspect: "firekeeper",
   },
