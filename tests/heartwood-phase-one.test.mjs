@@ -285,6 +285,72 @@ test("Frost Journal navigation and Bestiary preserve the Winter Letter lead", ()
   assert.equal(entries.find((entry) => entry.id === "veil_seraph").mastered, true);
 });
 
+test("Scarroot Journal follows the keeper memory home and records the corrupted court", () => {
+  const progression = createProgression({
+    worldFlags: {
+      heartwood_restored: true,
+      stillwater_restored: true,
+      ember_restored: true,
+      frost_restored: true,
+      court_approach_secured: true,
+      elder_hollow_broken: true,
+    },
+    questStates: {
+      first_rootwarden: "done",
+      stillwater_homecoming: "done",
+      cinder_warden: "done",
+      ember_homecoming: "done",
+      veil_seraph: "done",
+      frost_homecoming: "done",
+      blight_watch: "done",
+      elder_hollow: "done",
+      scarroot_homecoming: "inactive",
+    },
+    questCounters: {
+      enemy_blight_hound_defeated: 3,
+      enemy_rot_weaver_defeated: 2,
+      elderHollowDefeated: 1,
+    },
+  });
+  const sceneProgress = {
+    hollowheart_ruins: { cleared: true },
+  };
+  progression.regionProgress.ember = { bossDefeated: true };
+  progression.regionProgress.frost = { bossDefeated: true };
+  progression.regionProgress.scarroot = { bossDefeated: true };
+  syncCampaignProgress(progression, sceneProgress);
+
+  let navigation = getCampaignNavigation(
+    progression,
+    sceneProgress,
+    "hollowheart_ruins"
+  );
+  assert.equal(navigation.questId, "scarroot_homecoming");
+  assert.match(navigation.hint, /memory/i);
+
+  progression.questCounters.firstKeeperMemoryRecovered = 1;
+  navigation = getCampaignNavigation(
+    progression,
+    sceneProgress,
+    "hollowheart_ruins"
+  );
+  assert.match(navigation.hint, /Bram/i);
+
+  const journal = getRegionJournalView(
+    progression,
+    sceneProgress,
+    "hollowheart_ruins",
+    "scarroot"
+  );
+  assert.equal(journal.name, "Scarroot");
+  assert.equal(journal.navigation.targetLabel, "Blighted Woods");
+
+  const entries = getBestiaryEntries(progression, "scarroot");
+  assert.equal(entries.find((entry) => entry.id === "blight_hound").mastered, true);
+  assert.equal(entries.find((entry) => entry.id === "rot_weaver").mastered, false);
+  assert.equal(entries.find((entry) => entry.id === "elder_hollow").mastered, true);
+});
+
 test("Target Circle tracks three training targets and a per-mode best", () => {
   const interactable = { id: "training-grove-cluster", disabled: false };
   const state = {

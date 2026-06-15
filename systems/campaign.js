@@ -26,7 +26,7 @@ export function syncCampaignProgress(progression, sceneProgress = {}) {
   progression.regionProgress = progression.regionProgress || {};
 
   migrateCompletedRegionalReturns(progression, sceneProgress);
-  for (const chapterId of ["stillwater", "ember", "frost"]) {
+  for (const chapterId of ["stillwater", "ember", "frost", "scarroot"]) {
     reconcileRestoration(progression, sceneProgress, chapterId);
   }
 
@@ -74,6 +74,15 @@ function migrateCompletedRegionalReturns(progression, sceneProgress) {
       guardianQuestId: "veil_seraph",
       returnQuestId: "frost_homecoming",
       bossSceneId: "frostveil_tundra",
+      extraFlags: ["waystone_network_restored"],
+    },
+    {
+      chapterId: "scarroot",
+      restoredFlag: "scarroot_restored",
+      guardianQuestId: "elder_hollow",
+      returnQuestId: "scarroot_homecoming",
+      bossSceneId: "hollowheart_ruins",
+      extraFlags: ["signature_rite_unlocked"],
     },
   ];
 
@@ -86,6 +95,9 @@ function migrateCompletedRegionalReturns(progression, sceneProgress) {
         progression.regionProgress?.[migration.chapterId]?.bossDefeated)
     ) {
       progression.questStates[migration.returnQuestId] = "done";
+      for (const flag of migration.extraFlags || []) {
+        progression.worldFlags[flag] = true;
+      }
     }
   }
 }

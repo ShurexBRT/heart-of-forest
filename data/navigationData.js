@@ -25,6 +25,8 @@ export const QUEST_TARGET_SCENES = {
   frost_homecoming: ["frostveil_tundra"],
   blight_watch: ["blighted_woods"],
   elder_hollow: ["hollowheart_ruins"],
+  scarroot_homecoming: ["blighted_woods", "hollowheart_ruins"],
+  smallest_grove: ["blighted_woods"],
   heart_of_ancients: ["ancient_heart"],
   pilgrims_lantern: ["ancient_heart"],
   starfall_sanctum: ["starfall_sanctum"],

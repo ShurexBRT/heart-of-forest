@@ -198,6 +198,90 @@ test("Frost restores only after the scout, Seraph, Winter Letter, and Vesper ret
   assert.equal(state.progression.campaign.trainingEliteUnlocked, true);
 });
 
+test("Scarroot restores only after the first keeper's memory returns to Bram", () => {
+  const state = createQuestFlowState();
+  Object.assign(state.progression.questStates, {
+    first_rootwarden: "done",
+    stillwater_homecoming: "done",
+    cinder_warden: "done",
+    ember_homecoming: "done",
+    veil_seraph: "done",
+    frost_homecoming: "done",
+  });
+  Object.assign(state.progression.worldFlags, {
+    heartwood_restored: true,
+    stillwater_restored: true,
+    ember_restored: true,
+    frost_restored: true,
+  });
+  state.progression.regionProgress.ember = { bossDefeated: true };
+  state.progression.regionProgress.frost = { bossDefeated: true };
+  state.currentSceneId = "blighted_woods";
+  state.sceneProgress.blighted_woods = { cleared: true };
+
+  updateQuestAvailability(state);
+  assert.equal(state.progression.questStates.blight_watch, "available");
+  completeNpcQuest(state, "bram", "blight_watch", {
+    blightEffigiesBroken: 2,
+    enemy_blight_hound_defeated: 3,
+    enemy_rot_weaver_defeated: 2,
+  });
+  assert.equal(state.progression.worldFlags.court_approach_secured, true);
+  assert.equal(state.progression.worldFlags.scarroot_restored, false);
+
+  state.currentSceneId = "hollowheart_ruins";
+  state.sceneProgress.hollowheart_ruins = { cleared: true };
+  updateQuestAvailability(state);
+  assert.equal(state.progression.questStates.elder_hollow, "active");
+  state.storyEvents.push({ type: "bossDefeated", bossId: "elder_hollow" });
+  consumeStoryEvents(state);
+  assert.equal(state.progression.questStates.elder_hollow, "done");
+  assert.equal(state.progression.worldFlags.elder_hollow_broken, true);
+  assert.equal(state.progression.worldFlags.scarroot_restored, false);
+
+  markRegionSceneCleared(
+    state.progression,
+    state.sceneProgress,
+    "hollowheart_ruins",
+    5
+  );
+  syncCampaignProgress(state.progression, state.sceneProgress);
+  assert.equal(state.progression.worldFlags.scarroot_restored, false);
+
+  state.storyEvents.push({
+    type: "collect",
+    key: "firstKeeperMemoryRecovered",
+    amount: 1,
+  });
+  consumeStoryEvents(state);
+  state.currentSceneId = "blighted_woods";
+  updateQuestAvailability(state);
+  assert.equal(state.progression.questStates.scarroot_homecoming, "available");
+  completeNpcQuest(state, "bram", "scarroot_homecoming");
+
+  assert.equal(state.progression.worldFlags.scarroot_restored, true);
+  assert.equal(state.progression.worldFlags.signature_rite_unlocked, true);
+  assert.equal(state.progression.campaign.activeChapter, "rootlight");
+
+  updateQuestAvailability(state);
+  assert.equal(state.progression.questStates.smallest_grove, "available");
+  state.story.questPanel = {
+    npcId: "bram",
+    selectedTopicIndex: 0,
+    selectedActionIndex: 0,
+    focus: "actions",
+  };
+  activateQuestPanelSelection(state);
+  assert.equal(state.progression.questStates.smallest_grove, "active");
+  assert.equal(state.pendingArenaRefresh, true);
+
+  incrementQuestCounter(state.progression, "scarrootSaplingsTended", 3);
+  refreshQuestStates(state);
+  assert.equal(state.progression.questStates.smallest_grove, "complete");
+  completeNpcQuest(state, "bram", "smallest_grove");
+  assert.equal(state.progression.worldFlags.scarroot_nursery_restored, true);
+});
+
 test("Stillwater restores only after Ayla returns the Matron's memory to Nettle", () => {
   const state = createQuestFlowState();
   state.progression.questStates.first_rootwarden = "done";

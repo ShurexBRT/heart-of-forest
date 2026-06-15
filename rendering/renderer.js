@@ -970,6 +970,52 @@ function drawInteractable(ctx, item, state, origin) {
     pixelRect(ctx, point.x - 10, point.y - 18, 20, 6, "#9ce26e");
   }
 
+  if (item.type === "memoryRoot") {
+    drawIsoShadow(ctx, point.x, point.y, 18, 7);
+    pixelRect(ctx, point.x - 16, point.y - 10, 32, 7, "#4e3a42");
+    pixelRect(ctx, point.x - 10, point.y - 20, 20, 10, "#7f5a76");
+    pixelRect(ctx, point.x - 5, point.y - 27, 10, 9, "#c79ae3");
+    pixelRect(ctx, point.x - 2, point.y - 34, 4, 8, "#f1d8a5");
+  }
+
+  if (item.type === "livingSapling") {
+    const grove = (item.w || 0) >= 50;
+    const stems = grove
+      ? [
+          { x: -14, y: 2, height: 26, crown: "#82c879" },
+          { x: 0, y: -2, height: 34, crown: "#a4dc86" },
+          { x: 15, y: 3, height: 24, crown: "#6fbf83" },
+        ]
+      : [{ x: 0, y: 0, height: 28, crown: "#9bdc88" }];
+    drawIsoShadow(ctx, point.x, point.y, grove ? 24 : 12, grove ? 8 : 5);
+    for (const stem of stems) {
+      pixelRect(
+        ctx,
+        point.x + stem.x - 2,
+        point.y - stem.height,
+        4,
+        stem.height - 2,
+        "#7a5b39"
+      );
+      pixelRect(
+        ctx,
+        point.x + stem.x - 8,
+        point.y - stem.height - 8,
+        16,
+        10,
+        stem.crown
+      );
+      pixelRect(
+        ctx,
+        point.x + stem.x - 3,
+        point.y - stem.height - 13,
+        8,
+        7,
+        "#d7ec9e"
+      );
+    }
+  }
+
   if (item.type === "totem") {
     drawIsoShadow(ctx, point.x, point.y, 12, 6);
     pixelRect(ctx, point.x - 5, point.y - 26, 10, 24, "#7a5535");

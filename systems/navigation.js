@@ -83,6 +83,26 @@ export function getCampaignNavigation(progression, sceneProgress = {}, currentSc
           : "Recover the message Veil Seraph preserved at the quieted seal.",
       });
     }
+    if (
+      chapterId === "scarroot" &&
+      progression.questStates?.elder_hollow === "done" &&
+      progression.questStates?.scarroot_homecoming === "inactive"
+    ) {
+      const memoryRecovered =
+        getQuestCounter(progression, "firstKeeperMemoryRecovered") > 0;
+      return buildNavigationView({
+        chapterId,
+        quest: QUEST_DEFS.scarroot_homecoming,
+        status: "regional-lead",
+        targetSceneIds: [
+          memoryRecovered ? "blighted_woods" : "hollowheart_ruins",
+        ],
+        currentSceneId,
+        hint: memoryRecovered
+          ? "Carry the first keeper's living memory back to Bram."
+          : "Listen to the memory left in the quieted Hollowheart Court.",
+      });
+    }
 
     const entrySceneId = CHAPTER_ENTRY_SCENES[chapterId];
     return buildNavigationView({
@@ -193,6 +213,11 @@ function resolveQuestTargets(quest, status, progression, sceneProgress) {
   if (quest.id === "frost_homecoming") {
     return ["frostveil_tundra"];
   }
+  if (quest.id === "scarroot_homecoming") {
+    return getQuestCounter(progression, "firstKeeperMemoryRecovered") > 0
+      ? ["blighted_woods"]
+      : ["hollowheart_ruins"];
+  }
 
   return [...(QUEST_TARGET_SCENES[quest.id] || (quest.sceneId ? [quest.sceneId] : []))];
 }
@@ -261,6 +286,19 @@ function getNavigationHint(questId, status, targetSceneIds) {
   }
   if (questId === "frost_homecoming") {
     return "Recover the Winter Letter, then return it to Vesper before the thaw begins.";
+  }
+  if (questId === "blight_watch") {
+    return status === "complete"
+      ? "Return to Bram so he can open the old court road."
+      : "Clear the border creatures, then shatter both effigies masking the court.";
+  }
+  if (questId === "elder_hollow") {
+    return "Enter Hollowheart Court and leave the unmarked lane before Single Will closes.";
+  }
+  if (questId === "scarroot_homecoming") {
+    return targetSceneIds.includes("hollowheart_ruins")
+      ? "Recover the first keeper's living memory from the quieted court."
+      : "Carry the memory back to Bram at the Scarroot border.";
   }
   return `Continue toward ${targetSceneIds.map((id) => SCENES[id]?.title || id).join(" / ")}.`;
 }

@@ -172,7 +172,7 @@ Tri grane imaju po pet znacajnih nodova i jedan zavrsni ultimate:
 
 - Thornwarden: staff attack, bliska borba, guard i Heartwood Tempest.
 - Spiritweaver: magic attack, Spirit Bolt, pulse i Verdant Nova.
-- Rootcaller: root, sustain, alchemy utility i Ancient Accord.
+- Rootcaller: root, sustain, alchemy utility i Awaken the Grove.
 
 Kampanja daje najvise osam poena. Waystone nudi respec ili gear attunement, ne
 beskonacnu kupovinu talent poena.
@@ -186,7 +186,8 @@ beskonacnu kupovinu talent poena.
 | 2 | Stillwater, Bestiary i regionalna navigacija | Zavrseno |
 | 3 | Ember prica i drugi loadout | Zavrseno |
 | 4 | Frost prica i treci loadout | Zavrseno |
-| 5 | Scarroot prica i Signature ultimate izbor | Sledece |
+| 5 | Scarroot prica i Signature ultimate izbor | Zavrseno |
+| 5A | Heartwood onboarding i polish prvih questova | Sledece |
 | 6 | Rootlight finale i zavrsna sekvenca | Planirano |
 | 7 | Second Spring postgame i optional challenge loop | Planirano |
 
@@ -350,20 +351,52 @@ beskonacnu kupovinu talent poena.
   provereni na `1280x720`; Homestead je proveren i na `800x720`.
 - Automatizovana provera: `47/47` testova prolazi.
 
-### Sledeca faza - Faza 5
+### Faza 5
 
-1. Prosiriti Scarroot u staged tok: ocistiti blight effigies, otvoriti
-   Hollowheart Ruins i tek zatim aktivirati Elder Hollow encounter.
-2. Povezati Elder Hollow sa prvim cuvarem koji je pokusao da prisili zvezdanu
-   moc, umesto da je uskladi sa sest korena.
-3. Odvojiti poraz Elder Hollowa od obnove Scarroota kroz povratni quest i
-   trajnu promenu Blighted Woods scene.
-4. Dodati Scarroot Bestiary, corruption navigation lead i Heartcleanse
-   pripremu pre guardian susreta.
-5. Pretvoriti poslednji node svake talent grane u pravi Signature ultimate i
-   otkljucati izbor tek po zavrsetku Scarroot povratka.
-6. Dodati side quest koji igracu daje mirniji predah i kroz obnovu jednog
-   zivog detalja pokazuje sta Scarroot moze ponovo da postane.
+- Datum: 2026-06-15
+- Status: zavrseno
+- Cilj: povezati Scarroot sa prvom greskom cuvara, odvojiti pobedu nad Elder
+  Hollowom od stvarne obnove regiona i pretvoriti talent capstone nodove u
+  tri razlicita Signature ultimate napada.
+- `Blight Watch` sada koristi stvarne Scarroot neprijatelje i dve effigy mete.
+  Zavrsavanje border questa otvara Hollowheart Court, ali ne obnavlja region.
+- Elder Hollow predstavlja prvog cuvara koji je svaku promenu proglasio
+  korupcijom i pokusao da natera zvezdani glas na jedan bezbedan odgovor.
+- Posle borbe ostaje interaktivno secanje prvog cuvara. Tek novi povratni
+  quest `The Choice Beneath the Bark` vodi Aylu Bramu, obnavlja Scarroot i
+  otkljucava Rootsong Rite za izbor Signature ultimate-a.
+- Novi side quest `The Smallest Grove` trazi da Ayla neguje tri obicna
+  saplinga. Obnovljeni border dobija trajni mali gaj kao miran dokaz promene.
+- Scarroot Bestiary uvodi Blight Hounda, Rot Weavera i Elder Hollowa sa
+  corruption damage identitetom, Heartcleanse savetima i postepenim cluevima.
+- Journal i navigacija razlikuju border clear, guardian prolaz, preuzimanje
+  secanja i povratak Bramu. Ancient Heart ostaje zakljucan do obnove Scarroota.
+- Poslednji nod svake grane je world-gated do Rootsong Rite-a i samo jedan
+  Signature moze biti naucen:
+  `Heartwood Tempest` pravi tri staff sweepa, `Verdant Nova` detonira Bloom i
+  cisti projectiles, a `Awaken the Grove` dugo rootuje, leci i ostavlja polje.
+- HUD sada koristi stvarni naziv izabranog Signature napada, cenu `0 Spirit`
+  i tacan cooldown, dok se napad aktivira punim Heart Chargeom.
+- Legacy save koji je legitimno obnovio Scarroot dobija zavrsen povratni quest
+  i Signature unlock bez gubitka regionalnog progresa.
+- Dodati su `debugProgress=scarroot-active`, `scarroot-return`, `scarroot` i
+  `scarroot-side` QA fixturei.
+- Scarroot Journal, talent tooltip i obnovljeni Blighted Woods vizuelno su
+  provereni na `1280x720`; talent ekran je proveren i na `900x700`.
+- Automatizovana provera: `53/53` testova prolazi.
+
+### Sledeca faza - Faza 5A
+
+1. Proci ceo novi-game tok od budjenja Hearthroota do ulaska u Whispering
+   Woods i ukloniti prerane, genericke ili slabo motivisane objective promene.
+2. Dotegnuti uvodni dijalog, redosled promptova i Journal tekst tako da igrac
+   u svakom trenutku zna zasto sadi Moonleaf, zasto spava i zasto kuva Barkskin.
+3. Uvesti citljive mikro-korake za `First Moonleaf`: sadnja, zalivanje,
+   jedno spavanje i berba, bez vestackog drugog nocenja.
+4. Proveriti quest click prioritet, `Move closer` feedback, NPC turn-in ritam
+   i tutorial nagrade pre nego sto kampanja predje na Rootlight finale.
+5. Dodati regresione testove i vizuelno proveriti onboarding na normalnom i
+   uzem viewportu, pa ovu polish fazu objaviti kao poseban commit.
 
 ## Van trenutnog scopea
 

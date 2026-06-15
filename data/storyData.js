@@ -459,35 +459,123 @@ export const QUEST_DEFS = {
     chapter: "scarroot",
     kind: "main",
     title: "Blight Watch",
-    description: "Break the blight effigies and cut down the wisps feeding the rot before it swallows the old court.",
+    description: "Clear Scarroot's border, break the two effigies masking the old court, and learn why the rot is copying the shape of a keeper.",
     giverId: "bram",
     sceneId: "blighted_woods",
     prerequisiteId: "frost_homecoming",
     startState: "inactive",
     completeFlags: ["court_approach_secured"],
+    refreshSceneOnComplete: true,
     rewards: { items: { greater_health_potion: 2, heartseed: 1 }, silver: 45, xp: 150 },
     objectives: [
       { key: "blightEffigiesBroken", label: "Blight effigies shattered", required: 2 },
-      { key: "wispsDefeated", label: "Wisps driven off", required: 4 },
+      { key: "enemy_blight_hound_defeated", label: "Blight Hounds driven off", required: 3 },
+      { key: "enemy_rot_weaver_defeated", label: "Rot Weavers broken", required: 2 },
     ],
+    dialogue: {
+      intro: [
+        "The rot is not spreading at random. It keeps rebuilding the same crowned shape around the old court.",
+        "Clear the border, break both effigies, and watch what the creatures defend. We need the truth before we march on the Hollow.",
+      ],
+      progress: [
+        "The hounds guard the paths while the weavers feed those effigies. Break the pattern, then break the masks.",
+      ],
+      complete: [
+        "Both effigies carried the same keeper mark, carved inward as if someone tried to command the root from inside it.",
+        "The court road is open. Elder Hollow was not merely infected; it chose a single answer and forced the forest to obey.",
+      ],
+    },
   },
   elder_hollow: {
     id: "elder_hollow",
     chapter: "scarroot",
     kind: "main",
     title: "The Hollowheart",
-    description: "Push into the ruins, survive the corrupted court, and break Elder Hollow before the forest falls silent.",
+    description: "Enter the old court, survive the will pressing every root into one shape, and release the first keeper from the choice that became Scarroot's rot.",
     autoActivateSceneId: "hollowheart_ruins",
     prerequisiteId: "blight_watch",
-    completeFlags: ["elder_hollow_broken", "scarroot_restored"],
+    completeFlags: ["elder_hollow_broken"],
+    refreshSceneOnComplete: true,
     rewards: {
-      items: { heartseed_pendant: 1, relic_shard: 2, greater_health_potion: 2 },
-      recipes: ["starward_draught"],
+      items: { relic_shard: 2, greater_health_potion: 2 },
       silver: 72,
       talentPoints: 1,
       xp: 220,
     },
     objectives: [{ key: "elderHollowDefeated", label: "Elder Hollow defeated", required: 1 }],
+  },
+  scarroot_homecoming: {
+    id: "scarroot_homecoming",
+    chapter: "scarroot",
+    kind: "main",
+    title: "The Choice Beneath the Bark",
+    description: "Recover the first keeper's living memory from Hollowheart Court and return it to Bram so Scarroot can grow without being forced into one perfect shape.",
+    giverId: "bram",
+    sceneId: "blighted_woods",
+    prerequisiteId: "elder_hollow",
+    startState: "inactive",
+    availabilityObjective: {
+      key: "firstKeeperMemoryRecovered",
+      required: 1,
+    },
+    completeFlags: ["scarroot_restored", "signature_rite_unlocked"],
+    rewards: {
+      items: { heartseed_pendant: 1, heartseed: 1, greater_health_potion: 1 },
+      recipes: ["starward_draught"],
+      silver: 64,
+      xp: 190,
+    },
+    objectives: [
+      { key: "firstKeeperMemoryRecovered", label: "First keeper's memory recovered", required: 1 },
+    ],
+    dialogue: {
+      intro: [
+        "That memory is still alive. Let it speak here, where Scarroot can hear more than the Hollow's command.",
+      ],
+      progress: [
+        "The first keeper's answer remains in Hollowheart Court. Bring it back before the rot teaches itself the same command again.",
+      ],
+      complete: [
+        "The first keeper tried to bind the star-voice into one harmless shape. Every root that resisted was named corruption.",
+        "Scarroot did not rot because it changed. It rotted because it was forbidden to change at all.",
+        "The root is free now, and it recognizes your path. Your final talent may become a staff tempest, a spirit nova, or a living grove.",
+      ],
+    },
+  },
+  smallest_grove: {
+    id: "smallest_grove",
+    chapter: "scarroot",
+    kind: "side",
+    title: "The Smallest Grove",
+    description: "No battle remains here. Help Bram tend three pale saplings so the restored border begins with living things chosen for care, not usefulness.",
+    giverId: "bram",
+    sceneId: "blighted_woods",
+    prerequisiteId: "scarroot_homecoming",
+    startState: "inactive",
+    refreshSceneOnAccept: true,
+    refreshSceneOnComplete: true,
+    completeFlags: ["scarroot_nursery_restored"],
+    rewards: {
+      items: { moonleaf_seed: 3, spirit_bloom: 2, heartseed: 1 },
+      silver: 28,
+      xp: 92,
+    },
+    objectives: [
+      { key: "scarrootSaplingsTended", label: "Pale saplings tended", required: 3 },
+    ],
+    dialogue: {
+      intro: [
+        "Three saplings survived under the effigies. None are rare, useful, or chosen by prophecy.",
+        "That feels important. Give them water and room. Let our first new grove begin without asking what it can do for us.",
+      ],
+      progress: [
+        "The pale saplings are scattered along the restored paths. They only need patience now.",
+      ],
+      complete: [
+        "Listen to that. No command, no warning, no ancient oath. Just leaves moving because there is wind.",
+        "Scarroot needed a victory small enough to belong to ordinary people.",
+      ],
+    },
   },
   pilgrims_lantern: {
     id: "pilgrims_lantern",
@@ -497,7 +585,7 @@ export const QUEST_DEFS = {
     description: "Selka can feel an old sanctum answer beneath the Ancient Heart. Gather Heart Blooms and restore the star seals to wake the hidden path.",
     giverId: "selka",
     sceneId: "ancient_heart",
-    prerequisiteId: "elder_hollow",
+    prerequisiteId: "scarroot_homecoming",
     startState: "inactive",
     completeFlags: ["starfall_sanctum_open"],
     rewards: { items: { groveguard_phial: 1, starfire_tonic: 1, relic_shard: 1 }, silver: 45, talentPoints: 1, xp: 168 },
@@ -713,17 +801,33 @@ export const NPC_DEFS = {
     palette: { hood: "#ece2d7", cloak: "#7b5842", accent: "#bf876d" },
     dialogue: {
       intro: [
-        "Effigies are feeding the woods and the wisps are guarding them.",
-        "Break two effigies and thin the wisps before you march on the Hollow.",
+        "The rot keeps rebuilding the same crowned shape around the old court.",
+        "Break its masks and watch what the border creatures are protecting.",
       ],
       progress: [
-        "Two effigies. Four wisps. Then the road to the court is worth walking.",
+        "Clear the hounds and weavers, then break both effigies. The court road stays shut until the pattern is gone.",
       ],
       complete: [
         "That's the first clean breath I've had out here in days.",
-        "Take these draughts. Elder Hollow won't pull punches.",
+        "Take these draughts. Elder Hollow has spent years teaching every root to obey one answer.",
       ],
-      after: ["You broke the screen. Now go for the thing casting the shadow."],
+      after: ["You broke the masks. Now go for the choice casting the shadow."],
+      states: [
+        {
+          flag: "scarroot_nursery_restored",
+          lines: [
+            "The smallest grove is already ignoring every plan we made for it.",
+            "Good. Scarroot has had enough perfect answers.",
+          ],
+        },
+        {
+          flag: "scarroot_restored",
+          lines: [
+            "The court is quiet, but the border is not empty anymore.",
+            "When you are ready, the three Signature paths are waiting in your talent tree.",
+          ],
+        },
+      ],
     },
   },
   selka: {

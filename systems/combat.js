@@ -422,6 +422,7 @@ function castUltimate(state, signature) {
       heal: 0,
       color: "#e7c66f",
       clearProjectiles: false,
+      staffSweeps: true,
     },
     verdant_nova: {
       radius: 224,
@@ -452,6 +453,20 @@ function castUltimate(state, signature) {
     color: spec.color,
     ultimate: true,
   });
+  if (spec.staffSweeps) {
+    for (const angleOffset of [-0.92, 0, 0.92]) {
+      state.swings.push({
+        x: player.x,
+        y: player.y,
+        angle: player.aimAngle + angleOffset,
+        range: spec.radius,
+        arc: Math.PI * 0.86,
+        life: 0.42,
+        maxLife: 0.42,
+        ultimate: true,
+      });
+    }
+  }
 
   for (const target of [...state.enemies, getActiveBoss(state)].filter(Boolean)) {
     if (target.dead || distance(player.x, player.y, target.x, target.y) > spec.radius + target.radius) {

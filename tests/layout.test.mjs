@@ -167,3 +167,63 @@ test("Frost restoration adds reachable waystone and Veil Drill", () => {
   assert.equal(hasReachableInteractionPoint(frost, waystone), true);
   assert.equal(hasReachableInteractionPoint(homestead, veilDrill), true);
 });
+
+test("Scarroot memory, saplings, and restored grove remain reachable", () => {
+  const memoryArena = createArena({
+    ...SCENES.hollowheart_ruins,
+    worldFlags: {
+      court_approach_secured: true,
+      elder_hollow_broken: true,
+    },
+    questStates: {
+      elder_hollow: "done",
+      scarroot_homecoming: "inactive",
+    },
+  });
+  const memory = memoryArena.interactables.find(
+    (interactable) => interactable.id === "first-keeper-memory"
+  );
+  const tendingArena = createArena({
+    ...SCENES.blighted_woods,
+    worldFlags: {
+      court_approach_secured: true,
+      elder_hollow_broken: true,
+      scarroot_restored: true,
+    },
+    questStates: {
+      scarroot_homecoming: "done",
+      smallest_grove: "active",
+    },
+  });
+  const saplings = tendingArena.interactables.filter((interactable) =>
+    interactable.id.startsWith("scarroot-sapling-")
+  );
+  const restoredArena = createArena({
+    ...SCENES.blighted_woods,
+    worldFlags: {
+      court_approach_secured: true,
+      scarroot_restored: true,
+      scarroot_nursery_restored: true,
+    },
+    questStates: {
+      scarroot_homecoming: "done",
+      smallest_grove: "done",
+    },
+  });
+  const grove = restoredArena.interactables.find(
+    (interactable) => interactable.id === "scarroot-smallest-grove"
+  );
+
+  assert.ok(memory);
+  assert.equal(saplings.length, 3);
+  assert.ok(grove);
+  assert.equal(hasReachableInteractionPoint(memoryArena, memory), true);
+  assert.equal(
+    saplings.every((sapling) =>
+      hasReachableInteractionPoint(tendingArena, sapling)
+    ),
+    true
+  );
+  assert.equal(hasReachableInteractionPoint(restoredArena, grove), true);
+  assert.equal(restoredArena.hazards.length, 0);
+});

@@ -789,6 +789,13 @@ export function unlockTalent(progression, talentId) {
     return false;
   }
 
+  if (
+    talent.requiresWorldFlag &&
+    !progression.worldFlags?.[talent.requiresWorldFlag]
+  ) {
+    return false;
+  }
+
   if ((talent.requires || []).some((requiredId) => !progression.talents[requiredId])) {
     return false;
   }
@@ -825,6 +832,17 @@ export function getTalentUnlockState(progression, talentId) {
   const talent = TALENT_DEFS.find((entry) => entry.id === talentId);
   if (!talent) return { unlockable: false, reason: "Unknown talent." };
   if (progression.talents[talentId]) return { unlockable: false, reason: "Already learned." };
+  if (
+    talent.requiresWorldFlag &&
+    !progression.worldFlags?.[talent.requiresWorldFlag]
+  ) {
+    return {
+      unlockable: false,
+      reason:
+        talent.worldRequirementLabel ||
+        "A campaign milestone has not been completed.",
+    };
+  }
   if (progression.talentPoints <= 0) return { unlockable: false, reason: "No talent points available." };
   const missing = (talent.requires || []).find((requiredId) => !progression.talents[requiredId]);
   if (missing) return { unlockable: false, reason: "Learn the previous talent first." };

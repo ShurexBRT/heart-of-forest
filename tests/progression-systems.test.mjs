@@ -9,6 +9,7 @@ import {
   getItemAttunementLevel,
   isItemLocked,
   getPlayerBonuses,
+  getTalentUnlockState,
   sellInventoryItem,
   toggleItemLock,
   unlockTalent,
@@ -32,6 +33,12 @@ test("talent branches enforce prerequisites and one signature capstone", () => {
   assert.equal(unlockTalent(progression, "waystep"), true);
   assert.equal(unlockTalent(progression, "counterbloom"), true);
   assert.equal(unlockTalent(progression, "warden_vigor"), true);
+  assert.equal(unlockTalent(progression, "heartwood_tempest"), false);
+  assert.match(
+    getTalentUnlockState(progression, "heartwood_tempest").reason,
+    /Restore Scarroot/i
+  );
+  progression.worldFlags.signature_rite_unlocked = true;
   assert.equal(unlockTalent(progression, "heartwood_tempest"), true);
   assert.equal(unlockTalent(progression, "spirit_reservoir"), true);
   assert.equal(unlockTalent(progression, "focused_bolt"), true);
@@ -175,6 +182,7 @@ test("campaign preparations unlock before their target regions", () => {
 
   awardRewards(progression, QUEST_DEFS.blight_watch.rewards);
   awardRewards(progression, QUEST_DEFS.elder_hollow.rewards);
+  awardRewards(progression, QUEST_DEFS.scarroot_homecoming.rewards);
   assert.equal(progression.unlockedRecipes.starward_draught, true);
   assert.equal(REGION_DEFS.rootlight.counterRecipeId, "starward_draught");
   assert.equal(craftRecipe(progression, "starward_draught").crafted, true);
@@ -226,11 +234,13 @@ test("campaign migration removes premature regional restoration", () => {
       ember_pass_reopened: true,
       ember_restored: true,
       frost_restored: true,
+      scarroot_restored: true,
     },
     questStates: {
       chapel_of_tides: "done",
       ember_totems: "done",
       lost_scout: "done",
+      blight_watch: "done",
     },
   });
 
@@ -239,6 +249,7 @@ test("campaign migration removes premature regional restoration", () => {
   assert.equal(progression.worldFlags.stillwater_restored, false);
   assert.equal(progression.worldFlags.ember_restored, false);
   assert.equal(progression.worldFlags.frost_restored, false);
+  assert.equal(progression.worldFlags.scarroot_restored, false);
   assert.equal(progression.campaign.activeChapter, "heartwood");
 });
 
@@ -247,14 +258,17 @@ test("legacy restored guardians gain their regional return quests", () => {
     worldFlags: {
       ember_restored: true,
       frost_restored: true,
+      scarroot_restored: true,
     },
     questStates: {
       cinder_warden: "done",
       veil_seraph: "done",
+      elder_hollow: "done",
     },
     regionProgress: {
       ember: { bossDefeated: true },
       frost: { bossDefeated: true },
+      scarroot: { bossDefeated: true },
     },
   });
 
@@ -262,8 +276,12 @@ test("legacy restored guardians gain their regional return quests", () => {
 
   assert.equal(progression.questStates.ember_homecoming, "done");
   assert.equal(progression.questStates.frost_homecoming, "done");
+  assert.equal(progression.questStates.scarroot_homecoming, "done");
   assert.equal(progression.worldFlags.ember_restored, true);
   assert.equal(progression.worldFlags.frost_restored, true);
+  assert.equal(progression.worldFlags.scarroot_restored, true);
+  assert.equal(progression.worldFlags.waystone_network_restored, true);
+  assert.equal(progression.worldFlags.signature_rite_unlocked, true);
 });
 
 test("locked inventory items cannot be sold", () => {

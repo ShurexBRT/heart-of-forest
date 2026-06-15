@@ -349,6 +349,9 @@ export function activateQuestPanelSelection(state) {
     case "accept-quest":
       if (!view.quest) return true;
       state.progression.questStates[view.quest.id] = "active";
+      if (view.quest.refreshSceneOnAccept) {
+        state.pendingArenaRefresh = true;
+      }
       setToast(state, `Quest Started: ${view.quest.title}`, 2.4);
       queueAudio(state, "quest");
       updateQuestAvailability(state);

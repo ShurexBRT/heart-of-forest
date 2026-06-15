@@ -49,6 +49,9 @@ export const CAMPAIGN_CHAPTERS = {
     title: "Hollowheart Rot",
     restoredFlag: "scarroot_restored",
     bossSceneId: "hollowheart_ruins",
+    bossQuestId: "elder_hollow",
+    restorationQuestId: "scarroot_homecoming",
+    restorationRequiresBossClear: true,
     aspect: "rootspeaker",
   },
   rootlight: {

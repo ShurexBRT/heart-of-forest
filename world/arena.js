@@ -1165,6 +1165,11 @@ function buildFrostveilTundra(context, rng) {
 
 function buildHollowheartRuins(context, rng) {
   const flags = context.worldFlags || {};
+  const questStates = context.questStates || {};
+  const elderReleased =
+    questStates.elder_hollow === "done" ||
+    questStates.elder_hollow === "complete" ||
+    flags.elder_hollow_broken;
   const tiles = createTiles(rng);
   stampRect(tiles, 0, 0, COLS, ROWS, "blight", 0);
   clearOverlayRect(tiles, 0, 0, COLS, ROWS);
@@ -1177,6 +1182,45 @@ function buildHollowheartRuins(context, rng) {
     paintPath(tiles, 50, 57, 52, 38, 2, "path", 1);
     scatterOverlay(tiles, rng, 34, 18, 36, 26, 30, "flowersWarm");
   }
+
+  const interactables = [
+    ...(elderReleased && !flags.scarroot_restored
+      ? [
+          interactable("first-keeper-memory", "memoryRoot", 916, 472, {
+            name: "First Keeper's Living Memory",
+            promptLabel: "Listen beneath the broken crown",
+            collectKey: "firstKeeperMemoryRecovered",
+            toastText: "The first keeper's choice settles into Ayla's keeping.",
+            dialogueLines: [
+              "The keeper heard the star-voice offer a thousand futures and feared every one that could not be controlled.",
+              "They pressed the roots into a single harmless shape. Scarroot's rot began wherever life tried to become something else.",
+            ],
+            requiresCleared: true,
+            interactionRadius: 86,
+            w: 48,
+            h: 48,
+            sortY: 492,
+          }),
+        ]
+      : []),
+    ...(flags.scarroot_restored
+      ? [
+          interactable("hollowheart-memorial", "memoryRoot", 916, 472, {
+            name: "Hollowheart Memorial",
+            promptLabel: "Listen to the many-rooted court",
+            repeatable: true,
+            dialogueLines: [
+              "No single root carries the whole song anymore.",
+              "New shoots cross the old court in different directions and none are named a mistake.",
+            ],
+            interactionRadius: 86,
+            w: 48,
+            h: 48,
+            sortY: 492,
+          }),
+        ]
+      : []),
+  ];
 
   return createBaseArena(context, tiles, {
     playerSpawn: { x: 806, y: 838 },
@@ -1223,7 +1267,7 @@ function buildHollowheartRuins(context, rng) {
       ...(flags.scarroot_restored ? [lantern(846, 664, "warm"), lantern(988, 664, "warm")] : []),
     ],
     npcs: [],
-    interactables: [],
+    interactables,
     hazards: flags.scarroot_restored
       ? []
       : [
@@ -1525,6 +1569,10 @@ function buildChapelOfTides(context, rng) {
 
 function buildBlightedWoods(context, rng) {
   const flags = context.worldFlags || {};
+  const questStates = context.questStates || {};
+  const tendingSaplings =
+    questStates.smallest_grove === "active" ||
+    questStates.smallest_grove === "complete";
   const tiles = createTiles(rng);
   stampRect(tiles, 0, 0, COLS, ROWS, "blight", 0);
   clearOverlayRect(tiles, 0, 0, COLS, ROWS);
@@ -1542,22 +1590,77 @@ function buildBlightedWoods(context, rng) {
   }
 
   const interactables = [
-    interactable("blight-effigy-1", "corruptedRoot", 814, 390, {
-      name: "Blight Effigy",
-      promptLabel: "Shatter Effigy",
-      collectKey: "blightEffigiesBroken",
-      toastText: "Blight effigy shattered",
-      requiresCleared: true,
-      sortY: 406,
-    }),
-    interactable("blight-effigy-2", "corruptedRoot", 1128, 618, {
-      name: "Blight Effigy",
-      promptLabel: "Shatter Effigy",
-      collectKey: "blightEffigiesBroken",
-      toastText: "Blight effigy shattered",
-      requiresCleared: true,
-      sortY: 634,
-    }),
+    ...(!flags.court_approach_secured
+      ? [
+          interactable("blight-effigy-1", "corruptedRoot", 814, 390, {
+            name: "Blight Effigy",
+            promptLabel: "Shatter Effigy",
+            collectKey: "blightEffigiesBroken",
+            toastText: "Blight effigy shattered",
+            requiresCleared: true,
+            sortY: 406,
+          }),
+          interactable("blight-effigy-2", "corruptedRoot", 1128, 618, {
+            name: "Blight Effigy",
+            promptLabel: "Shatter Effigy",
+            collectKey: "blightEffigiesBroken",
+            toastText: "Blight effigy shattered",
+            requiresCleared: true,
+            sortY: 634,
+          }),
+        ]
+      : []),
+    ...(flags.scarroot_restored && tendingSaplings
+      ? [
+          interactable("scarroot-sapling-1", "livingSapling", 668, 332, {
+            name: "Pale Sapling",
+            promptLabel: "Tend the young roots",
+            collectKey: "scarrootSaplingsTended",
+            toastText: "The sapling lifts toward open light.",
+            interactionRadius: 70,
+            w: 34,
+            h: 42,
+            sortY: 350,
+          }),
+          interactable("scarroot-sapling-2", "livingSapling", 1010, 424, {
+            name: "Pale Sapling",
+            promptLabel: "Tend the young roots",
+            collectKey: "scarrootSaplingsTended",
+            toastText: "The roots settle without being forced into line.",
+            interactionRadius: 70,
+            w: 34,
+            h: 42,
+            sortY: 442,
+          }),
+          interactable("scarroot-sapling-3", "livingSapling", 846, 664, {
+            name: "Pale Sapling",
+            promptLabel: "Tend the young roots",
+            collectKey: "scarrootSaplingsTended",
+            toastText: "A new leaf opens in its own direction.",
+            interactionRadius: 70,
+            w: 34,
+            h: 42,
+            sortY: 682,
+          }),
+        ]
+      : []),
+    ...(flags.scarroot_nursery_restored
+      ? [
+          interactable("scarroot-smallest-grove", "livingSapling", 914, 522, {
+            name: "The Smallest Grove",
+            promptLabel: "Listen to the new leaves",
+            repeatable: true,
+            dialogueLines: [
+              "Three different crowns lean into the same patch of sun.",
+              "Nothing here is ancient yet, and nothing is asking permission to grow.",
+            ],
+            interactionRadius: 82,
+            w: 64,
+            h: 58,
+            sortY: 548,
+          }),
+        ]
+      : []),
   ];
 
   return createBaseArena(context, tiles, {

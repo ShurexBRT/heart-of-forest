@@ -251,6 +251,14 @@ export class Player {
 }
 
 function buildAbilityInfo(modifiers) {
+  const signatureAbility = modifiers.signatureAbility || null;
+  const signatureLabels = {
+    heartwood_tempest: ["Heartwood Tempest", "Tempest"],
+    verdant_nova: ["Verdant Nova", "Nova"],
+    awaken_the_grove: ["Awaken the Grove", "Grove"],
+  };
+  const signatureLabel = signatureLabels[signatureAbility] || null;
+
   return {
     staff: {
       ...PLAYER_ABILITY_INFO.staff,
@@ -275,20 +283,20 @@ function buildAbilityInfo(modifiers) {
     pulse: {
       ...PLAYER_ABILITY_INFO.pulse,
       unlocked: Boolean(modifiers.pulseUnlocked),
-      label:
-        modifiers.signatureAbility === "heartwood_tempest"
-          ? "Heartwood Tempest"
-          : modifiers.signatureAbility === "verdant_nova"
-            ? "Verdant Nova"
-            : modifiers.signatureAbility === "awaken_the_grove"
-              ? "Awaken the Grove"
-              : PLAYER_ABILITY_INFO.pulse.label,
-      shortLabel: modifiers.signatureAbility ? "Ultimate" : PLAYER_ABILITY_INFO.pulse.shortLabel,
+      label: signatureLabel?.[0] || PLAYER_ABILITY_INFO.pulse.label,
+      shortLabel: signatureLabel?.[1] || PLAYER_ABILITY_INFO.pulse.shortLabel,
+      cost: signatureAbility ? 0 : PLAYER_ABILITY_INFO.pulse.cost,
       damage: PLAYER_ABILITY_INFO.pulse.damage + (modifiers.pulseDamageBonus || 0),
       radius: PLAYER_ABILITY_INFO.pulse.radius + (modifiers.pulseRadiusBonus || 0),
-      cooldown: Math.max(1.8, PLAYER_ABILITY_INFO.pulse.cooldown - (modifiers.pulseCooldownBonus || 0)),
+      cooldown: signatureAbility
+        ? 5.5
+        : Math.max(
+            1.8,
+            PLAYER_ABILITY_INFO.pulse.cooldown -
+              (modifiers.pulseCooldownBonus || 0)
+          ),
       rootDuration: PLAYER_ABILITY_INFO.pulse.rootDuration + (modifiers.rootDurationBonus || 0) * 0.4,
-      signatureAbility: modifiers.signatureAbility || null,
+      signatureAbility,
     },
     bloomBonus: modifiers.bloomBonus || 0,
     staffRangeBonus: modifiers.staffRangeBonus || 0,
@@ -307,6 +315,6 @@ function buildAbilityInfo(modifiers) {
     fieldRemedy: Boolean(modifiers.fieldRemedy),
     rootHeartChargeBonus: modifiers.rootHeartChargeBonus || 0,
     preparationHeartChargeBonus: modifiers.preparationHeartChargeBonus || 0,
-    signatureAbility: modifiers.signatureAbility || null,
+    signatureAbility,
   };
 }

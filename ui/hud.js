@@ -2949,6 +2949,11 @@ function buildTalentTooltip(state, row) {
   if (talent.requiresBranchPoints) {
     requirements.push(`Requires ${talent.requiresBranchPoints} points in ${branch?.name || talent.tree}`);
   }
+  if (talent.requiresWorldFlag) {
+    requirements.push(
+      talent.worldRequirementLabel || "Complete the required campaign milestone."
+    );
+  }
   if (talent.capstone) {
     requirements.push("Only one Signature Ultimate can be learned.");
   }

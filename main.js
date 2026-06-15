@@ -133,6 +133,9 @@ const debugSceneCleared = [
   "ember",
   "frost-return",
   "frost",
+  "scarroot-return",
+  "scarroot",
+  "scarroot-side",
 ].includes(debugBoot.progress);
 const bootSnapshot =
   debugBoot.sceneId && SCENES[debugBoot.sceneId]
@@ -295,6 +298,10 @@ function applyDebugProgression(nextProgression, debugConfig) {
       "frost-active",
       "frost-return",
       "frost",
+      "scarroot-active",
+      "scarroot-return",
+      "scarroot",
+      "scarroot-side",
     ].includes(debugProgress)
   ) {
     return;
@@ -345,6 +352,10 @@ function applyDebugProgression(nextProgression, debugConfig) {
     "frost-active",
     "frost-return",
     "frost",
+    "scarroot-active",
+    "scarroot-return",
+    "scarroot",
+    "scarroot-side",
   ].includes(debugProgress);
   nextProgression.questStates.chapel_of_tides = stillwaterComplete
     ? "done"
@@ -375,18 +386,33 @@ function applyDebugProgression(nextProgression, debugConfig) {
     "frost-active",
     "frost-return",
     "frost",
+    "scarroot-active",
+    "scarroot-return",
+    "scarroot",
+    "scarroot-side",
   ].includes(debugProgress);
   if (!emberStage) return;
 
-  const emberComplete = ["ember", "frost-active", "frost-return", "frost"].includes(
-    debugProgress
-  );
+  const emberComplete = [
+    "ember",
+    "frost-active",
+    "frost-return",
+    "frost",
+    "scarroot-active",
+    "scarroot-return",
+    "scarroot",
+    "scarroot-side",
+  ].includes(debugProgress);
   const cinderReleased = [
     "ember-return",
     "ember",
     "frost-active",
     "frost-return",
     "frost",
+    "scarroot-active",
+    "scarroot-return",
+    "scarroot",
+    "scarroot-side",
   ].includes(debugProgress);
   nextProgression.questStates.ember_totems = "done";
   nextProgression.questStates.cinder_warden = cinderReleased ? "done" : "active";
@@ -409,12 +435,35 @@ function applyDebugProgression(nextProgression, debugConfig) {
   if (emberComplete) {
     nextProgression.worldFlags.ember_restored = true;
   }
-  if (!["frost-active", "frost-return", "frost"].includes(debugProgress)) {
+  if (
+    ![
+      "frost-active",
+      "frost-return",
+      "frost",
+      "scarroot-active",
+      "scarroot-return",
+      "scarroot",
+      "scarroot-side",
+    ].includes(debugProgress)
+  ) {
     return;
   }
 
-  const frostComplete = debugProgress === "frost";
-  const seraphReleased = ["frost-return", "frost"].includes(debugProgress);
+  const frostComplete = [
+    "frost",
+    "scarroot-active",
+    "scarroot-return",
+    "scarroot",
+    "scarroot-side",
+  ].includes(debugProgress);
+  const seraphReleased = [
+    "frost-return",
+    "frost",
+    "scarroot-active",
+    "scarroot-return",
+    "scarroot",
+    "scarroot-side",
+  ].includes(debugProgress);
   nextProgression.questStates.lost_scout = "done";
   nextProgression.questStates.veil_seraph = seraphReleased ? "done" : "active";
   nextProgression.questStates.frost_homecoming = frostComplete
@@ -436,6 +485,68 @@ function applyDebugProgression(nextProgression, debugConfig) {
   if (frostComplete) {
     nextProgression.worldFlags.frost_restored = true;
     nextProgression.worldFlags.waystone_network_restored = true;
+  }
+  if (
+    ![
+      "scarroot-active",
+      "scarroot-return",
+      "scarroot",
+      "scarroot-side",
+    ].includes(debugProgress)
+  ) {
+    return;
+  }
+
+  const scarrootComplete = ["scarroot", "scarroot-side"].includes(
+    debugProgress
+  );
+  const elderReleased = [
+    "scarroot-return",
+    "scarroot",
+    "scarroot-side",
+  ].includes(debugProgress);
+  nextProgression.questStates.blight_watch = "done";
+  nextProgression.questStates.elder_hollow = elderReleased ? "done" : "active";
+  nextProgression.questStates.scarroot_homecoming = scarrootComplete
+    ? "done"
+    : "inactive";
+  nextProgression.questStates.smallest_grove =
+    debugProgress === "scarroot-side" ? "done" : "inactive";
+  nextProgression.questCounters.blightEffigiesBroken = 2;
+  nextProgression.questCounters.enemy_blight_hound_defeated = 3;
+  nextProgression.questCounters.enemy_rot_weaver_defeated = 3;
+  nextProgression.questCounters.elderHollowDefeated = elderReleased ? 1 : 0;
+  nextProgression.questCounters.firstKeeperMemoryRecovered = scarrootComplete
+    ? 1
+    : 0;
+  nextProgression.questCounters.scarrootSaplingsTended =
+    debugProgress === "scarroot-side" ? 3 : 0;
+  nextProgression.worldFlags.court_approach_secured = true;
+  if (elderReleased) {
+    nextProgression.worldFlags.elder_hollow_broken = true;
+    nextProgression.regionProgress.scarroot = {
+      ...(nextProgression.regionProgress.scarroot || {}),
+      bossDefeated: true,
+    };
+  }
+  if (scarrootComplete) {
+    nextProgression.worldFlags.scarroot_restored = true;
+    nextProgression.worldFlags.signature_rite_unlocked = true;
+    for (const talentId of [
+      "oaken_reach",
+      "waystep",
+      "counterbloom",
+      "warden_vigor",
+    ]) {
+      nextProgression.talents[talentId] = 1;
+    }
+    nextProgression.talentPoints = Math.max(
+      1,
+      nextProgression.talentPoints || 0
+    );
+  }
+  if (debugProgress === "scarroot-side") {
+    nextProgression.worldFlags.scarroot_nursery_restored = true;
   }
 }
 
@@ -461,6 +572,11 @@ function applyDebugBootState(nextState, debugConfig) {
     } else if (debugConfig.overlay === "talents") {
       nextState.ui.menuOpen = true;
       nextState.ui.activeTab = "talents";
+      if (["scarroot", "scarroot-side"].includes(debugConfig.progress)) {
+        nextState.ui.selectedTalentIndex = TALENT_DEFS.findIndex(
+          (talent) => talent.id === "heartwood_tempest"
+        );
+      }
     } else if (debugConfig.overlay === "inventory") {
       nextState.ui.menuOpen = true;
       nextState.ui.activeTab = "inventory";
@@ -770,6 +886,13 @@ function buildSceneState(sceneId, entryId, currentProgression, sceneProgress, vi
   ) {
     encounterConfig.bossEnabled = false;
     encounterConfig.completionText = "Lower Ridge Cleared";
+  }
+  if (
+    sceneId === "hollowheart_ruins" &&
+    !currentProgression.worldFlags.court_approach_secured
+  ) {
+    encounterConfig.bossEnabled = false;
+    encounterConfig.completionText = "Hollowheart Approach Cleared";
   }
 
   if (savedSceneState?.objectStates) {

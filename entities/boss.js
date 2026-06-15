@@ -76,6 +76,7 @@ const BOSS_IDENTITY = {
     summonPhase3: [{ type: "rot_weaver", elite: true, affixes: ["spiteful"] }, "blight_hound", "mire_brute"],
     summonBanner: "The Hollow Calls",
     phaseBanners: ["Elder Hollow Rises", "Heartwood Frenzy"],
+    signatureLabel: "Single Will",
     summonBurstColors: ["#efc678", "#c183ff", "#d4634a"],
     slamTelegraphColor: "#f2b97c",
     volleyTelegraphColor: "#dda4ff",
