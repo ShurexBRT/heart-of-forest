@@ -37,6 +37,7 @@ import { createEncounterState, updateEncounter } from "./systems/encounter.js";
 import { updateEnvironment } from "./systems/environment.js";
 import {
   advanceFarmPlots,
+  getMoonleafSleepGuidance,
   interactWithFarmPlot,
   syncFarmInteractables,
 } from "./systems/farming.js";
@@ -289,6 +290,9 @@ function applyDebugProgression(nextProgression, debugConfig) {
   const debugProgress = debugConfig?.progress;
   if (
     ![
+      "onboarding-awake",
+      "onboarding-watered",
+      "onboarding-brew",
       "heartwood",
       "stillwater-active",
       "stillwater",
@@ -304,6 +308,54 @@ function applyDebugProgression(nextProgression, debugConfig) {
       "scarroot-side",
     ].includes(debugProgress)
   ) {
+    return;
+  }
+  if (
+    ["onboarding-awake", "onboarding-watered", "onboarding-brew"].includes(
+      debugProgress
+    )
+  ) {
+    nextProgression.questStates.wake_hearthroot = "done";
+    nextProgression.questCounters.hearthrootAwakened = 1;
+    nextProgression.worldFlags.hearthroot_awake = true;
+    nextProgression.journal = [
+      ...new Set([...(nextProgression.journal || []), "wake_hearthroot"]),
+    ];
+    nextProgression.inventory.moonleaf_seed = Math.max(
+      2,
+      nextProgression.inventory.moonleaf_seed || 0
+    );
+    if (debugProgress === "onboarding-brew") {
+      Object.assign(nextProgression.questStates, {
+        first_moonleaf: "done",
+        thorn_at_gate: "done",
+        brew_before_blood: "active",
+      });
+      Object.assign(nextProgression.questCounters, {
+        moonleafPlanted: 1,
+        moonleafWatered: 1,
+        moonleafGrown: 1,
+        moonleafHarvested: 1,
+        gateThreatsDefeated: 2,
+      });
+      nextProgression.worldFlags.heartwood_first_harvest = true;
+      nextProgression.unlockedRecipes.barkskin_draught = true;
+      nextProgression.inventory.moonleaf = Math.max(
+        2,
+        nextProgression.inventory.moonleaf || 0
+      );
+      nextProgression.inventory.ironbark = Math.max(
+        1,
+        nextProgression.inventory.ironbark || 0
+      );
+      return;
+    }
+
+    nextProgression.questStates.first_moonleaf = "active";
+    if (debugProgress === "onboarding-watered") {
+      nextProgression.questCounters.moonleafPlanted = 1;
+      nextProgression.questCounters.moonleafWatered = 1;
+    }
     return;
   }
   const completedHeartwoodQuests = [
@@ -870,6 +922,7 @@ function buildSceneState(sceneId, entryId, currentProgression, sceneProgress, vi
     ...scene,
     worldFlags: currentProgression.worldFlags,
     questStates: currentProgression.questStates,
+    questCounters: currentProgression.questCounters,
   });
   const savedSceneState = sceneProgress[sceneId];
   const encounterConfig = { ...scene };
@@ -1127,6 +1180,11 @@ function startTransition(exit) {
 
 function startSleepTransition() {
   if (state.transition.active) return false;
+  const tutorialGuidance = getMoonleafSleepGuidance(state.progression);
+  if (tutorialGuidance?.blocked) {
+    setToast(tutorialGuidance.text, 2.4);
+    return true;
+  }
 
   queueAudio(state, "travel");
   state.transition.active = true;
@@ -1138,7 +1196,8 @@ function startSleepTransition() {
   state.transition.targetEntryId = "bedside";
   state.transition.label = `Day ${state.clock.day + 1}`;
   state.transition.title = `Day ${state.clock.day + 1}`;
-  state.transition.subtitle = "Ayla wakes with the grove at dawn";
+  state.transition.subtitle =
+    tutorialGuidance?.subtitle || "Ayla wakes with the grove at dawn";
   state.nearExit = null;
   return true;
 }
@@ -1156,7 +1215,8 @@ function updateTransition(dt) {
         state.progression.activePreparation = null;
         const farmResult = advanceFarmPlots(
           ensureSceneProgress("ayla_homestead"),
-          previousDay
+          previousDay,
+          state.progression
         );
         applySceneState(transition.targetSceneId, transition.targetEntryId, { restoreFull: true });
         const cropText =

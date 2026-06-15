@@ -253,6 +253,26 @@ test("campaign migration removes premature regional restoration", () => {
   assert.equal(progression.campaign.activeChapter, "heartwood");
 });
 
+test("legacy Heartwood tutorial progress gains the new road flags and step counters", () => {
+  const progression = createProgression({
+    questStates: {
+      wake_hearthroot: "done",
+      first_moonleaf: "done",
+      thorn_at_gate: "done",
+      brew_before_blood: "done",
+    },
+  });
+
+  syncCampaignProgress(progression, {});
+
+  assert.equal(progression.worldFlags.heartwood_first_harvest, true);
+  assert.equal(progression.worldFlags.heartwood_ruins_open, true);
+  assert.equal(progression.questCounters.moonleafPlanted, 1);
+  assert.equal(progression.questCounters.moonleafWatered, 1);
+  assert.equal(progression.questCounters.moonleafGrown, 1);
+  assert.equal(progression.questCounters.moonleafHarvested, 1);
+});
+
 test("legacy restored guardians gain their regional return quests", () => {
   const progression = createProgression({
     worldFlags: {

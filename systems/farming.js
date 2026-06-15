@@ -16,6 +16,41 @@ export const FARM_CROP = {
   questCounterKey: "moonleafBundles",
 };
 
+export function getMoonleafSleepGuidance(progression) {
+  if (progression?.questStates?.first_moonleaf !== "active") return null;
+
+  const planted = progression.questCounters?.moonleafPlanted || 0;
+  const watered = progression.questCounters?.moonleafWatered || 0;
+  const grown = progression.questCounters?.moonleafGrown || 0;
+
+  if (planted < 1) {
+    return {
+      blocked: true,
+      promptLabel: "Plant Moonleaf before resting",
+      text: "Plant the Hearthroot's Moonleaf seed before resting.",
+    };
+  }
+  if (watered < 1) {
+    return {
+      blocked: true,
+      promptLabel: "Water Moonleaf before resting",
+      text: "Water the planted Moonleaf so it can grow overnight.",
+    };
+  }
+  if (grown < 1) {
+    return {
+      blocked: false,
+      promptLabel: "Rest so Moonleaf can grow",
+      subtitle: "Watered Moonleaf reaches for the dawn",
+    };
+  }
+
+  return {
+    blocked: false,
+    promptLabel: "Sleep until morning",
+  };
+}
+
 export function ensureFarmPlots(sceneProgress) {
   if (!sceneProgress || typeof sceneProgress !== "object") return {};
   if (
@@ -84,6 +119,7 @@ export function interactWithFarmPlot(sceneProgress, plotId, progression, clock) 
       plantedDay: day,
       wateredDay: null,
     };
+    incrementQuestCounter(progression, "moonleafPlanted", 1);
     return {
       changed: true,
       text: "Moonleaf planted. Water the plot to begin its growth.",
@@ -115,6 +151,7 @@ export function interactWithFarmPlot(sceneProgress, plotId, progression, clock) 
   }
 
   plot.wateredDay = day;
+  incrementQuestCounter(progression, "moonleafWatered", 1);
   return {
     changed: true,
     text: "Moonleaf watered. It will grow overnight.",
@@ -122,7 +159,7 @@ export function interactWithFarmPlot(sceneProgress, plotId, progression, clock) 
   };
 }
 
-export function advanceFarmPlots(sceneProgress, previousDay) {
+export function advanceFarmPlots(sceneProgress, previousDay, progression = null) {
   const plots = ensureFarmPlots(sceneProgress);
   let grownPlots = 0;
   let maturePlots = 0;
@@ -133,6 +170,9 @@ export function advanceFarmPlots(sceneProgress, previousDay) {
     if (plot.wateredDay === previousDay && clampStage(plot.stage) < FARM_CROP.matureStage) {
       plot.stage = clampStage(plot.stage) + 1;
       grownPlots += 1;
+      if (progression) {
+        incrementQuestCounter(progression, "moonleafGrown", 1);
+      }
       if (plot.stage >= FARM_CROP.matureStage) {
         maturePlots += 1;
       }
@@ -146,6 +186,11 @@ export function advanceFarmPlots(sceneProgress, previousDay) {
 
 export function syncFarmInteractables(arena, sceneProgress, progression, clock) {
   for (const interactable of arena?.interactables || []) {
+    if (interactable.type === "bed") {
+      const guidance = getMoonleafSleepGuidance(progression);
+      interactable.promptLabel = guidance?.promptLabel || "Sleep until morning";
+      continue;
+    }
     if (interactable.type !== "farmPlot") continue;
     const view = getFarmPlotView(sceneProgress, interactable.id, progression, clock);
     interactable.farmView = view;

@@ -20,6 +20,21 @@ test("homestead and Whispering Woods have a two-way path", () => {
     SCENES.whispering_woods.connections.homePath.toSceneId,
     "ayla_homestead"
   );
+  assert.equal(
+    SCENES.ayla_homestead.connections.forestPath.requiresFlag,
+    "heartwood_first_harvest"
+  );
+});
+
+test("Heartwood roads open in story order", () => {
+  assert.equal(
+    SCENES.whispering_woods.connections.northTrail.requiresFlag,
+    "heartwood_ruins_open"
+  );
+  assert.equal(
+    SCENES.whispering_woods.connections.eastRoad.requiresFlag,
+    "heartwood_restored"
+  );
 });
 
 test("homestead contains six repeatable plots and a repeatable bed", () => {
@@ -34,6 +49,36 @@ test("homestead contains six repeatable plots and a repeatable bed", () => {
   assert.equal(bed.repeatable, true);
   assert.equal(bed.action, "sleep");
   assert.equal(arena.exits[0].toSceneId, "whispering_woods");
+});
+
+test("Hearthroot dialogue follows Ayla from care to preparation", () => {
+  const moonleafArena = createArena({
+    ...SCENES.ayla_homestead,
+    worldFlags: { hearthroot_awake: true },
+    questStates: { first_moonleaf: "active" },
+  });
+  const moonleafShrine = moonleafArena.interactables.find(
+    (entry) => entry.id === "hearthroot-shrine"
+  );
+  assert.match(moonleafShrine.dialogueLines.join(" "), /Plant one Moonleaf/i);
+
+  const brewingArena = createArena({
+    ...SCENES.ayla_homestead,
+    worldFlags: {
+      hearthroot_awake: true,
+      heartwood_first_harvest: true,
+    },
+    questStates: {
+      first_moonleaf: "done",
+      thorn_at_gate: "done",
+      brew_before_blood: "active",
+    },
+  });
+  const brewingShrine = brewingArena.interactables.find(
+    (entry) => entry.id === "hearthroot-shrine"
+  );
+  assert.match(brewingShrine.dialogueLines.join(" "), /cauldron/i);
+  assert.match(brewingShrine.dialogueLines.join(" "), /Barkskin/i);
 });
 
 test("peaceful scenes create an idle encounter with no waves", () => {

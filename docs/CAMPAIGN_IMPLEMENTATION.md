@@ -187,8 +187,8 @@ beskonacnu kupovinu talent poena.
 | 3 | Ember prica i drugi loadout | Zavrseno |
 | 4 | Frost prica i treci loadout | Zavrseno |
 | 5 | Scarroot prica i Signature ultimate izbor | Zavrseno |
-| 5A | Heartwood onboarding i polish prvih questova | Sledece |
-| 6 | Rootlight finale i zavrsna sekvenca | Planirano |
+| 5A | Heartwood onboarding i polish prvih questova | Zavrseno |
+| 6 | Rootlight finale i zavrsna sekvenca | Sledece |
 | 7 | Second Spring postgame i optional challenge loop | Planirano |
 
 ## Dnevnik implementacije
@@ -385,18 +385,51 @@ beskonacnu kupovinu talent poena.
   provereni na `1280x720`; talent ekran je proveren i na `900x700`.
 - Automatizovana provera: `53/53` testova prolazi.
 
-### Sledeca faza - Faza 5A
+### Faza 5A
 
-1. Proci ceo novi-game tok od budjenja Hearthroota do ulaska u Whispering
-   Woods i ukloniti prerane, genericke ili slabo motivisane objective promene.
-2. Dotegnuti uvodni dijalog, redosled promptova i Journal tekst tako da igrac
-   u svakom trenutku zna zasto sadi Moonleaf, zasto spava i zasto kuva Barkskin.
-3. Uvesti citljive mikro-korake za `First Moonleaf`: sadnja, zalivanje,
-   jedno spavanje i berba, bez vestackog drugog nocenja.
-4. Proveriti quest click prioritet, `Move closer` feedback, NPC turn-in ritam
-   i tutorial nagrade pre nego sto kampanja predje na Rootlight finale.
-5. Dodati regresione testove i vizuelno proveriti onboarding na normalnom i
-   uzem viewportu, pa ovu polish fazu objaviti kao poseban commit.
+- Datum: 2026-06-15
+- Status: zavrseno
+- Cilj: ukloniti rupe u prvom satu igre i povezati homestead radnje sa
+  pricom, navigacijom i jasnim redosledom Heartwood kampanje.
+- Novi save vise ne pocinje sa Moonleaf semenkama. Ayla dobija prve dve tek
+  kada probudi Hearthroot, pa prvi quest ima stvarnu posledicu i nagradu.
+- Hearthroot dijalog sada prati trenutnu etapu: prvo trazi negu, zatim tumaci
+  thorn-mark na prvoj berbi, objasnjava zasto je Barkskin potreban i priprema
+  igraca za otvorenu liniju u Root Crown napadu.
+- `First Moonleaf` je razlozen na cetiri vidljiva objective-a: sadnja,
+  zalivanje, jedno spavanje i berba. Biljka sazreva posle jednog pravilno
+  zalivenog nocenja, bez drugog tutorial dana.
+- Krevet menja prompt prema trenutnom koraku i ne dozvoljava tutorial
+  spavanje pre sadnje i zalivanja. Kada je usev spreman, sleep transition
+  jasno govori da Moonleaf raste do zore.
+- Pinned quest, Journal i regionalna navigacija uvek prikazuju sledeci
+  konkretan Moonleaf korak, a zatim vode na Whispering Woods, cauldron i
+  Mossy Ruins pravim redosledom.
+- Homestead izlaz ostaje zatvoren do prve berbe. Ruin trail ostaje zatvoren
+  do Barkskin kuvanja, a Moonlit Marsh do obnove Heartwooda, pa vise nije
+  moguce ubiti ili preskociti buduce quest mete pre njihove price.
+- Gate kill counter sada broji Thornling/Barkling neprijatelje samo dok je
+  `Thorns at the Gate` aktivan.
+- Stari save sa zavrsenim tutorial questovima automatski dobija nove road
+  flagove i popunjene mikro-korake bez gubitka progressa.
+- Dodati su `debugProgress=onboarding-awake`, `onboarding-watered` i
+  `onboarding-brew` QA fixturei.
+- Pinned quest i Journal vizuelno su provereni na `1280x720`, a Journal i na
+  `900x700`.
+- Automatizovana provera: `57/57` testova prolazi.
+
+### Sledeca faza - Faza 6
+
+1. Pretvoriti Ancient Heart u pripremni Rootlight hub koji sabira svih pet
+   obnovljenih korena i pokazuje posledice Aylinih prethodnih odluka.
+2. Zavrsiti `Pilgrim's Lantern` kao poslednji mirniji ritual pre ulaska u
+   Starfall Sanctum, sa jasnim astral preparation leadom.
+3. Staged Starfall prolaz treba prvo da otkrije istinu o Aylinoj majci, pa
+   tek zatim aktivira Starwoken Sentinel encounter.
+4. Odvojiti pobedu nad Sentinelom od krajnje odluke: Ayla bira kako se sest
+   korena uskladjuje sa zvezdanim glasom, bez lazne moralne kazne za build.
+5. Dodati zavrsnu sekvencu, campaign completion state, epilog u Homesteadu i
+   stabilan prelaz u `Second Spring` postgame.
 
 ## Van trenutnog scopea
 

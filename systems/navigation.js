@@ -130,7 +130,7 @@ export function getCampaignNavigation(progression, sceneProgress = {}, currentSc
     status,
     targetSceneIds,
     currentSceneId,
-    hint: getNavigationHint(quest.id, status, targetSceneIds),
+    hint: getNavigationHint(quest.id, status, targetSceneIds, progression),
   });
 }
 
@@ -246,9 +246,33 @@ function buildNavigationView({
   };
 }
 
-function getNavigationHint(questId, status, targetSceneIds) {
+function getNavigationHint(questId, status, targetSceneIds, progression) {
   if (status === "complete") return "Return to the quest giver.";
   if (status === "available") return "Speak with the local keeper.";
+  if (questId === "wake_hearthroot") {
+    return "Approach the silent shrine beside Ayla's cottage and answer its pulse.";
+  }
+  if (questId === "first_moonleaf") {
+    if (getQuestCounter(progression, "moonleafPlanted") < 1) {
+      return "Plant one of the Hearthroot's Moonleaf seeds in any garden plot.";
+    }
+    if (getQuestCounter(progression, "moonleafWatered") < 1) {
+      return "Water the planted Moonleaf before resting.";
+    }
+    if (getQuestCounter(progression, "moonleafGrown") < 1) {
+      return "Sleep once at Ayla's bed so the watered Moonleaf can mature.";
+    }
+    return "Harvest the mature Moonleaf at dawn.";
+  }
+  if (questId === "thorn_at_gate") {
+    return "Follow the road into Whispering Woods and clear the two creatures carrying the thorn-mark.";
+  }
+  if (questId === "brew_before_blood") {
+    return "Return to the Homestead cauldron and brew one Barkskin Draught.";
+  }
+  if (questId === "first_rootwarden") {
+    return "Enter Mossy Ruins with Barkskin prepared and move through the open lane in Root Crown.";
+  }
   if (questId === "bogbound_rot") {
     return "Cleanse the black roots after the marsh encounter is settled.";
   }

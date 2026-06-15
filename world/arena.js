@@ -399,6 +399,7 @@ function createBaseArena(context, tiles, props) {
 
 function buildAylaHomestead(context, rng) {
   const flags = context.worldFlags || {};
+  const questStates = context.questStates || {};
   const tiles = createTiles(rng);
   const plotWidth = 9;
   const plotHeight = 7;
@@ -433,6 +434,44 @@ function buildAylaHomestead(context, rng) {
     stampEllipse(tiles, 62, 42, 5, 4, "path", 0);
   }
 
+  const hearthrootDialogue = flags.heartwood_restored
+    ? [
+        "One root remembers your hands. Five remain beyond the quiet roads.",
+        "Prepare here, Ayla. Restoration begins at home, but it cannot end here.",
+      ]
+    : !flags.hearthroot_awake
+      ? [
+          "Ayla... do not reach for the weapon yet. The garden is asking whether you still remember care.",
+          "Your mother's seal is failing in six places. Wake one living thing before you follow the pain.",
+        ]
+      : questStates.first_moonleaf === "active"
+        ? [
+            "The forest will not trust another keeper who only arrives with a weapon.",
+            "Plant one Moonleaf seed, water the same plot, then sleep once. Bring me what reaches the dawn.",
+          ]
+        : questStates.first_rootwarden === "active" ||
+            questStates.brew_before_blood === "done"
+          ? [
+              "Barkskin will soften the crown. It will not excuse standing where the thorns close.",
+              "Enter Mossy Ruins, watch for the open lane, and release the guardian from the oath.",
+            ]
+          : questStates.brew_before_blood === "active" ||
+              questStates.thorn_at_gate === "done"
+            ? [
+                "Those splinters belong to Rootwarden's broken oath.",
+                "Use Moonleaf and ironbark at the cauldron. Barkskin will soften the thorns long enough to read their pattern.",
+              ]
+            : questStates.thorn_at_gate === "active" ||
+                questStates.first_moonleaf === "done"
+              ? [
+                  "The first harvest carries a thorn-mark from beyond the gate.",
+                  "Follow it into Whispering Woods. The creatures there are being driven, not hunting by choice.",
+                ]
+              : [
+                  "The wound beyond the gate is tightening around an old guardian.",
+                  "Grow what heals, brew what protects, then listen before you strike.",
+                ];
+
   const interactables = [
     interactable("hearthroot-shrine", "shrine", 742, 396, {
       name: "Hearthroot Shrine",
@@ -441,20 +480,7 @@ function buildAylaHomestead(context, rng) {
       toastText: flags.hearthroot_awake
         ? "The Hearthroot hums with a patient, familiar pulse."
         : "The old root answers Ayla and warmth returns to the homestead.",
-      dialogueLines: flags.heartwood_restored
-        ? [
-            "One root remembers your hands. Five remain beyond the quiet roads.",
-            "Prepare here, Ayla. Restoration begins at home, but it cannot end here.",
-          ]
-        : flags.hearthroot_awake
-          ? [
-              "The wound beyond the gate is tightening around an old guardian.",
-              "Grow what heals, brew what protects, then listen before you strike.",
-            ]
-          : [
-              "Ayla... the Heartroot is not dead. It is divided.",
-              "Wake the garden. Follow the pain beneath the thorns. Bring the first root home.",
-            ],
+      dialogueLines: hearthrootDialogue,
       repeatable: Boolean(flags.hearthroot_awake),
       interactionRadius: 78,
       w: 54,

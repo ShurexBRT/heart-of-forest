@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  addItem,
   createProgression,
   getItemCount,
   incrementQuestCounter,
@@ -21,6 +20,10 @@ import {
 } from "../systems/services.js";
 import { markRegionSceneCleared } from "../systems/regions.js";
 import { syncCampaignProgress } from "../systems/campaign.js";
+import {
+  advanceFarmPlots,
+  interactWithFarmPlot,
+} from "../systems/farming.js";
 
 function createQuestFlowState() {
   return {
@@ -55,13 +58,45 @@ test("new game can complete the Homestead to Rootwarden preparation loop", () =>
   assert.equal(state.progression.questStates.wake_hearthroot, "done");
   assert.equal(state.progression.worldFlags.hearthroot_awake, true);
   assert.equal(getItemCount(state.progression, "ironbark"), 1);
+  assert.equal(getItemCount(state.progression, "moonleaf_seed"), 2);
 
   updateQuestAvailability(state);
   assert.equal(state.progression.questStates.first_moonleaf, "active");
-  addItem(state.progression, "moonleaf", 1);
-  incrementQuestCounter(state.progression, "moonleafHarvested", 1);
+  const homeProgress = {};
+  assert.equal(
+    interactWithFarmPlot(
+      homeProgress,
+      "garden-plot-1",
+      state.progression,
+      { day: 1 }
+    ).event,
+    "planted"
+  );
+  assert.equal(
+    interactWithFarmPlot(
+      homeProgress,
+      "garden-plot-1",
+      state.progression,
+      { day: 1 }
+    ).event,
+    "watered"
+  );
+  assert.deepEqual(
+    advanceFarmPlots(homeProgress, 1, state.progression),
+    { grownPlots: 1, maturePlots: 1 }
+  );
+  assert.equal(
+    interactWithFarmPlot(
+      homeProgress,
+      "garden-plot-1",
+      state.progression,
+      { day: 2 }
+    ).event,
+    "harvested"
+  );
   refreshQuestStates(state);
   assert.equal(state.progression.questStates.first_moonleaf, "done");
+  assert.equal(state.progression.worldFlags.heartwood_first_harvest, true);
 
   state.currentSceneId = "whispering_woods";
   updateQuestAvailability(state);
@@ -87,6 +122,7 @@ test("new game can complete the Homestead to Rootwarden preparation loop", () =>
   consumeStoryEvents(state);
   assert.equal(state.progression.questStates.brew_before_blood, "done");
   assert.equal(getItemCount(state.progression, "barkskin_draught"), 1);
+  assert.equal(state.progression.worldFlags.heartwood_ruins_open, true);
 
   state.currentSceneId = "mossy_ruins";
   updateQuestAvailability(state);

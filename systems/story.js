@@ -81,7 +81,10 @@ export function consumeStoryEvents(state) {
         `enemy_${event.enemyType}_defeated`,
         1
       );
-      if (event.enemyType === "thornling" || event.enemyType === "barkling") {
+      if (
+        state.progression.questStates.thorn_at_gate === "active" &&
+        (event.enemyType === "thornling" || event.enemyType === "barkling")
+      ) {
         incrementQuestCounter(state.progression, "gateThreatsDefeated", 1);
       }
 

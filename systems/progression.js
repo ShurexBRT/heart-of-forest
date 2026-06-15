@@ -272,7 +272,7 @@ export function createProgression(snapshot = null) {
     inventory: {
       spirit_bloom: 3,
       moonleaf: 1,
-      moonleaf_seed: 6,
+      moonleaf_seed: 0,
       health_potion: 3,
       spirit_tonic: 1,
     },

@@ -48,6 +48,35 @@ test("Heartwood Journal includes archived quests and reveals field clues progres
   assert.equal(rootwarden.discovered, false);
 });
 
+test("First Moonleaf navigation advances through plant, water, rest, and harvest", () => {
+  const progression = createProgression({
+    worldFlags: { hearthroot_awake: true },
+    questStates: {
+      wake_hearthroot: "done",
+      first_moonleaf: "active",
+    },
+  });
+
+  let navigation = getCampaignNavigation(
+    progression,
+    {},
+    "ayla_homestead"
+  );
+  assert.match(navigation.hint, /Plant one/i);
+
+  progression.questCounters.moonleafPlanted = 1;
+  navigation = getCampaignNavigation(progression, {}, "ayla_homestead");
+  assert.match(navigation.hint, /Water/i);
+
+  progression.questCounters.moonleafWatered = 1;
+  navigation = getCampaignNavigation(progression, {}, "ayla_homestead");
+  assert.match(navigation.hint, /Sleep once/i);
+
+  progression.questCounters.moonleafGrown = 1;
+  navigation = getCampaignNavigation(progression, {}, "ayla_homestead");
+  assert.match(navigation.hint, /Harvest/i);
+});
+
 test("Grove Loadout restores recorded equipment without duplicating it", () => {
   const progression = createProgression({
     campaign: { loadoutSlots: 1 },

@@ -25,6 +25,7 @@ export function syncCampaignProgress(progression, sceneProgress = {}) {
   progression.worldFlags = progression.worldFlags || {};
   progression.regionProgress = progression.regionProgress || {};
 
+  migrateHeartwoodTutorial(progression);
   migrateCompletedRegionalReturns(progression, sceneProgress);
   for (const chapterId of ["stillwater", "ember", "frost", "scarroot"]) {
     reconcileRestoration(progression, sceneProgress, chapterId);
@@ -57,6 +58,27 @@ export function syncCampaignProgress(progression, sceneProgress = {}) {
   progression.campaign.campaignCompleted = completedSet.has("rootlight");
 
   return progression.campaign;
+}
+
+function migrateHeartwoodTutorial(progression) {
+  if (progression.questStates?.first_moonleaf === "done") {
+    progression.worldFlags.heartwood_first_harvest = true;
+    for (const key of [
+      "moonleafPlanted",
+      "moonleafWatered",
+      "moonleafGrown",
+      "moonleafHarvested",
+    ]) {
+      progression.questCounters[key] = Math.max(
+        1,
+        progression.questCounters[key] || 0
+      );
+    }
+  }
+
+  if (progression.questStates?.brew_before_blood === "done") {
+    progression.worldFlags.heartwood_ruins_open = true;
+  }
 }
 
 function migrateCompletedRegionalReturns(progression, sceneProgress) {
