@@ -8,6 +8,7 @@ import {
 } from "../systems/progression.js";
 import {
   activateQuestPanelSelection,
+  beginInteraction,
   consumeStoryEvents,
   createStoryState,
   refreshQuestStates,
@@ -24,6 +25,8 @@ import {
   advanceFarmPlots,
   interactWithFarmPlot,
 } from "../systems/farming.js";
+import { SCENES } from "../data/sceneNetwork.js";
+import { createArena } from "../world/arena.js";
 
 function createQuestFlowState() {
   return {
@@ -316,6 +319,128 @@ test("Scarroot restores only after the first keeper's memory returns to Bram", (
   assert.equal(state.progression.questStates.smallest_grove, "complete");
   completeNpcQuest(state, "bram", "smallest_grove");
   assert.equal(state.progression.worldFlags.scarroot_nursery_restored, true);
+});
+
+test("Rootlight reveals the archive truth before the Sentinel and ends by planting the Heartseed", () => {
+  const state = createQuestFlowState();
+  Object.assign(state.progression.questStates, {
+    first_rootwarden: "done",
+    stillwater_homecoming: "done",
+    cinder_warden: "done",
+    ember_homecoming: "done",
+    veil_seraph: "done",
+    frost_homecoming: "done",
+    blight_watch: "done",
+    elder_hollow: "done",
+    scarroot_homecoming: "done",
+  });
+  Object.assign(state.progression.worldFlags, {
+    heartwood_restored: true,
+    stillwater_restored: true,
+    ember_restored: true,
+    frost_restored: true,
+    scarroot_restored: true,
+    signature_rite_unlocked: true,
+  });
+  Object.assign(state.progression.regionProgress, {
+    ember: { bossDefeated: true },
+    frost: { bossDefeated: true },
+    scarroot: { bossDefeated: true },
+  });
+  state.currentSceneId = "ancient_heart";
+  state.sceneProgress.ancient_heart = { cleared: true };
+
+  syncCampaignProgress(state.progression, state.sceneProgress);
+  updateQuestAvailability(state);
+  assert.equal(state.progression.campaign.activeChapter, "rootlight");
+  assert.equal(state.progression.questStates.pilgrims_lantern, "available");
+
+  completeNpcQuest(state, "selka", "pilgrims_lantern", {
+    heartBloomsGathered: 2,
+    starSealsRecovered: 2,
+  });
+  assert.equal(state.progression.worldFlags.starfall_sanctum_open, true);
+
+  state.currentSceneId = "starfall_sanctum";
+  state.sceneProgress.starfall_sanctum = { cleared: true };
+  updateQuestAvailability(state);
+  assert.equal(state.progression.questStates.starfall_sanctum, "active");
+  assert.equal(
+    Boolean(state.progression.worldFlags.starfall_truth_recovered),
+    false
+  );
+
+  state.storyEvents.push({
+    type: "collect",
+    key: "starfallTruthRecovered",
+    amount: 1,
+  });
+  consumeStoryEvents(state);
+  assert.equal(state.progression.worldFlags.starfall_truth_recovered, true);
+  assert.equal(state.sceneProgress.starfall_sanctum.cleared, false);
+  assert.equal(state.pendingArenaRefresh, true);
+  assert.equal(state.progression.questStates.starfall_sanctum, "active");
+
+  state.storyEvents.push(
+    { type: "collect", key: "starBraziersLit", amount: 2 },
+    { type: "bossDefeated", bossId: "starwoken_sentinel" }
+  );
+  consumeStoryEvents(state);
+  assert.equal(state.progression.questStates.starfall_sanctum, "done");
+  assert.equal(state.progression.worldFlags.starfall_sanctum_cleansed, true);
+  assert.equal(state.progression.worldFlags.rootlight_restored, false);
+
+  state.sceneProgress.starfall_sanctum.cleared = true;
+  markRegionSceneCleared(
+    state.progression,
+    state.sceneProgress,
+    "starfall_sanctum",
+    6,
+    { bossDefeated: true }
+  );
+  syncCampaignProgress(state.progression, state.sceneProgress);
+  state.storyEvents.push({
+    type: "collect",
+    key: "starwokenEchoRecovered",
+    amount: 1,
+  });
+  consumeStoryEvents(state);
+
+  state.currentSceneId = "ancient_heart";
+  updateQuestAvailability(state);
+  assert.equal(state.progression.questStates.the_sixth_answer, "available");
+  completeNpcQuest(state, "selka", "the_sixth_answer", {
+    starwokenEchoRecovered: 1,
+  });
+  assert.equal(state.progression.worldFlags.rootlight_harmonized, true);
+  assert.equal(state.progression.worldFlags.epilogue_ready, true);
+  assert.equal(state.progression.worldFlags.rootlight_restored, false);
+  assert.equal(getItemCount(state.progression, "heartseed"), 1);
+
+  state.currentSceneId = "ayla_homestead";
+  updateQuestAvailability(state);
+  assert.equal(state.progression.questStates.second_spring, "active");
+  state.arena = createArena({
+    ...SCENES.ayla_homestead,
+    worldFlags: state.progression.worldFlags,
+    questStates: state.progression.questStates,
+    questCounters: state.progression.questCounters,
+  });
+  const heartseedPlot = state.arena.interactables.find(
+    (entry) => entry.id === "second-spring-heartseed"
+  );
+  assert.ok(heartseedPlot);
+  assert.equal(
+    beginInteraction(state, { kind: "object", data: heartseedPlot }),
+    true
+  );
+  consumeStoryEvents(state);
+
+  assert.equal(getItemCount(state.progression, "heartseed"), 0);
+  assert.equal(state.progression.questStates.second_spring, "done");
+  assert.equal(state.progression.worldFlags.rootlight_restored, true);
+  assert.equal(state.progression.worldFlags.second_spring_started, true);
+  assert.equal(state.progression.campaign.campaignCompleted, true);
 });
 
 test("Stillwater restores only after Ayla returns the Matron's memory to Nettle", () => {

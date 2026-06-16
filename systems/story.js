@@ -3,9 +3,11 @@ import { SERVICE_DEFS } from "../data/gameData.js";
 import { NPC_DEFS, QUEST_DEFS } from "../data/storyData.js";
 import {
   awardRewards,
+  getItemCount,
   getPlayerBonuses,
   getQuestCounter,
   incrementQuestCounter,
+  removeItem,
   setWorldFlag,
 } from "./progression.js";
 import { queueAudio } from "./audio.js";
@@ -73,6 +75,14 @@ export function consumeStoryEvents(state) {
   for (const event of events) {
     if (event.type === "collect" && event.key) {
       incrementQuestCounter(state.progression, event.key, event.amount || 1);
+      if (event.key === "starfallTruthRecovered") {
+        setWorldFlag(state.progression, "starfall_truth_recovered", true);
+        const sceneProgress = state.sceneProgress?.[state.currentSceneId];
+        if (sceneProgress) {
+          sceneProgress.cleared = false;
+        }
+        state.pendingArenaRefresh = true;
+      }
     }
 
     if (event.type === "enemyDefeated") {
@@ -534,8 +544,27 @@ function useInteractable(state, interactable) {
   }
 
   if (interactable.disabled) return false;
+  if (
+    interactable.requiredItemId &&
+    getItemCount(state.progression, interactable.requiredItemId) <= 0
+  ) {
+    setToast(
+      state,
+      interactable.missingItemText || "You do not have the required item.",
+      1.8
+    );
+    return true;
+  }
   if (interactable.requiresCleared && !state.sceneProgress[state.currentSceneId]?.cleared) {
     setToast(state, "Clear the nearby corruption first.", 1.8);
+    return true;
+  }
+
+  if (
+    interactable.consumeItemId &&
+    !removeItem(state.progression, interactable.consumeItemId, 1)
+  ) {
+    setToast(state, "The required item is no longer available.", 1.8);
     return true;
   }
 

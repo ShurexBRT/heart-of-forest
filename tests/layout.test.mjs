@@ -227,3 +227,76 @@ test("Scarroot memory, saplings, and restored grove remain reachable", () => {
   assert.equal(hasReachableInteractionPoint(restoredArena, grove), true);
   assert.equal(restoredArena.hazards.length, 0);
 });
+
+test("Rootlight memories, chorus, and Second Spring remain reachable", () => {
+  const archiveArena = createArena({
+    ...SCENES.starfall_sanctum,
+    worldFlags: {
+      starfall_sanctum_open: true,
+    },
+    questStates: {
+      starfall_sanctum: "active",
+    },
+    questCounters: {},
+  });
+  const archiveMemory = archiveArena.interactables.find(
+    (interactable) => interactable.id === "pilgrim-archive-memory"
+  );
+  const echoArena = createArena({
+    ...SCENES.starfall_sanctum,
+    worldFlags: {
+      starfall_sanctum_open: true,
+      starfall_truth_recovered: true,
+      starfall_sanctum_cleansed: true,
+    },
+    questStates: {
+      starfall_sanctum: "done",
+      the_sixth_answer: "inactive",
+    },
+    questCounters: {},
+  });
+  const sentinelEcho = echoArena.interactables.find(
+    (interactable) => interactable.id === "starwoken-echo"
+  );
+  const ancientHeart = createArena({
+    ...SCENES.ancient_heart,
+    worldFlags: {
+      rootlight_harmonized: true,
+    },
+  });
+  const chorus = ancientHeart.interactables.find(
+    (interactable) => interactable.id === "six-root-chorus"
+  );
+  const epilogue = createArena({
+    ...SCENES.ayla_homestead,
+    worldFlags: {
+      heartwood_restored: true,
+      epilogue_ready: true,
+    },
+  });
+  const heartseedPlot = epilogue.interactables.find(
+    (interactable) => interactable.id === "second-spring-heartseed"
+  );
+  const secondSpring = createArena({
+    ...SCENES.ayla_homestead,
+    worldFlags: {
+      heartwood_restored: true,
+      epilogue_ready: true,
+      second_spring_started: true,
+    },
+  });
+  const sapling = secondSpring.interactables.find(
+    (interactable) => interactable.id === "second-spring-sapling"
+  );
+
+  assert.ok(archiveMemory);
+  assert.ok(sentinelEcho);
+  assert.ok(chorus);
+  assert.ok(heartseedPlot);
+  assert.ok(sapling);
+  assert.equal(hasReachableInteractionPoint(archiveArena, archiveMemory), true);
+  assert.equal(hasReachableInteractionPoint(echoArena, sentinelEcho), true);
+  assert.equal(hasReachableInteractionPoint(ancientHeart, chorus), true);
+  assert.equal(hasReachableInteractionPoint(epilogue, heartseedPlot), true);
+  assert.equal(hasReachableInteractionPoint(secondSpring, sapling), true);
+});

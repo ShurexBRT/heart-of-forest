@@ -978,6 +978,14 @@ function drawInteractable(ctx, item, state, origin) {
     pixelRect(ctx, point.x - 2, point.y - 34, 4, 8, "#f1d8a5");
   }
 
+  if (item.type === "heartseedPlot") {
+    drawIsoShadow(ctx, point.x, point.y, 22, 8);
+    fillPixelEllipse(ctx, point.x, point.y - 4, 24, 10, "#49372d");
+    pixelRect(ctx, point.x - 17, point.y - 10, 34, 4, "#7b5b3d");
+    pixelRect(ctx, point.x - 5, point.y - 17, 10, 8, "#d8c36f");
+    pixelRect(ctx, point.x - 2, point.y - 22, 4, 6, "#eff2a6");
+  }
+
   if (item.type === "livingSapling") {
     const grove = (item.w || 0) >= 50;
     const stems = grove

@@ -380,6 +380,79 @@ test("Scarroot Journal follows the keeper memory home and records the corrupted 
   assert.equal(entries.find((entry) => entry.id === "elder_hollow").mastered, true);
 });
 
+test("Rootlight Journal follows the Sentinel echo home and records the final archive", () => {
+  const progression = createProgression({
+    worldFlags: {
+      heartwood_restored: true,
+      stillwater_restored: true,
+      ember_restored: true,
+      frost_restored: true,
+      scarroot_restored: true,
+      starfall_sanctum_open: true,
+      starfall_truth_recovered: true,
+      starfall_sanctum_cleansed: true,
+    },
+    questStates: {
+      first_rootwarden: "done",
+      stillwater_homecoming: "done",
+      cinder_warden: "done",
+      ember_homecoming: "done",
+      veil_seraph: "done",
+      frost_homecoming: "done",
+      elder_hollow: "done",
+      scarroot_homecoming: "done",
+      pilgrims_lantern: "done",
+      starfall_sanctum: "done",
+      the_sixth_answer: "inactive",
+    },
+    questCounters: {
+      enemy_relic_sentinel_defeated: 3,
+      enemy_starbound_archer_defeated: 1,
+      starwokenSentinelDefeated: 1,
+    },
+  });
+  const sceneProgress = {
+    starfall_sanctum: { cleared: true },
+  };
+  Object.assign(progression.regionProgress, {
+    ember: { bossDefeated: true },
+    frost: { bossDefeated: true },
+    scarroot: { bossDefeated: true },
+    rootlight: { bossDefeated: true },
+  });
+  syncCampaignProgress(progression, sceneProgress);
+
+  let navigation = getCampaignNavigation(
+    progression,
+    sceneProgress,
+    "starfall_sanctum"
+  );
+  assert.equal(navigation.questId, "the_sixth_answer");
+  assert.match(navigation.hint, /final echo/i);
+
+  progression.questCounters.starwokenEchoRecovered = 1;
+  navigation = getCampaignNavigation(
+    progression,
+    sceneProgress,
+    "starfall_sanctum"
+  );
+  assert.match(navigation.hint, /Selka/i);
+  assert.equal(navigation.targetLabel, "Ancient Heart");
+
+  const journal = getRegionJournalView(
+    progression,
+    sceneProgress,
+    "starfall_sanctum",
+    "rootlight"
+  );
+  assert.equal(journal.name, "Rootlight");
+
+  const entries = getBestiaryEntries(progression, "rootlight");
+  assert.equal(entries.find((entry) => entry.id === "relic_sentinel").mastered, true);
+  assert.equal(entries.find((entry) => entry.id === "starbound_archer").mastered, false);
+  assert.equal(entries.find((entry) => entry.id === "starwoken_sentinel").mastered, true);
+});
+
 test("Target Circle tracks three training targets and a per-mode best", () => {
   const interactable = { id: "training-grove-cluster", disabled: false };
   const state = {

@@ -592,7 +592,7 @@ export const QUEST_DEFS = {
     chapter: "rootlight",
     kind: "main",
     title: "Pilgrim's Lantern",
-    description: "Selka can feel an old sanctum answer beneath the Ancient Heart. Gather Heart Blooms and restore the star seals to wake the hidden path.",
+    description: "Five restored roots are answering beneath the Ancient Heart. Help Selka gather their song into a pilgrim lantern and open the path to the sealed archive.",
     giverId: "selka",
     sceneId: "ancient_heart",
     prerequisiteId: "scarroot_homecoming",
@@ -603,16 +603,30 @@ export const QUEST_DEFS = {
       { key: "heartBloomsGathered", label: "Heart Blooms gathered", required: 2 },
       { key: "starSealsRecovered", label: "Star seals restored", required: 2 },
     ],
+    dialogue: {
+      intro: [
+        "Five roots are speaking at once beneath us. The sixth is not silent; it is listening from behind that sealed arch.",
+        "Gather both Heart Blooms and wake the paired star seals. We will make a lantern from agreement, not obedience.",
+      ],
+      progress: [
+        "The blooms carry the living voices. The seals remember the old road. We need both before the archive will open.",
+      ],
+      complete: [
+        "There. Five roots, five different answers, and none forced quiet.",
+        "Take the lantern into Starfall. Whatever the old keepers hid there should meet the world they were afraid to trust.",
+      ],
+    },
   },
   starfall_sanctum: {
     id: "starfall_sanctum",
     chapter: "rootlight",
     kind: "main",
     title: "Starfall Sanctum",
-    description: "Step into the hidden sanctum, relight its braziers, and break the sentinel guarding the pilgrim spire.",
+    description: "Enter the hidden archive, relight its braziers, recover the truth Ayla's mother sealed away, then face the Sentinel that treats every change as an error.",
     autoActivateSceneId: "starfall_sanctum",
     prerequisiteId: "pilgrims_lantern",
-    completeFlags: ["starfall_sanctum_cleansed", "rootlight_restored"],
+    completeFlags: ["starfall_sanctum_cleansed"],
+    refreshSceneOnComplete: true,
     rewards: {
       items: { starwell_relic: 1, greater_spirit_tonic: 1, relic_shard: 1 },
       silver: 80,
@@ -620,8 +634,62 @@ export const QUEST_DEFS = {
       xp: 220,
     },
     objectives: [
+      { key: "starfallTruthRecovered", label: "Pilgrim archive memory recovered", required: 1 },
       { key: "starBraziersLit", label: "Sanctum braziers relit", required: 2 },
       { key: "starwokenSentinelDefeated", label: "Starwoken Sentinel defeated", required: 1 },
+    ],
+  },
+  the_sixth_answer: {
+    id: "the_sixth_answer",
+    chapter: "rootlight",
+    kind: "main",
+    title: "The Sixth Answer",
+    description: "Carry the Sentinel's final echo back to Selka. The last root must be joined to the others without building another throne above them.",
+    giverId: "selka",
+    sceneId: "ancient_heart",
+    prerequisiteId: "starfall_sanctum",
+    startState: "inactive",
+    availabilityObjective: {
+      key: "starwokenEchoRecovered",
+      required: 1,
+    },
+    completeFlags: ["rootlight_harmonized", "epilogue_ready"],
+    refreshSceneOnComplete: true,
+    rewards: {
+      items: { heartseed: 1, starwell_relic: 1 },
+      silver: 90,
+      xp: 240,
+    },
+    objectives: [
+      { key: "starwokenEchoRecovered", label: "Sentinel echo recovered", required: 1 },
+    ],
+    dialogue: {
+      intro: [
+        "The Sentinel's echo is not a command. It is a question the old keepers were too frightened to leave unanswered.",
+      ],
+      progress: [
+        "The last echo remains beneath the pilgrim spire. Bring it here and let all six roots answer together.",
+      ],
+      complete: [
+        "Your mother did not seal the star because it was evil. She sealed it because the keepers could only imagine control or destruction.",
+        "You brought back six roots that disagree and still remain whole. Bind the star to that chorus, not to a throne.",
+        "Take this Heartseed home. Plant it where your journey began, and let the next spring belong to everyone.",
+      ],
+    },
+  },
+  second_spring: {
+    id: "second_spring",
+    chapter: "rootlight",
+    kind: "main",
+    title: "Second Spring",
+    description: "Return to the Homestead and plant the Heartseed. Ayla's final act is not taking a keeper's throne, but giving the restored world somewhere new to grow.",
+    autoActivateSceneId: "ayla_homestead",
+    prerequisiteId: "the_sixth_answer",
+    completeFlags: ["rootlight_restored", "second_spring_started"],
+    refreshSceneOnComplete: true,
+    rewards: { silver: 100, xp: 260 },
+    objectives: [
+      { key: "heartseedPlanted", label: "Heartseed planted at the Homestead", required: 1 },
     ],
   },
 };
@@ -846,6 +914,22 @@ export const NPC_DEFS = {
     role: "Heart Pilgrim",
     palette: { hood: "#efe7dd", cloak: "#7e67a6", accent: "#f0dd92" },
     dialogue: {
+      states: [
+        {
+          flag: "second_spring_started",
+          lines: [
+            "The new tree is not a throne. Good. Thrones only teach roots to look upward for permission.",
+            "Second Spring has begun, Ayla. The roads will still need tending, but they belong to the living again.",
+          ],
+        },
+        {
+          flag: "rootlight_harmonized",
+          lines: [
+            "The six roots are holding the star without silencing one another.",
+            "Take the Heartseed home. The last answer should be something that grows.",
+          ],
+        },
+      ],
       intro: [
         "The Heart still keeps one hidden lantern for those willing to listen.",
         "Bring me the two Heart Blooms and wake the star seals. The sanctum beneath this place should answer.",

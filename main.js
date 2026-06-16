@@ -137,6 +137,8 @@ const debugSceneCleared = [
   "scarroot-return",
   "scarroot",
   "scarroot-side",
+  "rootlight-archive",
+  "rootlight-return",
 ].includes(debugBoot.progress);
 const bootSnapshot =
   debugBoot.sceneId && SCENES[debugBoot.sceneId]
@@ -306,8 +308,151 @@ function applyDebugProgression(nextProgression, debugConfig) {
       "scarroot-return",
       "scarroot",
       "scarroot-side",
+      "rootlight-active",
+      "rootlight-archive",
+      "rootlight-return",
+      "rootlight",
+      "second-spring",
     ].includes(debugProgress)
   ) {
+    return;
+  }
+  const rootlightDebugStates = [
+    "rootlight-active",
+    "rootlight-archive",
+    "rootlight-return",
+    "rootlight",
+    "second-spring",
+  ];
+  if (rootlightDebugStates.includes(debugProgress)) {
+    const completedQuestIds = [
+      "wake_hearthroot",
+      "first_moonleaf",
+      "thorn_at_gate",
+      "brew_before_blood",
+      "first_rootwarden",
+      "bogbound_rot",
+      "tidebound_threshold",
+      "chapel_of_tides",
+      "stillwater_homecoming",
+      "ember_totems",
+      "cinder_warden",
+      "ember_homecoming",
+      "lost_scout",
+      "veil_seraph",
+      "frost_homecoming",
+      "blight_watch",
+      "elder_hollow",
+      "scarroot_homecoming",
+    ];
+    for (const questId of completedQuestIds) {
+      nextProgression.questStates[questId] = "done";
+    }
+    nextProgression.journal = [
+      ...new Set([...(nextProgression.journal || []), ...completedQuestIds]),
+    ];
+    Object.assign(nextProgression.worldFlags, {
+      hearthroot_awake: true,
+      heartwood_first_harvest: true,
+      heartwood_ruins_open: true,
+      heartwood_restored: true,
+      marsh_rot_purged: true,
+      chapel_of_tides_open: true,
+      chapel_of_tides_cleansed: true,
+      stillwater_restored: true,
+      ember_pass_reopened: true,
+      cinder_warden_released: true,
+      ember_restored: true,
+      ridge_signal_recovered: true,
+      veil_seraph_released: true,
+      frost_restored: true,
+      waystone_network_restored: true,
+      court_approach_secured: true,
+      elder_hollow_broken: true,
+      scarroot_restored: true,
+      signature_rite_unlocked: true,
+    });
+    Object.assign(nextProgression.regionProgress, {
+      ember: { bossDefeated: true },
+      frost: { bossDefeated: true },
+      scarroot: { bossDefeated: true },
+    });
+    Object.assign(nextProgression.questCounters, {
+      hearthrootAwakened: 1,
+      moonleafPlanted: 1,
+      moonleafWatered: 1,
+      moonleafGrown: 1,
+      moonleafHarvested: 1,
+      gateThreatsDefeated: 2,
+      barkskinBrewed: 1,
+      rootwardenDefeated: 1,
+      rootsCleansed: 2,
+      tideSealsRecovered: 2,
+      tideBraziersLit: 2,
+      bogMatronDefeated: 1,
+      tideMemoryRecovered: 1,
+      totemsActivated: 3,
+      cinderWardenDefeated: 1,
+      forgeEmberRecovered: 1,
+      scoutFound: 1,
+      veilSeraphDefeated: 1,
+      seraphMessageRecovered: 1,
+      blightEffigiesBroken: 2,
+      elderHollowDefeated: 1,
+      firstKeeperMemoryRecovered: 1,
+      enemy_relic_sentinel_defeated: 3,
+      enemy_starbound_archer_defeated: 3,
+    });
+    nextProgression.unlockedRecipes.starward_draught = true;
+
+    if (debugProgress === "rootlight-active") {
+      nextProgression.questStates.pilgrims_lantern = "active";
+      return;
+    }
+
+    nextProgression.questStates.pilgrims_lantern = "done";
+    nextProgression.questCounters.heartBloomsGathered = 2;
+    nextProgression.questCounters.starSealsRecovered = 2;
+    nextProgression.worldFlags.starfall_sanctum_open = true;
+    if (debugProgress === "rootlight-archive") {
+      nextProgression.questStates.starfall_sanctum = "active";
+      return;
+    }
+
+    nextProgression.questStates.starfall_sanctum = "done";
+    Object.assign(nextProgression.questCounters, {
+      starfallTruthRecovered: 1,
+      starBraziersLit: 2,
+      starwokenSentinelDefeated: 1,
+    });
+    Object.assign(nextProgression.worldFlags, {
+      starfall_truth_recovered: true,
+      starfall_sanctum_cleansed: true,
+    });
+    nextProgression.regionProgress.rootlight = { bossDefeated: true };
+    if (debugProgress === "rootlight-return") {
+      nextProgression.questStates.the_sixth_answer = "inactive";
+      return;
+    }
+
+    nextProgression.questCounters.starwokenEchoRecovered = 1;
+    nextProgression.questStates.the_sixth_answer = "done";
+    nextProgression.questStates.second_spring =
+      debugProgress === "second-spring" ? "done" : "active";
+    Object.assign(nextProgression.worldFlags, {
+      rootlight_harmonized: true,
+      epilogue_ready: true,
+    });
+    if (debugProgress === "second-spring") {
+      nextProgression.questCounters.heartseedPlanted = 1;
+      nextProgression.worldFlags.rootlight_restored = true;
+      nextProgression.worldFlags.second_spring_started = true;
+    } else {
+      nextProgression.inventory.heartseed = Math.max(
+        1,
+        nextProgression.inventory.heartseed || 0
+      );
+    }
     return;
   }
   if (
@@ -946,6 +1091,13 @@ function buildSceneState(sceneId, entryId, currentProgression, sceneProgress, vi
   ) {
     encounterConfig.bossEnabled = false;
     encounterConfig.completionText = "Hollowheart Approach Cleared";
+  }
+  if (
+    sceneId === "starfall_sanctum" &&
+    !currentProgression.worldFlags.starfall_truth_recovered
+  ) {
+    encounterConfig.bossEnabled = false;
+    encounterConfig.completionText = "Pilgrim Archive Cleared";
   }
 
   if (savedSceneState?.objectStates) {

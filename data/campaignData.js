@@ -59,6 +59,9 @@ export const CAMPAIGN_CHAPTERS = {
     title: "Starfall Sanctum",
     restoredFlag: "rootlight_restored",
     bossSceneId: "starfall_sanctum",
+    bossQuestId: "starfall_sanctum",
+    restorationQuestId: "second_spring",
+    restorationRequiresBossClear: true,
     aspect: "starbinder",
   },
 };

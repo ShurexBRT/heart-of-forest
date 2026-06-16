@@ -235,12 +235,14 @@ test("campaign migration removes premature regional restoration", () => {
       ember_restored: true,
       frost_restored: true,
       scarroot_restored: true,
+      rootlight_restored: true,
     },
     questStates: {
       chapel_of_tides: "done",
       ember_totems: "done",
       lost_scout: "done",
       blight_watch: "done",
+      pilgrims_lantern: "done",
     },
   });
 
@@ -250,6 +252,7 @@ test("campaign migration removes premature regional restoration", () => {
   assert.equal(progression.worldFlags.ember_restored, false);
   assert.equal(progression.worldFlags.frost_restored, false);
   assert.equal(progression.worldFlags.scarroot_restored, false);
+  assert.equal(progression.worldFlags.rootlight_restored, false);
   assert.equal(progression.campaign.activeChapter, "heartwood");
 });
 
@@ -279,16 +282,19 @@ test("legacy restored guardians gain their regional return quests", () => {
       ember_restored: true,
       frost_restored: true,
       scarroot_restored: true,
+      rootlight_restored: true,
     },
     questStates: {
       cinder_warden: "done",
       veil_seraph: "done",
       elder_hollow: "done",
+      starfall_sanctum: "done",
     },
     regionProgress: {
       ember: { bossDefeated: true },
       frost: { bossDefeated: true },
       scarroot: { bossDefeated: true },
+      rootlight: { bossDefeated: true },
     },
   });
 
@@ -297,11 +303,17 @@ test("legacy restored guardians gain their regional return quests", () => {
   assert.equal(progression.questStates.ember_homecoming, "done");
   assert.equal(progression.questStates.frost_homecoming, "done");
   assert.equal(progression.questStates.scarroot_homecoming, "done");
+  assert.equal(progression.questStates.the_sixth_answer, "done");
+  assert.equal(progression.questStates.second_spring, "done");
   assert.equal(progression.worldFlags.ember_restored, true);
   assert.equal(progression.worldFlags.frost_restored, true);
   assert.equal(progression.worldFlags.scarroot_restored, true);
+  assert.equal(progression.worldFlags.rootlight_restored, true);
   assert.equal(progression.worldFlags.waystone_network_restored, true);
   assert.equal(progression.worldFlags.signature_rite_unlocked, true);
+  assert.equal(progression.worldFlags.rootlight_harmonized, true);
+  assert.equal(progression.worldFlags.second_spring_started, true);
+  assert.equal(progression.campaign.campaignCompleted, true);
 });
 
 test("locked inventory items cannot be sold", () => {

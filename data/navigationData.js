@@ -30,4 +30,6 @@ export const QUEST_TARGET_SCENES = {
   heart_of_ancients: ["ancient_heart"],
   pilgrims_lantern: ["ancient_heart"],
   starfall_sanctum: ["starfall_sanctum"],
+  the_sixth_answer: ["ancient_heart", "starfall_sanctum"],
+  second_spring: ["ayla_homestead"],
 };

@@ -132,6 +132,7 @@ const BOSS_IDENTITY = {
     summonPhase3: [{ type: "starbound_archer", elite: true, affixes: ["spiteful"] }, { type: "relic_sentinel", elite: true, affixes: ["bulwark"] }, "frost_wisp"],
     summonBanner: "The Spire Answers",
     phaseBanners: ["Starfall Awakens", "Sentinel of the Spire"],
+    signatureLabel: "Sixfold Verdict",
     summonBurstColors: ["#c9d9ff", "#e2d5ff", "#f7fbff"],
     slamTelegraphColor: "#d3ddff",
     volleyTelegraphColor: "#e4d8ff",
@@ -232,7 +233,7 @@ export class Boss {
     }
 
     if (
-      this.id === "rootwarden" &&
+      (this.id === "rootwarden" || this.id === "starwoken_sentinel") &&
       this.phase >= 2 &&
       this.cooldowns.signature <= 0 &&
       state.eruptions.length === 0

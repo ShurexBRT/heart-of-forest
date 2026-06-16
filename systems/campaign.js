@@ -27,7 +27,7 @@ export function syncCampaignProgress(progression, sceneProgress = {}) {
 
   migrateHeartwoodTutorial(progression);
   migrateCompletedRegionalReturns(progression, sceneProgress);
-  for (const chapterId of ["stillwater", "ember", "frost", "scarroot"]) {
+  for (const chapterId of ["stillwater", "ember", "frost", "scarroot", "rootlight"]) {
     reconcileRestoration(progression, sceneProgress, chapterId);
   }
 
@@ -106,6 +106,20 @@ function migrateCompletedRegionalReturns(progression, sceneProgress) {
       bossSceneId: "hollowheart_ruins",
       extraFlags: ["signature_rite_unlocked"],
     },
+    {
+      chapterId: "rootlight",
+      restoredFlag: "rootlight_restored",
+      guardianQuestId: "starfall_sanctum",
+      returnQuestId: "second_spring",
+      bossSceneId: "starfall_sanctum",
+      extraQuestIds: ["the_sixth_answer"],
+      extraFlags: [
+        "starfall_sanctum_cleansed",
+        "rootlight_harmonized",
+        "epilogue_ready",
+        "second_spring_started",
+      ],
+    },
   ];
 
   for (const migration of migrations) {
@@ -117,6 +131,9 @@ function migrateCompletedRegionalReturns(progression, sceneProgress) {
         progression.regionProgress?.[migration.chapterId]?.bossDefeated)
     ) {
       progression.questStates[migration.returnQuestId] = "done";
+      for (const questId of migration.extraQuestIds || []) {
+        progression.questStates[questId] = "done";
+      }
       for (const flag of migration.extraFlags || []) {
         progression.worldFlags[flag] = true;
       }

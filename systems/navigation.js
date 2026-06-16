@@ -103,6 +103,40 @@ export function getCampaignNavigation(progression, sceneProgress = {}, currentSc
           : "Listen to the memory left in the quieted Hollowheart Court.",
       });
     }
+    if (
+      chapterId === "rootlight" &&
+      progression.questStates?.starfall_sanctum === "done" &&
+      progression.questStates?.the_sixth_answer === "inactive"
+    ) {
+      const echoRecovered =
+        getQuestCounter(progression, "starwokenEchoRecovered") > 0;
+      return buildNavigationView({
+        chapterId,
+        quest: QUEST_DEFS.the_sixth_answer,
+        status: "regional-lead",
+        targetSceneIds: [
+          echoRecovered ? "ancient_heart" : "starfall_sanctum",
+        ],
+        currentSceneId,
+        hint: echoRecovered
+          ? "Carry the Sentinel's final echo back to Selka."
+          : "Recover the final echo left beneath the quieted pilgrim spire.",
+      });
+    }
+    if (
+      chapterId === "rootlight" &&
+      progression.questStates?.the_sixth_answer === "done" &&
+      progression.questStates?.second_spring === "inactive"
+    ) {
+      return buildNavigationView({
+        chapterId,
+        quest: QUEST_DEFS.second_spring,
+        status: "regional-lead",
+        targetSceneIds: ["ayla_homestead"],
+        currentSceneId,
+        hint: "Return to the Homestead and plant the Heartseed.",
+      });
+    }
 
     const entrySceneId = CHAPTER_ENTRY_SCENES[chapterId];
     return buildNavigationView({
@@ -218,6 +252,14 @@ function resolveQuestTargets(quest, status, progression, sceneProgress) {
       ? ["blighted_woods"]
       : ["hollowheart_ruins"];
   }
+  if (quest.id === "the_sixth_answer") {
+    return getQuestCounter(progression, "starwokenEchoRecovered") > 0
+      ? ["ancient_heart"]
+      : ["starfall_sanctum"];
+  }
+  if (quest.id === "second_spring") {
+    return ["ayla_homestead"];
+  }
 
   return [...(QUEST_TARGET_SCENES[quest.id] || (quest.sceneId ? [quest.sceneId] : []))];
 }
@@ -323,6 +365,26 @@ function getNavigationHint(questId, status, targetSceneIds, progression) {
     return targetSceneIds.includes("hollowheart_ruins")
       ? "Recover the first keeper's living memory from the quieted court."
       : "Carry the memory back to Bram at the Scarroot border.";
+  }
+  if (questId === "pilgrims_lantern") {
+    return "Clear the Ancient Heart, gather both Heart Blooms, and restore the paired star seals.";
+  }
+  if (questId === "starfall_sanctum") {
+    if (getQuestCounter(progression, "starfallTruthRecovered") < 1) {
+      return "Clear the Pilgrim Archive, relight its braziers, and listen to the sealed memory.";
+    }
+    if (getQuestCounter(progression, "starwokenSentinelDefeated") < 1) {
+      return "Return through the awakened archive and face Starwoken Sentinel.";
+    }
+    return "Recover the Sentinel echo beneath the quieted spire.";
+  }
+  if (questId === "the_sixth_answer") {
+    return targetSceneIds.includes("starfall_sanctum")
+      ? "Recover the Sentinel's final echo from the pilgrim spire."
+      : "Carry the echo back to Selka at the Ancient Heart.";
+  }
+  if (questId === "second_spring") {
+    return "Plant the Heartseed in the prepared earth beside Ayla's home.";
   }
   return `Continue toward ${targetSceneIds.map((id) => SCENES[id]?.title || id).join(" / ")}.`;
 }

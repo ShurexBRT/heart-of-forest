@@ -188,7 +188,7 @@ beskonacnu kupovinu talent poena.
 | 4 | Frost prica i treci loadout | Zavrseno |
 | 5 | Scarroot prica i Signature ultimate izbor | Zavrseno |
 | 5A | Heartwood onboarding i polish prvih questova | Zavrseno |
-| 6 | Rootlight finale i zavrsna sekvenca | Sledece |
+| 6 | Rootlight finale i zavrsna sekvenca | Zavrseno |
 | 7 | Second Spring postgame i optional challenge loop | Planirano |
 
 ## Dnevnik implementacije
@@ -418,18 +418,61 @@ beskonacnu kupovinu talent poena.
   `900x700`.
 - Automatizovana provera: `57/57` testova prolazi.
 
-### Sledeca faza - Faza 6
+### Faza 6
 
-1. Pretvoriti Ancient Heart u pripremni Rootlight hub koji sabira svih pet
-   obnovljenih korena i pokazuje posledice Aylinih prethodnih odluka.
-2. Zavrsiti `Pilgrim's Lantern` kao poslednji mirniji ritual pre ulaska u
-   Starfall Sanctum, sa jasnim astral preparation leadom.
-3. Staged Starfall prolaz treba prvo da otkrije istinu o Aylinoj majci, pa
-   tek zatim aktivira Starwoken Sentinel encounter.
-4. Odvojiti pobedu nad Sentinelom od krajnje odluke: Ayla bira kako se sest
-   korena uskladjuje sa zvezdanim glasom, bez lazne moralne kazne za build.
-5. Dodati zavrsnu sekvencu, campaign completion state, epilog u Homesteadu i
-   stabilan prelaz u `Second Spring` postgame.
+- Datum: 2026-06-16
+- Status: zavrseno
+- Cilj: zatvoriti glavnu kampanju kroz Rootlight finale, odvojiti arhivsku
+  istinu, Sentinel borbu, poslednju odluku i povratak u Homestead u citljiv
+  kraj koji prati celu pricu.
+- `Pilgrim's Lantern` sada sabira pet obnovljenih korena kroz Heart Blooms i
+  Star Seals u Ancient Heartu. Quest otvara Starfall Sanctum bez uvodjenja
+  nove hub mape.
+- `Starfall Sanctum` je staged susret. Prvi clear otkriva zasto je Aylina
+  majka sakrila zvezdani koren i resetuje scenu da bi tek drugi prolaz
+  aktivirao Starwoken Sentinel encounter.
+- Starwoken Sentinel dobija Rootlight identitet, astral Bestiary zapis i
+  Signature-style napad `Sixfold Verdict`, pa poslednja borba testira citanje
+  otvorene linije, pripremu, add priority i Heart Charge timing.
+- Pobeda nad Sentinelom vise ne obnavlja Rootlight sama. Posle borbe ostaje
+  `Starwoken Echo`; tek kada Ayla odnese echo Selki, quest `The Sixth Answer`
+  harmonizuje svih sest korena i otkljucava epilog.
+- `The Sixth Answer` objasnjava zavrsnu temu: zvezdana iskra nije cisto zlo,
+  nego moc koju stari cuvari nisu umeli da zamisle bez kontrole ili unistenja.
+  Ayla je vezuje za hor sest razlicitih korena, a ne za novi presto cuvara.
+- Homestead dobija epilog stanje sa Halenom, Selkom i pripremljenom zemljom za
+  Heartseed. `Second Spring` je auto-aktivni zavrsni quest koji trosi stvarni
+  Heartseed predmet i tek po sadnji postavlja `rootlight_restored` i campaign
+  completion.
+- Posle sadnje Heartseeda Homestead prikazuje trajni `Second Spring Sapling`,
+  a Ancient Heart dobija `Six-Root Chorus` kao miran dokaz da je finalna odluka
+  ostala u svetu.
+- Rootlight Bestiary uvodi Relic Sentinela, Starbound Archera i Starwoken
+  Sentinela sa astral damage identitetom i Starward savetima.
+- Journal i navigacija razlikuju pripremu lantern rituala, archive truth,
+  Sentinel borbu, preuzimanje echo-a, povratak Selki i finalnu sadnju u
+  Homesteadu.
+- Legacy save koji je vec imao obnovljen Rootlight i porazen Starfall guardian
+  dobija `The Sixth Answer`, `Second Spring` i epilog flagove bez gubitka
+  progresa.
+- Dodati su `debugProgress=rootlight-active`, `rootlight-archive`,
+  `rootlight-return`, `rootlight` i `second-spring` QA fixturei.
+- Browser runtime provera je uradjena na svih pet Rootlight fixture-a na
+  `1280x720`; nema boot, canvas, DOM ili console errora. Screenshot API za
+  canvas se blokirao u alatu, pa je vizuelni dokaz ogranicen na runtime QA i
+  reachability testove.
+- Automatizovana provera: `61/61` testova prolazi.
+
+### Sledeca faza - Faza 7
+
+1. Pretvoriti `Second Spring` u pravi postgame loop, a ne samo epilog stanje.
+2. Dodati opcione Corruption Echo susrete po obnovljenim regionima bez
+   rollbacka scene progressa.
+3. Prosiriti optional dungeon / challenge nagrade za attunement, kozmeticku
+   obnovu doma i build eksperimentisanje.
+4. Doterati prve questove jos jednim narativnim polish prolazom: jasniji NPC
+   barkovi, bolje mikro-nagrade i manje suvi objective tekst.
+5. Nastaviti HUD i tile/texture modernizaciju kroz manje, pushovane segmente.
 
 ## Van trenutnog scopea
 

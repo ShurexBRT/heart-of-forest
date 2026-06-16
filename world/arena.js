@@ -342,6 +342,9 @@ function interactable(id, type, x, y, extra = {}) {
     interactionRadius: extra.interactionRadius || 54,
     requiresCleared: Boolean(extra.requiresCleared),
     collectKey: extra.collectKey || null,
+    requiredItemId: extra.requiredItemId || null,
+    consumeItemId: extra.consumeItemId || null,
+    missingItemText: extra.missingItemText || null,
     dialogueLines: extra.dialogueLines || null,
     toastText: extra.toastText || null,
     serviceId: extra.serviceId || null,
@@ -400,6 +403,8 @@ function createBaseArena(context, tiles, props) {
 function buildAylaHomestead(context, rng) {
   const flags = context.worldFlags || {};
   const questStates = context.questStates || {};
+  const epilogueReady = Boolean(flags.epilogue_ready);
+  const secondSpringStarted = Boolean(flags.second_spring_started);
   const tiles = createTiles(rng);
   const plotWidth = 9;
   const plotHeight = 7;
@@ -526,6 +531,43 @@ function buildAylaHomestead(context, rng) {
         }
       )
     ),
+    ...(epilogueReady && !secondSpringStarted
+      ? [
+          interactable("second-spring-heartseed", "heartseedPlot", 650, 690, {
+            name: "Prepared Heartseed Earth",
+            promptLabel: "Plant the Heartseed",
+            collectKey: "heartseedPlanted",
+            requiredItemId: "heartseed",
+            consumeItemId: "heartseed",
+            missingItemText: "The Heartseed must be carried home before it can be planted.",
+            dialogueLines: [
+              "Ayla sets the Heartseed where the Hearthroot can hear all six restored roots.",
+              "No throne rises. A new tree begins small enough to need everyone.",
+            ],
+            interactionRadius: 82,
+            w: 54,
+            h: 38,
+            sortY: 704,
+          }),
+        ]
+      : []),
+    ...(secondSpringStarted
+      ? [
+          interactable("second-spring-sapling", "livingSapling", 650, 690, {
+            name: "Second Spring Sapling",
+            promptLabel: "Listen to the new leaves",
+            repeatable: true,
+            dialogueLines: [
+              "Six roots move beneath one young tree, each keeping its own voice.",
+              "The work continues, but the world can change again.",
+            ],
+            interactionRadius: 86,
+            w: 64,
+            h: 54,
+            sortY: 704,
+          }),
+        ]
+      : []),
     ...(flags.heartwood_restored
       ? [
           interactable("training-grove-dummy", "trainingDummy", 768, 672, {
@@ -607,7 +649,14 @@ function buildAylaHomestead(context, rng) {
       rock(1430, 604, 70, 42),
     ],
     npcs: flags.heartwood_restored
-      ? [npc("elder_rowan", 716, 470), npc("tamsin", 842, 486), npc("lysa", 924, 454)]
+      ? [
+          npc("elder_rowan", 716, 470),
+          npc("tamsin", 842, 486),
+          npc("lysa", 924, 454),
+          ...(epilogueReady
+            ? [npc("halen", 548, 650), npc("selka", 714, 626)]
+            : []),
+        ]
       : [],
     interactables,
     hazards: [],
@@ -1792,6 +1841,23 @@ function buildAncientHeart(context, rng) {
       requiresCleared: true,
       sortY: 370,
     }),
+    ...(flags.rootlight_harmonized || flags.second_spring_started
+      ? [
+          interactable("six-root-chorus", "memoryRoot", 934, 560, {
+            name: "Six-Root Chorus",
+            promptLabel: "Listen to the six roots",
+            repeatable: true,
+            dialogueLines: [
+              "Heartwood, water, ember, frost, scar and starlight answer without becoming the same voice.",
+              "The Ancient Heart is a meeting place again, not a lock.",
+            ],
+            interactionRadius: 88,
+            w: 52,
+            h: 52,
+            sortY: 574,
+          }),
+        ]
+      : []),
   ];
 
   return createBaseArena(context, tiles, {
@@ -1834,14 +1900,16 @@ function buildAncientHeart(context, rng) {
       lantern(892, 338, "frost"),
       lantern(1034, 338, "warm"),
       ...(flags.starfall_sanctum_open ? [lantern(934, 204, "cool"), signpost(1018, 212)] : []),
-      ...(flags.rootlight_restored || flags.starfall_sanctum_cleansed
+      ...(flags.rootlight_harmonized || flags.rootlight_restored || flags.starfall_sanctum_cleansed
         ? [lantern(1118, 336, "warm"), lantern(776, 336, "warm")]
         : []),
     ],
     npcs: [
       npc("selka", 254, 670),
       ...(flags.elder_hollow_broken ? [npc("mara", 1088, 372)] : []),
-      ...(flags.rootlight_restored || flags.starfall_sanctum_cleansed ? [npc("halen", 920, 286)] : []),
+      ...(flags.rootlight_harmonized || flags.rootlight_restored || flags.starfall_sanctum_cleansed
+        ? [npc("halen", 920, 286)]
+        : []),
     ],
     interactables,
     hazards: [],
@@ -1850,6 +1918,13 @@ function buildAncientHeart(context, rng) {
 
 function buildStarfallSanctum(context, rng) {
   const flags = context.worldFlags || {};
+  const questStates = context.questStates || {};
+  const questCounters = context.questCounters || {};
+  const truthRecovered =
+    Boolean(flags.starfall_truth_recovered) ||
+    (questCounters.starfallTruthRecovered || 0) > 0;
+  const sentinelDefeated = questStates.starfall_sanctum === "done";
+  const echoRecovered = (questCounters.starwokenEchoRecovered || 0) > 0;
   const tiles = createTiles(rng);
   stampRect(tiles, 0, 0, COLS, ROWS, "ruinStone", 0);
   clearOverlayRect(tiles, 0, 0, COLS, ROWS);
@@ -1879,6 +1954,41 @@ function buildStarfallSanctum(context, rng) {
       requiresCleared: true,
       sortY: 338,
     }),
+    ...(!truthRecovered
+      ? [
+          interactable("pilgrim-archive-memory", "memoryRoot", 934, 610, {
+            name: "Sealed Pilgrim Memory",
+            promptLabel: "Listen to the sealed memory",
+            collectKey: "starfallTruthRecovered",
+            requiresCleared: true,
+            dialogueLines: [
+              "Ayla's mother did not hear a disease in the falling star. She heard a power the keepers would turn into law.",
+              "She sealed the sixth root until someone could restore the others without forcing them into one answer.",
+            ],
+            interactionRadius: 88,
+            w: 52,
+            h: 52,
+            sortY: 624,
+          }),
+        ]
+      : []),
+    ...(sentinelDefeated && !echoRecovered
+      ? [
+          interactable("starwoken-echo", "memoryRoot", 934, 610, {
+            name: "Starwoken Echo",
+            promptLabel: "Recover the Sentinel echo",
+            collectKey: "starwokenEchoRecovered",
+            dialogueLines: [
+              "The Sentinel's last command breaks into a question: if the future cannot be predicted, who is allowed to choose it?",
+              "The echo waits for Selka and the six restored roots.",
+            ],
+            interactionRadius: 88,
+            w: 52,
+            h: 52,
+            sortY: 624,
+          }),
+        ]
+      : []),
   ];
 
   return createBaseArena(context, tiles, {

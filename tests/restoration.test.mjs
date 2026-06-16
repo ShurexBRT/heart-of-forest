@@ -88,3 +88,35 @@ test("defeating Rootwarden repopulates Heartwood and unlocks village services", 
       countOverlay(ruinsInfested, "flowersWarm")
   );
 });
+
+test("Rootlight harmony gathers the final witnesses at the Homestead", () => {
+  const epilogue = createArena({
+    ...SCENES.ayla_homestead,
+    worldFlags: {
+      heartwood_restored: true,
+      epilogue_ready: true,
+    },
+  });
+  const secondSpring = createArena({
+    ...SCENES.ayla_homestead,
+    worldFlags: {
+      heartwood_restored: true,
+      epilogue_ready: true,
+      rootlight_restored: true,
+      second_spring_started: true,
+    },
+  });
+
+  assert.ok(epilogue.npcs.some((npc) => npc.id === "halen"));
+  assert.ok(epilogue.npcs.some((npc) => npc.id === "selka"));
+  assert.ok(
+    epilogue.interactables.some(
+      (entry) => entry.id === "second-spring-heartseed"
+    )
+  );
+  assert.ok(
+    secondSpring.interactables.some(
+      (entry) => entry.id === "second-spring-sapling"
+    )
+  );
+});
