@@ -158,9 +158,7 @@ export function refreshQuestStates(state) {
         const rewardSummary = finalizeQuest(state, quest);
         setToast(
           state,
-          rewardSummary.levelsGained > 0
-            ? `Quest Complete: ${quest.title} - Level up`
-            : `Quest Complete: ${quest.title}`,
+          getQuestCompletionToast(quest, rewardSummary, "Quest Complete"),
           2.8
         );
       }
@@ -378,9 +376,7 @@ export function activateQuestPanelSelection(state) {
         const rewardSummary = finalizeQuest(state, view.quest);
         setToast(
           state,
-          rewardSummary.levelsGained > 0
-            ? `Rewards Received: ${view.quest.title} - Level up`
-            : `Rewards Received: ${view.quest.title}`,
+          getQuestCompletionToast(view.quest, rewardSummary, "Rewards Received"),
           2.6
         );
         updateQuestAvailability(state);
@@ -493,9 +489,7 @@ function openNpcDialogue(state, npc, npcDef = NPC_DEFS[npc.id]) {
         const rewardSummary = finalizeQuest(state, handledQuest);
         setToast(
           state,
-          rewardSummary.levelsGained > 0
-            ? `Rewards Received: ${handledQuest.title} - Level up`
-            : `Rewards Received: ${handledQuest.title}`,
+          getQuestCompletionToast(handledQuest, rewardSummary, "Rewards Received"),
           2.4
         );
         queueAudio(state, "quest");
@@ -637,6 +631,15 @@ function finalizeQuest(state, quest) {
   state.player.refreshFromModifiers(getPlayerBonuses(progression));
   queueAudio(state, rewardSummary.levelsGained > 0 ? "level-up" : "quest");
   return rewardSummary;
+}
+
+function getQuestCompletionToast(quest, rewardSummary, fallbackPrefix) {
+  if (quest.completeToast) {
+    return quest.completeToast;
+  }
+  return rewardSummary.levelsGained > 0
+    ? `${fallbackPrefix}: ${quest.title} - Level up`
+    : `${fallbackPrefix}: ${quest.title}`;
 }
 
 function maybeOpenNpcService(state, npcDef) {

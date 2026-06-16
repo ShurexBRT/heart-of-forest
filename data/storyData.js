@@ -10,7 +10,8 @@ export const QUEST_DEFS = {
     completeFlags: ["hearthroot_awake"],
     refreshSceneOnComplete: true,
     rewards: { items: { moonleaf_seed: 2, ironbark: 1 }, silver: 20, xp: 30 },
-    objectives: [{ key: "hearthrootAwakened", label: "Hearthroot awakened", required: 1 }],
+    completeToast: "Hearthroot wakes. Moonleaf seeds and ironbark are ready for Ayla's first preparation.",
+    objectives: [{ key: "hearthrootAwakened", label: "Answer the Hearthroot's pulse", required: 1 }],
   },
   first_moonleaf: {
     id: "first_moonleaf",
@@ -23,11 +24,12 @@ export const QUEST_DEFS = {
     completeFlags: ["heartwood_first_harvest"],
     refreshSceneOnComplete: true,
     rewards: { items: { health_potion: 1 }, silver: 20, xp: 36 },
+    completeToast: "First Moonleaf harvested. The eastern gate can hear the garden again.",
     objectives: [
-      { key: "moonleafPlanted", label: "Moonleaf seed planted", required: 1 },
-      { key: "moonleafWatered", label: "Moonleaf watered", required: 1 },
-      { key: "moonleafGrown", label: "Rested while Moonleaf grew", required: 1 },
-      { key: "moonleafHarvested", label: "Moonleaf harvested", required: 1 },
+      { key: "moonleafPlanted", label: "Tuck one Moonleaf seed into a home plot", required: 1 },
+      { key: "moonleafWatered", label: "Water the planted Moonleaf before nightfall", required: 1 },
+      { key: "moonleafGrown", label: "Sleep once while the watered Moonleaf grows", required: 1 },
+      { key: "moonleafHarvested", label: "Harvest the Moonleaf at dawn", required: 1 },
     ],
   },
   thorn_at_gate: {
@@ -44,7 +46,8 @@ export const QUEST_DEFS = {
       silver: 25,
       xp: 42,
     },
-    objectives: [{ key: "gateThreatsDefeated", label: "Gate threats defeated", required: 2 }],
+    completeToast: "The old road quiets. Barkskin Draught is now known at the Homestead cauldron.",
+    objectives: [{ key: "gateThreatsDefeated", label: "Free the two thorn-marked creatures at the gate", required: 2 }],
   },
   brew_before_blood: {
     id: "brew_before_blood",
@@ -57,7 +60,8 @@ export const QUEST_DEFS = {
     completeFlags: ["heartwood_ruins_open"],
     refreshSceneOnComplete: true,
     rewards: { items: { spirit_tonic: 1 }, silver: 20, xp: 38 },
-    objectives: [{ key: "barkskinBrewed", label: "Barkskin Draught brewed", required: 1 }],
+    completeToast: "Barkskin is prepared. The Mossy Ruins trail opens, but Rootwarden's crown still has to be read.",
+    objectives: [{ key: "barkskinBrewed", label: "Brew Barkskin Draught at the Hearthroot Cauldron", required: 1 }],
   },
   first_rootwarden: {
     id: "first_rootwarden",
@@ -74,7 +78,8 @@ export const QUEST_DEFS = {
       talentPoints: 1,
       xp: 140,
     },
-    objectives: [{ key: "rootwardenDefeated", label: "Rootwarden defeated", required: 1 }],
+    completeToast: "Heartwood breathes again. Journal, Training Grove, and Grove Loadout I are unlocked.",
+    objectives: [{ key: "rootwardenDefeated", label: "Release Rootwarden from the thorn oath", required: 1 }],
   },
   whispering_call: {
     id: "whispering_call",

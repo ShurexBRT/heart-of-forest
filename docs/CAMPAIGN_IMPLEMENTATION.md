@@ -189,6 +189,7 @@ beskonacnu kupovinu talent poena.
 | 5 | Scarroot prica i Signature ultimate izbor | Zavrseno |
 | 5A | Heartwood onboarding i polish prvih questova | Zavrseno |
 | 6 | Rootlight finale i zavrsna sekvenca | Zavrseno |
+| 6A | First-hour quest feedback polish | Zavrseno |
 | 7 | Second Spring postgame i optional challenge loop | Planirano |
 
 ## Dnevnik implementacije
@@ -461,6 +462,22 @@ beskonacnu kupovinu talent poena.
   `1280x720`; nema boot, canvas, DOM ili console errora. Screenshot API za
   canvas se blokirao u alatu, pa je vizuelni dokaz ogranicen na runtime QA i
   reachability testove.
+- Automatizovana provera: `61/61` testova prolazi.
+
+### Faza 6A
+
+- Datum: 2026-06-16
+- Status: zavrseno
+- Cilj: dodatno ispolirati prvi sat igre bez menjanja vec stabilnog
+  Heartwood progression toka.
+- Prvih pet Heartwood main questova dobijaju konkretnije objective label-e
+  koji govore sta Ayla radi u svetu, a ne samo koji counter raste.
+- Uveden je opcioni `completeToast` na quest definiciji. Pocetni questovi ga
+  koriste da igracu odmah kazu sta je otkljucano ili zasto je sledeci korak
+  bitan: seme i ironbark, otvaranje gate-a, Barkskin recept, Mossy Ruins trail
+  i Heartwood obnovu.
+- Ovaj polish je namerno tekstualno/feedback orijentisan. Ne dira redosled
+  questova, ne menja countere i ne otvara nove sisteme pre postgame faze.
 - Automatizovana provera: `61/61` testova prolazi.
 
 ### Sledeca faza - Faza 7
