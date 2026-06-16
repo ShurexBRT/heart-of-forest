@@ -3,7 +3,11 @@ import { REGION_DEFS } from "../data/regionData.js";
 import { SCENES } from "../data/sceneNetwork.js";
 import { QUEST_DEFS } from "../data/storyData.js";
 import { getQuestCounter } from "./progression.js";
-import { getRegionStatus } from "./regions.js";
+import {
+  getPostgameEchoLead,
+  getPostgameEchoStatus,
+  getRegionStatus,
+} from "./regions.js";
 
 const STATUS_PRIORITY = {
   complete: 0,
@@ -11,7 +15,12 @@ const STATUS_PRIORITY = {
   available: 2,
 };
 
-export function getCampaignNavigation(progression, sceneProgress = {}, currentSceneId = null) {
+export function getCampaignNavigation(
+  progression,
+  sceneProgress = {},
+  currentSceneId = null,
+  day = 1
+) {
   const chapterId = progression.campaign?.activeChapter || "heartwood";
   const quest = Object.values(QUEST_DEFS)
     .filter(
@@ -27,6 +36,27 @@ export function getCampaignNavigation(progression, sceneProgress = {}, currentSc
     )[0];
 
   if (!quest) {
+    if (progression.campaign?.campaignCompleted) {
+      const echoLead = getPostgameEchoLead(
+        progression,
+        sceneProgress,
+        currentSceneId,
+        day
+      );
+      return buildNavigationView({
+        chapterId,
+        quest: { id: "postgame_echo", title: "Second Spring Echo" },
+        status: echoLead?.available ? "postgame-echo" : "postgame-quiet",
+        targetSceneIds: echoLead?.targetSceneId
+          ? [echoLead.targetSceneId]
+          : ["ayla_homestead"],
+        currentSceneId,
+        hint: echoLead?.available
+          ? "A short Corruption Echo is stirring in a restored region today."
+          : "All known echoes are quiet today. Sleep at the Homestead to let a new day surface.",
+      });
+    }
+
     if (
       chapterId === "stillwater" &&
       progression.questStates?.chapel_of_tides === "done" &&
@@ -172,13 +202,14 @@ export function getRegionJournalView(
   progression,
   sceneProgress = {},
   currentSceneId = null,
-  chapterId = progression.campaign?.activeChapter || "heartwood"
+  chapterId = progression.campaign?.activeChapter || "heartwood",
+  day = 1
 ) {
   const region = REGION_DEFS[chapterId] || REGION_DEFS.heartwood;
   const activeChapter = progression.campaign?.activeChapter || "heartwood";
   const navigation =
     chapterId === activeChapter
-      ? getCampaignNavigation(progression, sceneProgress, currentSceneId)
+      ? getCampaignNavigation(progression, sceneProgress, currentSceneId, day)
       : {
           chapterId,
           questId: null,
@@ -213,6 +244,12 @@ export function getRegionJournalView(
     counterRecipeId: region.counterRecipeId,
     preparationActive:
       progression.activePreparation?.damageType === region.damageType,
+    postgameEcho: getPostgameEchoStatus(
+      progression,
+      sceneProgress,
+      region.id,
+      day
+    ),
     locations,
     navigation,
   };

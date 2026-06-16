@@ -453,6 +453,86 @@ test("Rootlight Journal follows the Sentinel echo home and records the final arc
   assert.equal(entries.find((entry) => entry.id === "starwoken_sentinel").mastered, true);
 });
 
+test("Second Spring Journal points to the next daily echo after the campaign", () => {
+  const progression = createProgression({
+    worldFlags: {
+      heartwood_restored: true,
+      stillwater_restored: true,
+      ember_restored: true,
+      frost_restored: true,
+      scarroot_restored: true,
+      rootlight_restored: true,
+      second_spring_started: true,
+    },
+    questStates: {
+      first_rootwarden: "done",
+      stillwater_homecoming: "done",
+      cinder_warden: "done",
+      ember_homecoming: "done",
+      veil_seraph: "done",
+      frost_homecoming: "done",
+      elder_hollow: "done",
+      scarroot_homecoming: "done",
+      pilgrims_lantern: "done",
+      starfall_sanctum: "done",
+      the_sixth_answer: "done",
+      second_spring: "done",
+    },
+  });
+  const sceneProgress = {
+    whispering_woods: { cleared: true },
+    chapel_of_tides: { cleared: true },
+    emberpine_grove: { cleared: true },
+    frostveil_tundra: { cleared: true },
+    hollowheart_ruins: { cleared: true },
+    starfall_sanctum: { cleared: true },
+  };
+  Object.assign(progression.regionProgress, {
+    ember: { bossDefeated: true },
+    frost: { bossDefeated: true },
+    scarroot: { bossDefeated: true },
+    rootlight: { bossDefeated: true },
+  });
+  syncCampaignProgress(progression, sceneProgress);
+
+  let navigation = getCampaignNavigation(
+    progression,
+    sceneProgress,
+    "ayla_homestead",
+    8
+  );
+  assert.equal(navigation.questId, "postgame_echo");
+  assert.equal(navigation.targetLabel, "Whispering Woods");
+  assert.match(navigation.hint, /restored region/i);
+
+  let journal = getRegionJournalView(
+    progression,
+    sceneProgress,
+    "ayla_homestead",
+    "heartwood",
+    8
+  );
+  assert.equal(journal.postgameEcho.available, true);
+  assert.equal(journal.postgameEcho.targetSceneId, "whispering_woods");
+
+  progression.regionProgress.heartwood.echoDay = 8;
+  navigation = getCampaignNavigation(
+    progression,
+    sceneProgress,
+    "ayla_homestead",
+    8
+  );
+  assert.equal(navigation.targetLabel, "Chapel of Tides");
+  journal = getRegionJournalView(
+    progression,
+    sceneProgress,
+    "ayla_homestead",
+    "heartwood",
+    8
+  );
+  assert.equal(journal.postgameEcho.completedToday, true);
+});
+
 test("Target Circle tracks three training targets and a per-mode best", () => {
   const interactable = { id: "training-grove-cluster", disabled: false };
   const state = {

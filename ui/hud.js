@@ -1006,7 +1006,16 @@ function drawJournalRegionOverview(ctx, state, panel, startY) {
   );
   ctx.fillStyle = "#d9e7d3";
   ctx.font = "11px Segoe UI, Arial";
-  const lead = `${region.navigation.questTitle}: ${region.navigation.targetLabel}. ${region.navigation.hint}`;
+  const echo = region.postgameEcho;
+  const echoTitle = echo?.targetSceneId
+    ? SCENES[echo.targetSceneId]?.title || echo.targetSceneId
+    : "the restored roads";
+  const lead =
+    echo?.unlocked && echo.available
+      ? `Second Spring Echo: ${echoTitle}. Optional daily challenge; progress stays restored.`
+      : echo?.unlocked && echo.completedToday
+        ? "Second Spring Echo: quiet today. Sleep at the Homestead to surface another."
+        : `${region.navigation.questTitle}: ${region.navigation.targetLabel}. ${region.navigation.hint}`;
   toWrappedLines(ctx, lead, width - 20, compact ? 2 : 1).forEach((line, index) => {
     ctx.fillText(line, x + 10, startY + 51 + index * 13);
   });

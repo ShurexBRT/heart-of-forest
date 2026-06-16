@@ -47,6 +47,8 @@ export const REGION_DEFS = {
     damageType: "thorn",
     counterRecipeId: "barkskin_draught",
     restoredFlag: "heartwood_restored",
+    postgameEchoSceneIds: ["whispering_woods"],
+    echoReward: { items: { moonleaf: 2, ironbark: 1 }, silver: 16 },
   },
   stillwater: {
     id: "stillwater",
@@ -58,6 +60,8 @@ export const REGION_DEFS = {
     damageType: "mire",
     counterRecipeId: "antitoxin_bloom",
     restoredFlag: "stillwater_restored",
+    postgameEchoSceneIds: ["chapel_of_tides"],
+    echoReward: { items: { bog_amber: 2, relic_shard: 1 }, silver: 18 },
   },
   ember: {
     id: "ember",
@@ -70,6 +74,8 @@ export const REGION_DEFS = {
     damageType: "fire",
     counterRecipeId: "emberward_infusion",
     restoredFlag: "ember_restored",
+    postgameEchoSceneIds: ["emberpine_grove"],
+    echoReward: { items: { cinder_resin: 2, relic_shard: 1 }, silver: 18 },
   },
   frost: {
     id: "frost",
@@ -82,6 +88,8 @@ export const REGION_DEFS = {
     damageType: "frost",
     counterRecipeId: "cinderheart_cordial",
     restoredFlag: "frost_restored",
+    postgameEchoSceneIds: ["frostveil_tundra"],
+    echoReward: { items: { stonebloom: 2, relic_shard: 1 }, silver: 18 },
   },
   scarroot: {
     id: "scarroot",
@@ -93,6 +101,8 @@ export const REGION_DEFS = {
     damageType: "corruption",
     counterRecipeId: "heartcleanse_elixir",
     restoredFlag: "scarroot_restored",
+    postgameEchoSceneIds: ["hollowheart_ruins"],
+    echoReward: { items: { heartseed: 1, relic_shard: 1 }, silver: 22 },
   },
   rootlight: {
     id: "rootlight",
@@ -104,6 +114,8 @@ export const REGION_DEFS = {
     damageType: "astral",
     counterRecipeId: "starward_draught",
     restoredFlag: "rootlight_restored",
+    postgameEchoSceneIds: ["starfall_sanctum"],
+    echoReward: { items: { relic_shard: 2, starfire_tonic: 1 }, silver: 24 },
   },
 };
 

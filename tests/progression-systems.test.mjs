@@ -6,9 +6,12 @@ import {
   attuneEquipmentItem,
   awardRewards,
   createProgression,
+  getCurrency,
+  getItemCount,
   getItemAttunementLevel,
   isItemLocked,
   getPlayerBonuses,
+  getQuestCounter,
   getTalentUnlockState,
   sellInventoryItem,
   toggleItemLock,
@@ -17,7 +20,14 @@ import {
 } from "../systems/progression.js";
 import { craftRecipe } from "../systems/alchemy.js";
 import { damagePlayer } from "../systems/combat.js";
-import { getRegionStatus, markRegionSceneCleared } from "../systems/regions.js";
+import {
+  awardCorruptionEchoRewards as awardEchoRewards,
+  getPostgameEchoStatus,
+  getRegionStatus,
+  markCorruptionEchoCompleted,
+  markRegionSceneCleared,
+  shouldStartCorruptionEcho,
+} from "../systems/regions.js";
 import { REGION_DEFS } from "../data/regionData.js";
 import { QUEST_DEFS } from "../data/storyData.js";
 import { syncCampaignProgress } from "../systems/campaign.js";
@@ -120,6 +130,57 @@ test("region status advances without rolling scene progress back", () => {
   progression.worldFlags.heartwood_restored = true;
   assert.equal(getRegionStatus(progression, sceneProgress, "heartwood").id, "restored");
   assert.equal(sceneProgress.whispering_woods.cleared, true);
+});
+
+test("Second Spring echoes return daily without rolling restored scenes back", () => {
+  const { progression, sceneProgress } = createCompletedCampaignState();
+  const startSilver = getCurrency(progression);
+
+  assert.equal(progression.campaign.campaignCompleted, true);
+  assert.equal(getRegionStatus(progression, sceneProgress, "heartwood").id, "restored");
+  assert.equal(
+    getPostgameEchoStatus(progression, sceneProgress, "heartwood", 4).available,
+    true
+  );
+  assert.equal(
+    shouldStartCorruptionEcho(progression, sceneProgress, "whispering_woods", 4),
+    true
+  );
+  assert.equal(
+    shouldStartCorruptionEcho(progression, sceneProgress, "ayla_homestead", 4),
+    false
+  );
+
+  const echoResult = markCorruptionEchoCompleted(
+    progression,
+    "whispering_woods",
+    4
+  );
+  const reward = awardEchoRewards(progression, echoResult);
+
+  assert.equal(echoResult.postgame, true);
+  assert.deepEqual(reward.items, [
+    { itemId: "moonleaf", amount: 2 },
+    { itemId: "ironbark", amount: 1 },
+  ]);
+  assert.equal(reward.silver, 16);
+  assert.equal(getCurrency(progression), startSilver + 16);
+  assert.equal(getItemCount(progression, "moonleaf"), 3);
+  assert.equal(getItemCount(progression, "ironbark"), 1);
+  assert.equal(getQuestCounter(progression, "corruptionEchoesSilenced"), 1);
+  assert.equal(sceneProgress.whispering_woods.cleared, true);
+  assert.equal(
+    shouldStartCorruptionEcho(progression, sceneProgress, "whispering_woods", 4),
+    false
+  );
+  assert.equal(
+    getPostgameEchoStatus(progression, sceneProgress, "heartwood", 4).completedToday,
+    true
+  );
+  assert.equal(
+    shouldStartCorruptionEcho(progression, sceneProgress, "whispering_woods", 5),
+    true
+  );
 });
 
 test("Ember line clear does not count as the guardian defeat", () => {
@@ -330,3 +391,48 @@ test("locked inventory items cannot be sold", () => {
   assert.equal(sellInventoryItem(progression, "health_potion").sold, true);
   assert.equal(progression.inventory.health_potion, 1);
 });
+
+function createCompletedCampaignState() {
+  const progression = createProgression({
+    worldFlags: {
+      heartwood_restored: true,
+      stillwater_restored: true,
+      ember_restored: true,
+      frost_restored: true,
+      scarroot_restored: true,
+      rootlight_restored: true,
+      second_spring_started: true,
+    },
+    questStates: {
+      first_rootwarden: "done",
+      stillwater_homecoming: "done",
+      cinder_warden: "done",
+      ember_homecoming: "done",
+      veil_seraph: "done",
+      frost_homecoming: "done",
+      elder_hollow: "done",
+      scarroot_homecoming: "done",
+      pilgrims_lantern: "done",
+      starfall_sanctum: "done",
+      the_sixth_answer: "done",
+      second_spring: "done",
+    },
+    regionProgress: {
+      ember: { bossDefeated: true },
+      frost: { bossDefeated: true },
+      scarroot: { bossDefeated: true },
+      rootlight: { bossDefeated: true },
+    },
+  });
+  const sceneProgress = {
+    whispering_woods: { cleared: true },
+    chapel_of_tides: { cleared: true },
+    emberpine_grove: { cleared: true },
+    frostveil_tundra: { cleared: true },
+    hollowheart_ruins: { cleared: true },
+    starfall_sanctum: { cleared: true },
+  };
+
+  syncCampaignProgress(progression, sceneProgress);
+  return { progression, sceneProgress };
+}

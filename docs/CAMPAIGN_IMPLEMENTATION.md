@@ -190,7 +190,8 @@ beskonacnu kupovinu talent poena.
 | 5A | Heartwood onboarding i polish prvih questova | Zavrseno |
 | 6 | Rootlight finale i zavrsna sekvenca | Zavrseno |
 | 6A | First-hour quest feedback polish | Zavrseno |
-| 7 | Second Spring postgame i optional challenge loop | Planirano |
+| 7 | Second Spring postgame i optional challenge loop | U toku |
+| 7A | Daily Corruption Echo loop | Zavrseno |
 
 ## Dnevnik implementacije
 
@@ -480,16 +481,38 @@ beskonacnu kupovinu talent poena.
   questova, ne menja countere i ne otvara nove sisteme pre postgame faze.
 - Automatizovana provera: `61/61` testova prolazi.
 
-### Sledeca faza - Faza 7
+### Faza 7A
 
-1. Pretvoriti `Second Spring` u pravi postgame loop, a ne samo epilog stanje.
-2. Dodati opcione Corruption Echo susrete po obnovljenim regionima bez
-   rollbacka scene progressa.
-3. Prosiriti optional dungeon / challenge nagrade za attunement, kozmeticku
+- Datum: 2026-06-16
+- Status: zavrseno
+- Cilj: pretvoriti `Second Spring` iz statickog epiloga u prvi pravi postgame
+  loop bez rollbacka obnovljenog sveta.
+- Svaki region sada ima eksplicitnu postgame echo lokaciju:
+  Whispering Woods, Chapel of Tides, Emberpine Grove, Frostveil Tundra,
+  Hollowheart Ruins i Starfall Sanctum.
+- Posle zavrsene kampanje, ociscena echo lokacija moze jednom dnevno da
+  pokrene kratki `Second Spring Echo` encounter. Region ostaje `restored`, a
+  `sceneProgress.cleared` se ne dira.
+- Echo clear koristi isti dnevni `regionProgress.echoDay` tracking kao raniji
+  unstable echo sistem, ali sada radi i na obnovljenim regionima.
+- Nagrade su male i vezane za postgame ekonomiju: regionalni materijali,
+  relic shardovi i silver za attunement/crafting bez uvodjenja nove valute.
+- Journal i campaign navigation sada pokazuju sledeci dnevni echo lead. Kada
+  je regionov echo vec ociscen tog dana, Journal jasno kaze da treba prespavati
+  za novi talas.
+- Dodat je `debugProgress=postgame-echo` QA fixture za brzu proveru dnevnog
+  echo susreta posle Second Spring kraja.
+- Automatizovana provera: `63/63` testova prolazi.
+
+### Sledeca faza - Faza 7B
+
+1. Prosiriti optional dungeon / challenge nagrade za attunement, kozmeticku
    obnovu doma i build eksperimentisanje.
-4. Doterati prve questove jos jednim narativnim polish prolazom: jasniji NPC
+2. Dodati mali postgame board/summary u Homesteadu da igrac vidi koje echo
+   lokacije su danas mirne, a koje jos zovu.
+3. Doterati prve questove jos jednim narativnim polish prolazom: jasniji NPC
    barkovi, bolje mikro-nagrade i manje suvi objective tekst.
-5. Nastaviti HUD i tile/texture modernizaciju kroz manje, pushovane segmente.
+4. Nastaviti HUD i tile/texture modernizaciju kroz manje, pushovane segmente.
 
 ## Van trenutnog scopea
 

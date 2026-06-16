@@ -9,7 +9,7 @@ import {
   screenToWorld,
 } from "./core/projection.js";
 import { INITIAL_SCENE_ID, SCENES } from "./data/sceneNetwork.js";
-import { TALENT_DEFS } from "./data/gameData.js";
+import { ITEM_DEFS, TALENT_DEFS } from "./data/gameData.js";
 import { Player } from "./entities/player.js";
 import { renderGame } from "./rendering/renderer.js";
 import { getUiHoverTarget } from "./ui/hud.js";
@@ -88,6 +88,7 @@ import {
   updateStoryRuntime,
 } from "./systems/story.js";
 import {
+  awardCorruptionEchoRewards,
   markCorruptionEchoCompleted,
   markRegionSceneCleared,
   shouldStartCorruptionEcho,
@@ -139,6 +140,7 @@ const debugSceneCleared = [
   "scarroot-side",
   "rootlight-archive",
   "rootlight-return",
+  "postgame-echo",
 ].includes(debugBoot.progress);
 const bootSnapshot =
   debugBoot.sceneId && SCENES[debugBoot.sceneId]
@@ -313,6 +315,7 @@ function applyDebugProgression(nextProgression, debugConfig) {
       "rootlight-return",
       "rootlight",
       "second-spring",
+      "postgame-echo",
     ].includes(debugProgress)
   ) {
     return;
@@ -323,6 +326,7 @@ function applyDebugProgression(nextProgression, debugConfig) {
     "rootlight-return",
     "rootlight",
     "second-spring",
+    "postgame-echo",
   ];
   if (rootlightDebugStates.includes(debugProgress)) {
     const completedQuestIds = [
@@ -438,12 +442,14 @@ function applyDebugProgression(nextProgression, debugConfig) {
     nextProgression.questCounters.starwokenEchoRecovered = 1;
     nextProgression.questStates.the_sixth_answer = "done";
     nextProgression.questStates.second_spring =
-      debugProgress === "second-spring" ? "done" : "active";
+      ["second-spring", "postgame-echo"].includes(debugProgress)
+        ? "done"
+        : "active";
     Object.assign(nextProgression.worldFlags, {
       rootlight_harmonized: true,
       epilogue_ready: true,
     });
-    if (debugProgress === "second-spring") {
+    if (["second-spring", "postgame-echo"].includes(debugProgress)) {
       nextProgression.questCounters.heartseedPlanted = 1;
       nextProgression.worldFlags.rootlight_restored = true;
       nextProgression.worldFlags.second_spring_started = true;
@@ -1402,18 +1408,31 @@ function updateTransition(dt) {
 function handleSceneCleared() {
   const sceneProgress = ensureSceneProgress(state.currentSceneId);
   if (state.encounter.isCorruptionEcho) {
-    markCorruptionEchoCompleted(
+    const echoResult = markCorruptionEchoCompleted(
       state.progression,
       state.currentSceneId,
       state.clock.day
+    );
+    const rewardResult = awardCorruptionEchoRewards(
+      state.progression,
+      echoResult
     );
     state.areaCleared = false;
     state.enemies = [];
     state.hostileProjectiles = [];
     state.eruptions = [];
     deactivateEncounter(state.encounter);
-    state.encounter.bannerText = "Corruption Echo Silenced";
+    state.encounter.bannerText = echoResult?.postgame
+      ? "Second Spring Echo Silenced"
+      : "Corruption Echo Silenced";
     state.encounter.bannerTimer = 2;
+    if (echoResult?.postgame) {
+      setToast(
+        `Second Spring Echo silenced: ${formatEchoReward(rewardResult)}`,
+        3
+      );
+      queueAudio(state, "quest");
+    }
     saveCurrentGame();
     return;
   }
@@ -2693,6 +2712,22 @@ function setToast(text, duration = 2) {
   state.story.toastTimer = duration;
 }
 
+function formatEchoReward(rewardResult) {
+  const parts = [];
+  const firstItem = rewardResult?.items?.[0];
+  if (firstItem) {
+    parts.push(`${firstItem.amount} ${formatItemName(firstItem.itemId)}`);
+  }
+  if ((rewardResult?.silver || 0) > 0) {
+    parts.push(`${rewardResult.silver} silver`);
+  }
+  return parts.join(" and ") || "the roots settle";
+}
+
+function formatItemName(itemId) {
+  return ITEM_DEFS[itemId]?.name || itemId.replaceAll("_", " ");
+}
+
 function update(dt) {
   if (fatalError) {
     return;
@@ -2843,12 +2878,14 @@ function render() {
       state.progression,
       state.sceneProgress,
       state.currentSceneId,
-      journalChapter
+      state.clock.day
     );
     state.regionJournal = getRegionJournalView(
       state.progression,
       state.sceneProgress,
-      state.currentSceneId
+      state.currentSceneId,
+      journalChapter,
+      state.clock.day
     );
     if (isFrontendMode(state.mode)) {
       renderGame(ctx, state, {
