@@ -288,15 +288,20 @@ test("Rootlight memories, chorus, and Second Spring remain reachable", () => {
   const sapling = secondSpring.interactables.find(
     (interactable) => interactable.id === "second-spring-sapling"
   );
+  const board = secondSpring.interactables.find(
+    (interactable) => interactable.id === "second-spring-board"
+  );
 
   assert.ok(archiveMemory);
   assert.ok(sentinelEcho);
   assert.ok(chorus);
   assert.ok(heartseedPlot);
   assert.ok(sapling);
+  assert.ok(board);
   assert.equal(hasReachableInteractionPoint(archiveArena, archiveMemory), true);
   assert.equal(hasReachableInteractionPoint(echoArena, sentinelEcho), true);
   assert.equal(hasReachableInteractionPoint(ancientHeart, chorus), true);
   assert.equal(hasReachableInteractionPoint(epilogue, heartseedPlot), true);
   assert.equal(hasReachableInteractionPoint(secondSpring, sapling), true);
+  assert.equal(hasReachableInteractionPoint(secondSpring, board), true);
 });

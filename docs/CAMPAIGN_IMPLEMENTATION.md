@@ -192,6 +192,7 @@ beskonacnu kupovinu talent poena.
 | 6A | First-hour quest feedback polish | Zavrseno |
 | 7 | Second Spring postgame i optional challenge loop | U toku |
 | 7A | Daily Corruption Echo loop | Zavrseno |
+| 7B | Second Spring Homestead board | Zavrseno |
 
 ## Dnevnik implementacije
 
@@ -504,15 +505,32 @@ beskonacnu kupovinu talent poena.
   echo susreta posle Second Spring kraja.
 - Automatizovana provera: `63/63` testova prolazi.
 
-### Sledeca faza - Faza 7B
+### Faza 7B
+
+- Datum: 2026-07-21
+- Status: zavrseno
+- Cilj: napraviti da se Second Spring dnevni loop vidi i u Homesteadu, ne samo
+  u Journalu.
+- Homestead posle sadnje Heartseeda dobija fizicku `Second Spring Board`
+  interakciju pored nove mladice.
+- Tabla koristi stvarni dan, region progress i scene progress da prikaze koliko
+  je dnevnih echo lokacija jos otvoreno, koliko je vec mirno i koja je sledeca
+  preporucena lokacija.
+- Board tekst ide kroz postojeci dialogue box u nekoliko kratkih kartica:
+  dnevni rezime, sledeci poziv, otvoreni echo regioni i mirni echo regioni.
+- Dodat je mali pixel-art render table sa sest root oznaka i zaseban path patch
+  da objekat izgleda namerno postavljen u Homesteadu.
+- Regresioni testovi proveravaju board helper, Homestead restoration contract i
+  reachable interaction point za novu tablu.
+- Automatizovana provera: `64/64` testova prolazi.
+
+### Sledeca faza - Faza 7C
 
 1. Prosiriti optional dungeon / challenge nagrade za attunement, kozmeticku
    obnovu doma i build eksperimentisanje.
-2. Dodati mali postgame board/summary u Homesteadu da igrac vidi koje echo
-   lokacije su danas mirne, a koje jos zovu.
-3. Doterati prve questove jos jednim narativnim polish prolazom: jasniji NPC
+2. Doterati prve questove jos jednim narativnim polish prolazom: jasniji NPC
    barkovi, bolje mikro-nagrade i manje suvi objective tekst.
-4. Nastaviti HUD i tile/texture modernizaciju kroz manje, pushovane segmente.
+3. Nastaviti HUD i tile/texture modernizaciju kroz manje, pushovane segmente.
 
 ## Van trenutnog scopea
 

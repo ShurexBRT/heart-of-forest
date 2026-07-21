@@ -104,6 +104,7 @@ import {
   getCampaignNavigation,
   getRegionJournalView,
 } from "./systems/navigation.js";
+import { getSecondSpringBoardView } from "./systems/postgame.js";
 import {
   createFrontendState,
   getFrontendEntries,
@@ -1556,6 +1557,31 @@ function handleInteractionAction(interaction) {
     setToast(result.text, result.changed ? 2.6 : 2);
     queueAudio(state, result.event === "harvested" ? "quest" : "use-item");
     if (result.changed) saveCurrentGame();
+    return true;
+  }
+
+  if (interaction.action === "second-spring-board") {
+    const board = getSecondSpringBoardView(
+      state.progression,
+      state.sceneProgress,
+      state.clock?.day || 1,
+      state.currentSceneId
+    );
+    state.story.dialogue = {
+      speakerName: board.title,
+      lines: board.summaryLines,
+      index: 0,
+      onClose: null,
+    };
+    setToast(
+      board.availableCount > 0
+        ? `${board.availableCount} Second Spring echo${
+            board.availableCount === 1 ? "" : "es"
+          } stirring today.`
+        : "All tracked Second Spring echoes are quiet today.",
+      2.6
+    );
+    queueAudio(state, "use-item");
     return true;
   }
 

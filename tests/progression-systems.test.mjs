@@ -28,6 +28,7 @@ import {
   markRegionSceneCleared,
   shouldStartCorruptionEcho,
 } from "../systems/regions.js";
+import { getSecondSpringBoardView } from "../systems/postgame.js";
 import { REGION_DEFS } from "../data/regionData.js";
 import { QUEST_DEFS } from "../data/storyData.js";
 import { syncCampaignProgress } from "../systems/campaign.js";
@@ -180,6 +181,46 @@ test("Second Spring echoes return daily without rolling restored scenes back", (
   assert.equal(
     shouldStartCorruptionEcho(progression, sceneProgress, "whispering_woods", 5),
     true
+  );
+});
+
+test("Second Spring board summarizes open and quiet echo roads", () => {
+  const { progression, sceneProgress } = createCompletedCampaignState();
+  const firstBoard = getSecondSpringBoardView(
+    progression,
+    sceneProgress,
+    4,
+    "ayla_homestead"
+  );
+
+  assert.equal(firstBoard.unlocked, true);
+  assert.equal(firstBoard.availableCount, 6);
+  assert.equal(firstBoard.quietCount, 0);
+  assert.equal(firstBoard.leadRow.targetSceneId, "whispering_woods");
+  assert.ok(
+    firstBoard.summaryLines.some((line) => /Whispering Woods/i.test(line))
+  );
+
+  markCorruptionEchoCompleted(progression, "whispering_woods", 4);
+  const nextBoard = getSecondSpringBoardView(
+    progression,
+    sceneProgress,
+    4,
+    "ayla_homestead"
+  );
+  const heartwoodRow = nextBoard.rows.find(
+    (row) => row.regionId === "heartwood"
+  );
+
+  assert.equal(nextBoard.availableCount, 5);
+  assert.equal(nextBoard.quietCount, 1);
+  assert.equal(nextBoard.leadRow.targetSceneId, "chapel_of_tides");
+  assert.equal(heartwoodRow.state, "quiet");
+  assert.ok(
+    nextBoard.summaryLines.some((line) => /Chapel of Tides/i.test(line))
+  );
+  assert.ok(
+    nextBoard.summaryLines.some((line) => /Quiet today: Heartwood/i.test(line))
   );
 });
 

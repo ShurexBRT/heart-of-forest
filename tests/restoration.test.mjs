@@ -119,4 +119,9 @@ test("Rootlight harmony gathers the final witnesses at the Homestead", () => {
       (entry) => entry.id === "second-spring-sapling"
     )
   );
+  assert.ok(
+    secondSpring.interactables.some(
+      (entry) => entry.id === "second-spring-board"
+    )
+  );
 });

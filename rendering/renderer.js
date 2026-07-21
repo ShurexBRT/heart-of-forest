@@ -1024,6 +1024,10 @@ function drawInteractable(ctx, item, state, origin) {
     }
   }
 
+  if (item.type === "echoBoard") {
+    drawEchoBoard(ctx, point.x, point.y, item, state);
+  }
+
   if (item.type === "totem") {
     drawIsoShadow(ctx, point.x, point.y, 12, 6);
     pixelRect(ctx, point.x - 5, point.y - 26, 10, 24, "#7a5535");
@@ -1111,6 +1115,39 @@ function drawInteractable(ctx, item, state, origin) {
       pixelRect(ctx, point.x - 2, point.y - 34, 4, 8, "#9ee88b");
       pixelRect(ctx, point.x - 7, point.y - 36, 14, 2, "#f0de9a");
     }
+  }
+}
+
+function drawEchoBoard(ctx, x, y, item, state) {
+  const day = Math.max(1, Math.floor(state.clock?.day || 1));
+  const rootColors = [
+    "#9cdb76",
+    "#7ed2d1",
+    "#f39a61",
+    "#b9e4ff",
+    "#c790e7",
+    "#d7ceff",
+  ];
+
+  drawIsoShadow(ctx, x, y, 28, 9);
+  pixelRect(ctx, x - 23, y - 34, 5, 34, "#66442d");
+  pixelRect(ctx, x + 18, y - 34, 5, 34, "#66442d");
+  drawWorldMaterialRect(ctx, "timber", x - 23, y - 34, 5, 34, getPropVariant(item, 4), 0.88);
+  drawWorldMaterialRect(ctx, "timber", x + 18, y - 34, 5, 34, getPropVariant(item, 4) + 1, 0.88);
+  pixelRect(ctx, x - 30, y - 52, 60, 28, "#6e4c31");
+  drawWorldMaterialRect(ctx, "planks", x - 30, y - 52, 60, 28, getPropVariant(item, 5), 0.84);
+  pixelRect(ctx, x - 27, y - 49, 54, 3, "#d7bd83");
+  pixelRect(ctx, x - 26, y - 39, 52, 2, "#3d2b22");
+  pixelRect(ctx, x - 26, y - 29, 52, 2, "#3d2b22");
+  pixelRect(ctx, x - 15, y - 62, 30, 9, "#8dcf7f");
+  pixelRect(ctx, x - 11, y - 66, 22, 5, "#d9ec9d");
+  pixelRect(ctx, x - 2, y - 71, 4, 6, "#edf6b4");
+
+  for (let index = 0; index < rootColors.length; index += 1) {
+    const markerX = x - 23 + index * 9;
+    const lifted = (day + index) % 2 === 0;
+    pixelRect(ctx, markerX, y - 36 - (lifted ? 1 : 0), 5, 5, rootColors[index]);
+    pixelRect(ctx, markerX + 1, y - 35 - (lifted ? 1 : 0), 3, 3, "#fff1b6");
   }
 }
 

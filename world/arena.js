@@ -438,6 +438,10 @@ function buildAylaHomestead(context, rng) {
   if (flags.frost_restored) {
     stampEllipse(tiles, 62, 42, 5, 4, "path", 0);
   }
+  if (secondSpringStarted) {
+    stampEllipse(tiles, 37, 46, 5, 3, "path", 1);
+    paintPath(tiles, 43, 43, 37, 46, 2, "path", 0);
+  }
 
   const hearthrootDialogue = flags.heartwood_restored
     ? [
@@ -565,6 +569,16 @@ function buildAylaHomestead(context, rng) {
             w: 64,
             h: 54,
             sortY: 704,
+          }),
+          interactable("second-spring-board", "echoBoard", 592, 742, {
+            name: "Second Spring Board",
+            promptLabel: "Review today's echoes",
+            action: "second-spring-board",
+            repeatable: true,
+            interactionRadius: 82,
+            w: 58,
+            h: 46,
+            sortY: 754,
           }),
         ]
       : []),
