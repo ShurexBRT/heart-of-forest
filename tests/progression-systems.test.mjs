@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   addItem,
+  awardEnemyLoot,
   attuneEquipmentItem,
   awardRewards,
   createProgression,
@@ -29,6 +30,12 @@ import {
   shouldStartCorruptionEcho,
 } from "../systems/regions.js";
 import { getSecondSpringBoardView } from "../systems/postgame.js";
+import {
+  awardReliquaryTrialRewards,
+  getReliquaryTrialStatus,
+  markReliquaryTrialCompleted,
+  shouldStartReliquaryTrial,
+} from "../systems/challenges.js";
 import { REGION_DEFS } from "../data/regionData.js";
 import { QUEST_DEFS } from "../data/storyData.js";
 import { syncCampaignProgress } from "../systems/campaign.js";
@@ -222,6 +229,101 @@ test("Second Spring board summarizes open and quiet echo roads", () => {
   assert.ok(
     nextBoard.summaryLines.some((line) => /Quiet today: Heartwood/i.test(line))
   );
+
+  Object.assign(progression.worldFlags, {
+    sunken_reliquary_open: true,
+    sunken_reliquary_cleansed: true,
+  });
+  sceneProgress.sunken_reliquary = { cleared: true };
+  const trialBoard = getSecondSpringBoardView(
+    progression,
+    sceneProgress,
+    4,
+    "ayla_homestead"
+  );
+  assert.equal(trialBoard.reliquaryTrial.available, true);
+  assert.ok(
+    trialBoard.summaryLines.some((line) => /Sunken Reliquary is awake/i.test(line))
+  );
+});
+
+test("Reliquary Trial returns daily rewards without duplicating named boss gear", () => {
+  const { progression, sceneProgress } = createCompletedCampaignState();
+  Object.assign(progression.worldFlags, {
+    ruins_listening_post: true,
+    sunken_reliquary_open: true,
+    sunken_reliquary_cleansed: true,
+  });
+  Object.assign(progression.questStates, {
+    ruins_of_memory: "done",
+    sealed_reliquary: "done",
+    depths_of_memory: "done",
+  });
+  sceneProgress.sunken_reliquary = { cleared: true };
+  syncCampaignProgress(progression, sceneProgress);
+  const startSilver = getCurrency(progression);
+
+  assert.equal(
+    shouldStartReliquaryTrial(
+      progression,
+      sceneProgress,
+      "sunken_reliquary",
+      9
+    ),
+    true
+  );
+  assert.equal(
+    getReliquaryTrialStatus(progression, sceneProgress, 9).available,
+    true
+  );
+
+  const trialResult = markReliquaryTrialCompleted(progression, 9);
+  const reward = awardReliquaryTrialRewards(progression, trialResult);
+
+  assert.deepEqual(reward.items, [
+    { itemId: "relic_shard", amount: 2 },
+    { itemId: "greater_spirit_tonic", amount: 1 },
+    { itemId: "ward_elixir", amount: 1 },
+  ]);
+  assert.equal(reward.silver, 46);
+  assert.equal(reward.renewalSupplies, 1);
+  assert.equal(getCurrency(progression), startSilver + 46);
+  assert.equal(getItemCount(progression, "relic_shard"), 2);
+  assert.equal(getQuestCounter(progression, "homesteadRenewalSupplies"), 1);
+  assert.equal(getQuestCounter(progression, "reliquaryTrialsCompleted"), 1);
+  assert.equal(sceneProgress.sunken_reliquary.cleared, true);
+  assert.equal(
+    shouldStartReliquaryTrial(
+      progression,
+      sceneProgress,
+      "sunken_reliquary",
+      9
+    ),
+    false
+  );
+  assert.equal(
+    shouldStartReliquaryTrial(
+      progression,
+      sceneProgress,
+      "sunken_reliquary",
+      10
+    ),
+    true
+  );
+
+  const bossProgression = createProgression();
+  const bossLoot = awardEnemyLoot(
+    bossProgression,
+    "rootbound_custodian",
+    "ancient",
+    { isBoss: true, id: "rootbound_custodian", isPostgameTrial: true }
+  );
+  assert.deepEqual(bossLoot.items, [
+    { itemId: "relic_shard", amount: 1 },
+    { itemId: "spirit_bloom", amount: 2 },
+  ]);
+  assert.equal(getItemCount(bossProgression, "custodian_spindle"), 0);
+  assert.equal(getItemCount(bossProgression, "reliquary_loop"), 0);
 });
 
 test("Ember line clear does not count as the guardian defeat", () => {

@@ -403,8 +403,12 @@ function createBaseArena(context, tiles, props) {
 function buildAylaHomestead(context, rng) {
   const flags = context.worldFlags || {};
   const questStates = context.questStates || {};
+  const questCounters = context.questCounters || {};
   const epilogueReady = Boolean(flags.epilogue_ready);
   const secondSpringStarted = Boolean(flags.second_spring_started);
+  const renewalSupplies = secondSpringStarted
+    ? Math.max(0, Math.floor(questCounters.homesteadRenewalSupplies || 0))
+    : 0;
   const tiles = createTiles(rng);
   const plotWidth = 9;
   const plotHeight = 7;
@@ -441,6 +445,19 @@ function buildAylaHomestead(context, rng) {
   if (secondSpringStarted) {
     stampEllipse(tiles, 37, 46, 5, 3, "path", 1);
     paintPath(tiles, 43, 43, 37, 46, 2, "path", 0);
+  }
+  if (renewalSupplies > 0) {
+    stampEllipse(tiles, 43, 46, 6, 3, "path", 0);
+    scatterOverlay(
+      tiles,
+      rng,
+      34,
+      43,
+      18,
+      7,
+      Math.min(30, 8 + renewalSupplies * 4),
+      renewalSupplies >= 3 ? "flowersWarm" : "flowersCool"
+    );
   }
 
   const hearthrootDialogue = flags.heartwood_restored
@@ -580,6 +597,25 @@ function buildAylaHomestead(context, rng) {
             h: 46,
             sortY: 754,
           }),
+          ...(renewalSupplies > 0
+            ? [
+                interactable("homestead-renewal-cache", "chest", 706, 736, {
+                  name: "Renewal Supplies",
+                  promptLabel: "Inspect renewal supplies",
+                  repeatable: true,
+                  dialogueLines: [
+                    `Reliquary renewal supplies recovered: ${renewalSupplies}.`,
+                    renewalSupplies >= 3
+                      ? "The Homestead is beginning to show the work: cleaner paths, brighter blooms, and materials ready for attunement experiments."
+                      : "Orras and Selka can turn more Reliquary trial supplies into cleaner paths, brighter blooms, and build materials.",
+                  ],
+                  interactionRadius: 74,
+                  w: 34,
+                  h: 28,
+                  sortY: 748,
+                }),
+              ]
+            : []),
         ]
       : []),
     ...(flags.heartwood_restored
@@ -651,6 +687,7 @@ function buildAylaHomestead(context, rng) {
       signpost(1398, 430),
       lantern(492, 334),
       lantern(1370, 398),
+      ...(renewalSupplies >= 2 ? [lantern(714, 690, "cool")] : []),
       tree(78, 620, 118, "forest"),
       tree(238, 728, 112, "forest"),
       tree(500, 748, 116, "forest"),
@@ -658,6 +695,7 @@ function buildAylaHomestead(context, rng) {
       tree(1450, 690, 116, "forest"),
       bush(82, 382, 92, 56),
       bush(388, 708, 84, 52),
+      ...(renewalSupplies >= 1 ? [bush(660, 732, 82, 44, "forest")] : []),
       bush(1320, 768, 92, 56),
       rock(620, 144, 74, 44),
       rock(1430, 604, 70, 42),

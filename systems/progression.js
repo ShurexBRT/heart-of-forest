@@ -104,6 +104,16 @@ function normalizeAttunements(rawAttunements = {}) {
   );
 }
 
+function normalizePostgameChallenges(rawChallenges = {}) {
+  const reliquary = rawChallenges?.reliquary || {};
+  return {
+    reliquary: {
+      completedDay: Math.max(0, Math.floor(reliquary.completedDay || 0)),
+      completions: Math.max(0, Math.floor(reliquary.completions || 0)),
+    },
+  };
+}
+
 function normalizeRecipes(rawRecipes = {}) {
   return Object.fromEntries(
     Object.entries(rawRecipes || {})
@@ -292,6 +302,7 @@ export function createProgression(snapshot = null) {
     unlockedRecipes: {},
     activePreparation: null,
     regionProgress: {},
+    postgameChallenges: normalizePostgameChallenges(),
     journal: [],
     buyback: [],
     lockedItems: {},
@@ -319,6 +330,9 @@ export function createProgression(snapshot = null) {
   merged.trainingStats = normalizeTrainingStats(snapshot.trainingStats);
   merged.talents = normalizeTalents(snapshot.talents || {});
   merged.attunements = normalizeAttunements(snapshot.attunements || {});
+  merged.postgameChallenges = normalizePostgameChallenges(
+    snapshot.postgameChallenges || {}
+  );
   const spentTalents = Object.keys(merged.talents).length;
   merged.talentPoints = Math.max(
     0,
@@ -942,6 +956,17 @@ export function awardEnemyLoot(progression, enemyType, biomeId, source = {}) {
   let silver = 0;
 
   if (isBoss) {
+    if (source?.isPostgameTrial) {
+      const trialBossRewards = { relic_shard: 1, spirit_bloom: 2 };
+      for (const [itemId, amount] of Object.entries(trialBossRewards)) {
+        addItem(progression, itemId, amount);
+        grants.push({ itemId, amount });
+      }
+      silver = 24;
+      addCurrency(progression, silver);
+      return { items: grants, silver };
+    }
+
     const bossRewards =
       biomeId === "ember"
         ? { emberwake_seal: 1, emberglass_relic: 1, greater_health_potion: 2, relic_shard: 2 }

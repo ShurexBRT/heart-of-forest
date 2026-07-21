@@ -93,6 +93,12 @@ import {
   markRegionSceneCleared,
   shouldStartCorruptionEcho,
 } from "./systems/regions.js";
+import {
+  activateReliquaryTrial,
+  awardReliquaryTrialRewards,
+  markReliquaryTrialCompleted,
+  shouldStartReliquaryTrial,
+} from "./systems/challenges.js";
 import { syncCampaignProgress } from "./systems/campaign.js";
 import { getBestiaryEntries } from "./systems/bestiary.js";
 import {
@@ -142,6 +148,7 @@ const debugSceneCleared = [
   "rootlight-archive",
   "rootlight-return",
   "postgame-echo",
+  "reliquary-trial",
 ].includes(debugBoot.progress);
 const bootSnapshot =
   debugBoot.sceneId && SCENES[debugBoot.sceneId]
@@ -317,6 +324,7 @@ function applyDebugProgression(nextProgression, debugConfig) {
       "rootlight",
       "second-spring",
       "postgame-echo",
+      "reliquary-trial",
     ].includes(debugProgress)
   ) {
     return;
@@ -328,6 +336,7 @@ function applyDebugProgression(nextProgression, debugConfig) {
     "rootlight",
     "second-spring",
     "postgame-echo",
+    "reliquary-trial",
   ];
   if (rootlightDebugStates.includes(debugProgress)) {
     const completedQuestIds = [
@@ -443,17 +452,33 @@ function applyDebugProgression(nextProgression, debugConfig) {
     nextProgression.questCounters.starwokenEchoRecovered = 1;
     nextProgression.questStates.the_sixth_answer = "done";
     nextProgression.questStates.second_spring =
-      ["second-spring", "postgame-echo"].includes(debugProgress)
+      ["second-spring", "postgame-echo", "reliquary-trial"].includes(debugProgress)
         ? "done"
         : "active";
     Object.assign(nextProgression.worldFlags, {
       rootlight_harmonized: true,
       epilogue_ready: true,
     });
-    if (["second-spring", "postgame-echo"].includes(debugProgress)) {
+    if (["second-spring", "postgame-echo", "reliquary-trial"].includes(debugProgress)) {
       nextProgression.questCounters.heartseedPlanted = 1;
       nextProgression.worldFlags.rootlight_restored = true;
       nextProgression.worldFlags.second_spring_started = true;
+      if (debugProgress === "reliquary-trial") {
+        for (const questId of [
+          "ruins_of_memory",
+          "sealed_reliquary",
+          "depths_of_memory",
+        ]) {
+          nextProgression.questStates[questId] = "done";
+        }
+        nextProgression.questCounters.relicCachesRecovered = 2;
+        nextProgression.questCounters.waystoneSealsRecovered = 2;
+        nextProgression.questCounters.reliquaryBraziersLit = 2;
+        nextProgression.questCounters.reliquaryKeeperDefeated = 1;
+        nextProgression.worldFlags.ruins_listening_post = true;
+        nextProgression.worldFlags.sunken_reliquary_open = true;
+        nextProgression.worldFlags.sunken_reliquary_cleansed = true;
+      }
     } else {
       nextProgression.inventory.heartseed = Math.max(
         1,
@@ -1069,14 +1094,32 @@ async function setFullscreenPreference(enabled) {
 }
 
 function buildSceneState(sceneId, entryId, currentProgression, sceneProgress, vitals = null, day = 1) {
-  const scene = SCENES[sceneId];
+  const baseScene = SCENES[sceneId];
+  const savedSceneState = sceneProgress[sceneId];
+  const reliquaryTrialActive = Boolean(
+    savedSceneState?.cleared &&
+      shouldStartReliquaryTrial(
+        currentProgression,
+        sceneProgress,
+        sceneId,
+        day
+      )
+  );
+  const scene = reliquaryTrialActive
+    ? {
+        ...baseScene,
+        title: "Sunken Reliquary",
+        completionText: "Reliquary Trial Quieted",
+        bossMaxHp: Math.round((baseScene.bossMaxHp || 760) * 1.16),
+        threatTier: Math.max(baseScene.threatTier || 1, 5),
+      }
+    : baseScene;
   const arena = createArena({
     ...scene,
     worldFlags: currentProgression.worldFlags,
     questStates: currentProgression.questStates,
     questCounters: currentProgression.questCounters,
   });
-  const savedSceneState = sceneProgress[sceneId];
   const encounterConfig = { ...scene };
   if (
     sceneId === "emberpine_grove" &&
@@ -1118,7 +1161,9 @@ function buildSceneState(sceneId, entryId, currentProgression, sceneProgress, vi
   const spawn = arena.entrySpawns?.[entryId] || arena.entrySpawns?.default || arena.playerSpawn;
   const encounter = createEncounterState(arena, encounterConfig);
 
-  if (
+  if (reliquaryTrialActive) {
+    activateReliquaryTrial(encounter);
+  } else if (
     savedSceneState?.cleared &&
     shouldStartCorruptionEcho(currentProgression, sceneProgress, sceneId, day)
   ) {
@@ -1408,6 +1453,32 @@ function updateTransition(dt) {
 
 function handleSceneCleared() {
   const sceneProgress = ensureSceneProgress(state.currentSceneId);
+  if (state.encounter.isReliquaryTrial) {
+    const trialResult = markReliquaryTrialCompleted(
+      state.progression,
+      state.clock.day
+    );
+    const rewardResult = awardReliquaryTrialRewards(
+      state.progression,
+      trialResult
+    );
+    state.areaCleared = false;
+    state.boss = null;
+    state.enemies = [];
+    state.hostileProjectiles = [];
+    state.eruptions = [];
+    deactivateEncounter(state.encounter);
+    state.encounter.bannerText = "Reliquary Trial Quieted";
+    state.encounter.bannerTimer = 2.4;
+    setToast(
+      `Reliquary Trial quieted: ${formatChallengeReward(rewardResult)}`,
+      3.2
+    );
+    queueAudio(state, "quest");
+    saveCurrentGame();
+    return;
+  }
+
   if (state.encounter.isCorruptionEcho) {
     const echoResult = markCorruptionEchoCompleted(
       state.progression,
@@ -2748,6 +2819,25 @@ function formatEchoReward(rewardResult) {
     parts.push(`${rewardResult.silver} silver`);
   }
   return parts.join(" and ") || "the roots settle";
+}
+
+function formatChallengeReward(rewardResult) {
+  const parts = [];
+  const firstItem = rewardResult?.items?.[0];
+  if (firstItem) {
+    parts.push(`${firstItem.amount} ${formatItemName(firstItem.itemId)}`);
+  }
+  if ((rewardResult?.silver || 0) > 0) {
+    parts.push(`${rewardResult.silver} silver`);
+  }
+  if ((rewardResult?.renewalSupplies || 0) > 0) {
+    parts.push(
+      `${rewardResult.renewalSupplies} renewal ${
+        rewardResult.renewalSupplies === 1 ? "supply" : "supplies"
+      }`
+    );
+  }
+  return parts.join(", ") || "the vault settles";
 }
 
 function formatItemName(itemId) {

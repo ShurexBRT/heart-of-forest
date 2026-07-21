@@ -5,6 +5,7 @@ import {
   getPostgameEchoLead,
   getPostgameEchoStatus,
 } from "./regions.js";
+import { getReliquaryTrialStatus } from "./challenges.js";
 
 const DEFAULT_ECHO_REWARD = { items: { relic_shard: 1 }, silver: 18 };
 const STATUS_LINE_LIMIT = 116;
@@ -34,6 +35,11 @@ export function getSecondSpringBoardView(
     ) ||
     availableRows[0] ||
     null;
+  const reliquaryTrial = getReliquaryTrialStatus(
+    progression || {},
+    sceneProgress,
+    currentDay
+  );
 
   return {
     title: "Second Spring Board",
@@ -44,6 +50,7 @@ export function getSecondSpringBoardView(
     lockedCount: lockedRows.length,
     lead,
     leadRow,
+    reliquaryTrial,
     rows,
     summaryLines: buildSecondSpringBoardLines({
       currentDay,
@@ -52,6 +59,7 @@ export function getSecondSpringBoardView(
       quietRows,
       lockedRows,
       leadRow,
+      reliquaryTrial,
     }),
   };
 }
@@ -100,6 +108,7 @@ function buildSecondSpringBoardLines({
   quietRows,
   lockedRows,
   leadRow,
+  reliquaryTrial,
 }) {
   if (!unlocked) {
     return [
@@ -123,12 +132,23 @@ function buildSecondSpringBoardLines({
     );
   }
 
+  lines.push(formatReliquaryTrialLine(reliquaryTrial));
   lines.push(...formatStatusLines("Open echoes", availableRows));
   lines.push(...formatStatusLines("Quiet today", quietRows));
   if (lockedRows.length > 0) {
     lines.push(...formatStatusLines("Still untracked", lockedRows));
   }
   return lines;
+}
+
+function formatReliquaryTrialLine(status) {
+  if (!status?.unlocked) {
+    return "Optional trial: Sunken Reliquary is still sealed or uncleansed. Orras' old vault can become a postgame test once it is restored.";
+  }
+
+  return status.available
+    ? `Optional trial: ${status.targetTitle} is awake today. Clear it for attunement materials and Homestead renewal supplies.`
+    : `Optional trial: ${status.targetTitle} is quiet today. Sleep at the Homestead to wake another Reliquary Trial.`;
 }
 
 function formatStatusLines(label, rows) {

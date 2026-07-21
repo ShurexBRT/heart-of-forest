@@ -305,3 +305,23 @@ test("Rootlight memories, chorus, and Second Spring remain reachable", () => {
   assert.equal(hasReachableInteractionPoint(secondSpring, sapling), true);
   assert.equal(hasReachableInteractionPoint(secondSpring, board), true);
 });
+
+test("Homestead renewal supplies remain readable and reachable", () => {
+  const homestead = createArena({
+    ...SCENES.ayla_homestead,
+    worldFlags: {
+      heartwood_restored: true,
+      epilogue_ready: true,
+      second_spring_started: true,
+    },
+    questCounters: {
+      homesteadRenewalSupplies: 2,
+    },
+  });
+  const cache = homestead.interactables.find(
+    (interactable) => interactable.id === "homestead-renewal-cache"
+  );
+
+  assert.ok(cache);
+  assert.equal(hasReachableInteractionPoint(homestead, cache), true);
+});

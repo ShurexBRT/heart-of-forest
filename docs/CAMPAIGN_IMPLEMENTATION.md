@@ -193,6 +193,7 @@ beskonacnu kupovinu talent poena.
 | 7 | Second Spring postgame i optional challenge loop | U toku |
 | 7A | Daily Corruption Echo loop | Zavrseno |
 | 7B | Second Spring Homestead board | Zavrseno |
+| 7C | Sunken Reliquary daily trial rewards | Zavrseno |
 
 ## Dnevnik implementacije
 
@@ -524,13 +525,36 @@ beskonacnu kupovinu talent poena.
   reachable interaction point za novu tablu.
 - Automatizovana provera: `64/64` testova prolazi.
 
-### Sledeca faza - Faza 7C
+### Faza 7C
 
-1. Prosiriti optional dungeon / challenge nagrade za attunement, kozmeticku
-   obnovu doma i build eksperimentisanje.
-2. Doterati prve questove jos jednim narativnim polish prolazom: jasniji NPC
+- Datum: 2026-07-21
+- Status: zavrseno
+- Cilj: pretvoriti Sunken Reliquary u smislen postgame challenge reward loop
+  koji podrzava attunement, build eksperimentisanje i vidljivu obnovu doma.
+- Posle Second Spring-a, ako je Sunken Reliquary vec otvoren i ociscen, ulazak
+  u tu scenu jednom dnevno pokrece `Reliquary Trial` umesto mirne ociscene
+  scene.
+- Trial ne brise niti vraca `sceneProgress.cleared`; isti dungeon ostaje
+  legitimno ociscen, ali dobija dnevni izazov dok je dostupan.
+- Rootbound Custodian u trial varijanti vise ne duplira named gear
+  (`Custodian Spindle`, `Reliquary Loop`). Umesto toga daje endgame materijale
+  i silver, a clear nagrada daje relic shardove, consumable za build test i
+  `homesteadRenewalSupplies` counter.
+- Second Spring Board sada javlja i stanje Reliquary Triala: dostupan, miran
+  danas ili jos zakljucan/neociscen.
+- Homestead posle prvog renewal supply-a dobija fizicki `Renewal Supplies`
+  cache kod Second Spring kutka; dodatni supply-i malo ulepsavaju isti prostor.
+- Dodat je `debugProgress=reliquary-trial` QA fixture za direktan runtime test
+  ociscenog Sunken Reliquary postgame izazova.
+- Regresioni testovi proveravaju daily lockout, rewarde, nedupliranje named
+  boss geara, board signal i reachability renewal cache-a.
+- Automatizovana provera: `66/66` testova prolazi.
+
+### Sledeca faza - Faza 7D
+
+1. Doterati prve questove jos jednim narativnim polish prolazom: jasniji NPC
    barkovi, bolje mikro-nagrade i manje suvi objective tekst.
-3. Nastaviti HUD i tile/texture modernizaciju kroz manje, pushovane segmente.
+2. Nastaviti HUD i tile/texture modernizaciju kroz manje, pushovane segmente.
 
 ## Van trenutnog scopea
 

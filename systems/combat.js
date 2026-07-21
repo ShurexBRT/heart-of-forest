@@ -937,11 +937,18 @@ function damageHostile(state, target, amount, sourceX, sourceY, knockback, stun)
       queueAudio(state, "level-up");
     }
 
+    const lootSource = target.isBoss
+      ? {
+          isBoss: true,
+          id: target.id || "elder_hollow",
+          isPostgameTrial: Boolean(state.encounter?.isReliquaryTrial),
+        }
+      : target;
     const lootResult = awardEnemyLoot(
       state.progression,
       target.type,
       state.scene.biomeId,
-      target
+      lootSource
     );
     const eliteBonus =
       target.elite && !target.isBoss ? awardEliteBonusLoot(state.progression, state.scene.biomeId, target) : null;
