@@ -641,12 +641,35 @@ beskonacnu kupovinu talent poena.
 - Regresioni test pokriva vaznu granicu: missing gear blokira loadout, ali
   missing consumable samo cisti quick slot i ne zakljucava build.
 
-### Sledeca faza - Faza 7H
+### Faza 7H
 
-1. Navigacija i Bestiary polish: jasnije nauceni counteri, otkrivene slabosti,
-   sledeci story cilj i putokazi bez zatrpavanja glavnog HUD-a.
-2. Nakon toga Homestead renewal/crafting service polish i finalna provera svih
-   novih segmenta zajedno.
+- Datum: 2026-07-22
+- Status: zavrseno
+- Cilj: uciniti navigaciju i Bestiary citljivijim kao Ayline terenske beleske,
+  a ne samo listu internih countera.
+- `getCampaignNavigation` sada vraca `leadLabel` i `routeNote`. UI moze jasno
+  da razlikuje `AT LEAD`, `REPORT BACK`, `ECHO TODAY`, `NEW REGION` i slicna
+  stanja bez ponovnog tumacenja quest statusa.
+- Region overview u Journalu prikazuje lead oznaku i koristi `routeNote`, pa
+  igrac vidi da li treba putovati, pricati, javiti se nazad ili samo ostati na
+  trenutnoj lokaciji.
+- World Map footer koristi isti route note kao Journal, tako da mapa i Field
+  Journal pricaju istim jezikom.
+- `getBestiaryEntries` sada vraca `knowledgeLabel`, `progressLabel`,
+  `counterKnown` i `nextStudyHint`. Time Bestiary jasno razlikuje nepoznato,
+  procitano u borbi i potpuno naucen counter savet.
+- Bestiary kartice sada prikazuju stage (`UNKNOWN`, `FIELD READ`,
+  `COUNTER LOGGED`), napredak studiranja i counter item tek kada je zaista
+  savladan.
+- Regresioni testovi proveravaju da rana Homestead navigacija javlja `AT LEAD`
+  i da Stillwater Bestiary odvaja field read od counter logged stanja.
+
+### Sledeca faza - Faza 7I
+
+1. Homestead renewal/crafting service polish: obnovljivi supply loop, usluge i
+   jasnije koriscenje materijala posle bossova.
+2. Finalna provera svih novih segmenta zajedno, ciscenje runtime procesa i
+   zavrsni push.
 
 ## Van trenutnog scopea
 

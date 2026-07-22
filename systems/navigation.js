@@ -312,6 +312,9 @@ function buildNavigationView({
   const targetTitles = targetSceneIds.map(
     (sceneId) => SCENES[sceneId]?.title || sceneId
   );
+  const targetLabel = targetTitles.join(" / ") || "No destination";
+  const atTarget = targetSceneIds.includes(currentSceneId);
+  const leadLabel = getNavigationLeadLabel(status, atTarget);
   return {
     chapterId,
     questId: quest?.id || null,
@@ -319,10 +322,37 @@ function buildNavigationView({
     status,
     targetSceneIds,
     targetTitles,
-    targetLabel: targetTitles.join(" / ") || "No destination",
-    atTarget: targetSceneIds.includes(currentSceneId),
+    targetLabel,
+    atTarget,
+    leadLabel,
+    routeNote: getNavigationRouteNote(targetLabel, hint, atTarget, status),
     hint,
   };
+}
+
+function getNavigationLeadLabel(status, atTarget) {
+  if (status === "complete") return "REPORT BACK";
+  if (atTarget) return "AT LEAD";
+  if (status === "available") return "SPEAK";
+  if (status === "postgame-echo") return "ECHO TODAY";
+  if (status === "postgame-quiet") return "REST";
+  if (status === "regional-lead") return "REGIONAL LEAD";
+  if (status === "chapter-entry") return "NEW REGION";
+  if (status === "archive") return "ARCHIVE";
+  return "NEXT ROAD";
+}
+
+function getNavigationRouteNote(targetLabel, hint, atTarget, status) {
+  if (!targetLabel || targetLabel === "No destination") {
+    return hint || "Listen for the next root.";
+  }
+  if (status === "complete") {
+    return `Report back at ${targetLabel}. ${hint}`;
+  }
+  if (atTarget) {
+    return `You are at ${targetLabel}. ${hint}`;
+  }
+  return `Travel to ${targetLabel}. ${hint}`;
 }
 
 function getNavigationHint(questId, status, targetSceneIds, progression) {

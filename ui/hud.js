@@ -1062,6 +1062,11 @@ function drawJournalRegionOverview(ctx, state, panel, startY) {
     x + 10,
     startY + 17
   );
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#f1d786";
+  ctx.font = "700 10px Segoe UI, Arial";
+  ctx.fillText(region.navigation.leadLabel || "FIELD LEAD", x + width - 10, startY + 17);
+  ctx.textAlign = "left";
   ctx.fillStyle = "#9fb3ac";
   ctx.font = "10px Segoe UI, Arial";
   ctx.fillText(
@@ -1082,7 +1087,7 @@ function drawJournalRegionOverview(ctx, state, panel, startY) {
       ? `Second Spring Echo: ${echoTitle}. Optional daily challenge; progress stays restored.`
       : echo?.unlocked && echo.completedToday
         ? "Second Spring Echo: quiet today. Sleep at the Homestead to surface another."
-        : `${region.navigation.questTitle}: ${region.navigation.targetLabel}. ${region.navigation.hint}`;
+        : `${region.navigation.questTitle}: ${region.navigation.routeNote || region.navigation.hint}`;
   toWrappedLines(ctx, lead, width - 20, compact ? 2 : 1).forEach((line, index) => {
     ctx.fillText(line, x + 10, startY + 51 + index * 13);
   });
@@ -1106,8 +1111,8 @@ function drawJournalBestiary(ctx, state, panel, startY) {
       Math.max(1, entries.length);
   entries.forEach((entry, index) => {
     const cardX = compact ? x : x + index * (cardWidth + gap);
-    const cardY = compact ? startY + 12 + index * 46 : startY + 12;
-    const cardHeight = compact ? 42 : 112;
+    const cardY = compact ? startY + 12 + index * 56 : startY + 12;
+    const cardHeight = compact ? 52 : 112;
     ctx.fillStyle = entry.discovered ? "rgba(48,77,57,0.58)" : "rgba(30,35,38,0.7)";
     ctx.fillRect(cardX, cardY, cardWidth, cardHeight);
     ctx.strokeStyle = entry.mastered ? "#8fd892" : entry.discovered ? "#8fbf9a" : "#4a5555";
@@ -1115,26 +1120,43 @@ function drawJournalBestiary(ctx, state, panel, startY) {
     ctx.fillStyle = entry.discovered ? "#eaf4d9" : "#87938f";
     ctx.font = "700 12px Segoe UI, Arial";
     ctx.fillText(entry.displayName, cardX + 10, cardY + 17);
+    ctx.textAlign = "right";
+    ctx.fillStyle = entry.mastered ? "#9ce1a3" : entry.discovered ? "#f1d786" : "#87938f";
+    ctx.font = "700 9px Segoe UI, Arial";
+    ctx.fillText(entry.knowledgeLabel, cardX + cardWidth - 10, cardY + 17);
+    ctx.textAlign = "left";
     ctx.fillStyle = "#aebdb6";
     ctx.font = "10px Segoe UI, Arial";
     if (entry.discovered) {
-      const counterName = entry.mastered
+      const counterName = entry.counterKnown
         ? ITEM_DEFS[entry.counterItemId]?.name
         : null;
       const fieldTag = counterName
         ? `${entry.damageType.toUpperCase()}  |  ${counterName}`
         : `${entry.damageType.toUpperCase()}  |  ${entry.role}`;
       ctx.fillText(fieldTag, cardX + 10, cardY + 31);
+    } else {
+      ctx.fillText(entry.progressLabel, cardX + 10, cardY + 31);
+    }
+    ctx.fillStyle = entry.mastered ? "#9ce1a3" : entry.discovered ? "#f1d786" : "#8a9692";
+    ctx.font = "700 9px Segoe UI, Arial";
+    ctx.fillText(entry.progressLabel, cardX + 10, compact ? cardY + 45 : cardY + 45);
+    if (entry.discovered && !entry.mastered && !compact) {
+      ctx.fillStyle = "#9fb0aa";
+      ctx.font = "9px Segoe UI, Arial";
+      ctx.fillText(shorten(entry.nextStudyHint, Math.max(26, Math.floor((cardWidth - 90) / 5))), cardX + 78, cardY + 45);
     }
     if (!compact) {
       const clue = entry.clues?.slice(0, entry.visibleClues)[0];
       const line = clue || "No reliable field clue recorded.";
       toWrappedLines(ctx, line, cardWidth - 20, 3).forEach((text, lineIndex) => {
-        ctx.fillText(text, cardX + 10, cardY + (entry.discovered ? 46 : 34) + lineIndex * 13);
+        ctx.fillStyle = "#aebdb6";
+        ctx.font = "10px Segoe UI, Arial";
+        ctx.fillText(text, cardX + 10, cardY + (entry.discovered ? 60 : 58) + lineIndex * 13);
       });
       if (entry.visibleClues > 1) {
         toWrappedLines(ctx, entry.clues[1], cardWidth - 20, 2).forEach((text, lineIndex) => {
-          ctx.fillText(text, cardX + 10, cardY + 84 + lineIndex * 13);
+          ctx.fillText(text, cardX + 10, cardY + 88 + lineIndex * 13);
         });
       }
     }
@@ -2072,9 +2094,11 @@ function drawWorldMapOverlay(ctx, state) {
     state.sceneProgress,
     state.currentSceneId
   );
-  const nextLead = state.navigation?.targetLabel
-    ? ` Next lead: ${state.navigation.targetLabel}.`
-    : "";
+  const nextLead = state.navigation?.routeNote
+    ? ` ${state.navigation.routeNote}`
+    : state.navigation?.targetLabel
+      ? ` Next lead: ${state.navigation.targetLabel}.`
+      : "";
   const footer = state.scene?.title
     ? `Current zone: ${state.scene.title}. Region ${currentStatus.label}.${nextLead} Hold E on a gate to confirm travel.`
     : `Hold E on a gate to confirm travel.${nextLead}`;

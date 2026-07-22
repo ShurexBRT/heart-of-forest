@@ -62,6 +62,8 @@ test("First Moonleaf navigation advances through plant, water, rest, and harvest
     {},
     "ayla_homestead"
   );
+  assert.equal(navigation.leadLabel, "AT LEAD");
+  assert.match(navigation.routeNote, /You are at Ayla's Homestead/i);
   assert.match(navigation.hint, /Plant one/i);
 
   progression.questCounters.moonleafPlanted = 1;
@@ -208,10 +210,17 @@ test("Stillwater Bestiary reveals enemy roles before full counter advice", () =>
 
   assert.equal(spitter.discovered, true);
   assert.equal(spitter.mastered, false);
+  assert.equal(spitter.knowledgeLabel, "FIELD READ");
+  assert.equal(spitter.progressLabel, "1/3 studied");
+  assert.equal(spitter.counterKnown, false);
   assert.equal(spitter.visibleClues, 1);
   assert.equal(lurker.mastered, true);
+  assert.equal(lurker.knowledgeLabel, "COUNTER LOGGED");
+  assert.equal(lurker.progressLabel, "Mastered");
+  assert.equal(lurker.counterKnown, true);
   assert.equal(lurker.visibleClues, 2);
   assert.equal(matron.discovered, false);
+  assert.equal(matron.knowledgeLabel, "UNKNOWN");
 });
 
 test("Ember Journal navigation and Bestiary track the guardian return", () => {
