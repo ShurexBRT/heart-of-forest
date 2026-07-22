@@ -195,6 +195,7 @@ beskonacnu kupovinu talent poena.
 | 7B | Second Spring Homestead board | Zavrseno |
 | 7C | Sunken Reliquary daily trial rewards | Zavrseno |
 | 7D | First-hour quest polish i collision reachability audit | Zavrseno |
+| 7E | HUD modernization pass | Zavrseno |
 
 ## Dnevnik implementacije
 
@@ -572,11 +573,35 @@ beskonacnu kupovinu talent poena.
   regresioni test za bas taj problem.
 - Automatizovana provera: `67/67` testova prolazi.
 
-### Sledeca faza - Faza 7E
+### Faza 7E
 
-1. Modernizovati HUD: kompaktniji top/status sloj, citljiviji pinned quest,
-   bolji combat/resource feedback i manje zaklanjanja sveta.
-2. Posle HUD-a nastaviti tile/texture modernizaciju kroz biome podove i zgrade.
+- Datum: 2026-07-22
+- Status: zavrseno
+- Cilj: modernizovati stalni HUD bez gubitka citljivosti borbe i bez uvodjenja
+  velikih overlay-a preko sredine ekrana.
+- Persistent HUD sada ima manji, koherentniji bottom combat bar sa istim
+  pixel chrome jezikom za health/spirit orbove, ability slotove, quick iteme,
+  buffove, silver i XP.
+- Top-left quest tracker je pretvoren u `NEXT STEP` chip sa napretkom objective-a
+  i Journal hintom. Na boss susretima se spusta ispod boss bara da se UI ne
+  preklapa.
+- Top-right scene panel je skracen u zone/status chip koji prikazuje scenu,
+  region status, encounter stanje i dan/sat bez starog visokog info bloka.
+- Toast poruke sada izgledaju kao kratke field-note kartice i bolje nose
+  onboarding/start-quest tekst iz Faze 7D.
+- Dodat je diskretan low-health/hurt edge vignette koji signalizira opasnost
+  bez sakrivanja telegrapha i centra playfield-a.
+- Runtime QA je proverio onboarding, obnovljeni Heartwood, Scarroot fixture i
+  800px kompaktni viewport preko lokalnog browser testa; nema canvas, DOM ili
+  console errora osim ignorisanog favicon 404.
+- Automatizovana provera: `67/67` testova prolazi.
+
+### Sledeca faza - Faza 7F
+
+1. Biome floor pass: Heartwood, Stillwater, Ember, Frost, Scarroot i Rootlight
+   podovi sa vise atlas-inspirisanog pixel materijala i jasnijim putevima.
+2. Nakon podova nastaviti zgrade/prop teksture i eventualno generisane asete
+   samo tamo gde atlas cropovi nisu dovoljno cisti.
 
 ## Van trenutnog scopea
 
