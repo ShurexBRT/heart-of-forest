@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   addItem,
+  activateLoadout,
   awardEnemyLoot,
   attuneEquipmentItem,
   awardRewards,
@@ -10,6 +11,7 @@ import {
   getCurrency,
   getItemCount,
   getItemAttunementLevel,
+  getLoadoutPreview,
   isItemLocked,
   getPlayerBonuses,
   getQuestCounter,
@@ -91,6 +93,59 @@ test("equipped gear can be attuned through three material-gated ranks", () => {
   assert.equal(progression.inventory.relic_shard, 0);
   assert.equal(progression.inventory.heartseed, 0);
   assert.equal(attuneEquipmentItem(progression, "warden_brooch").attuned, false);
+});
+
+test("loadout preview blocks missing gear but only warns on missing quick slots", () => {
+  const missingGearProgression = createProgression({
+    campaign: { loadoutSlots: 1 },
+    actionSlots: [null, null, null],
+    loadouts: [
+      {
+        name: "Lost grove kit",
+        equipment: {
+          trinket: "rowans_oath_brooch",
+          amulet: null,
+          talisman: null,
+          relic: null,
+        },
+        actionSlots: ["greater_health_potion", null, null],
+      },
+    ],
+  });
+
+  const missingPreview = getLoadoutPreview(missingGearProgression, 0);
+  assert.equal(missingPreview.ready, false);
+  assert.equal(missingPreview.equipment.missing, 1);
+  assert.equal(missingPreview.actionSlots.missing, 1);
+  assert.deepEqual(missingPreview.missingItemIds, ["rowans_oath_brooch"]);
+  assert.equal(activateLoadout(missingGearProgression, 0).activated, false);
+
+  const missingQuickSlotProgression = createProgression({
+    campaign: { loadoutSlots: 1 },
+    actionSlots: [null, null, null],
+    loadouts: [
+      {
+        name: "Ready grove kit",
+        equipment: {
+          trinket: "warden_brooch",
+          amulet: null,
+          talisman: null,
+          relic: null,
+        },
+        actionSlots: ["greater_health_potion", null, null],
+      },
+    ],
+  });
+
+  const quickSlotPreview = getLoadoutPreview(missingQuickSlotProgression, 0);
+  assert.equal(quickSlotPreview.ready, true);
+  assert.equal(quickSlotPreview.equipment.missing, 0);
+  assert.equal(quickSlotPreview.actionSlots.missing, 1);
+  assert.deepEqual(quickSlotPreview.missingActionItemIds, ["greater_health_potion"]);
+
+  const activation = activateLoadout(missingQuickSlotProgression, 0);
+  assert.equal(activation.activated, true);
+  assert.deepEqual(missingQuickSlotProgression.actionSlots, [null, null, null]);
 });
 
 test("brewing consumes ingredients and preparation replaces the active counter", () => {

@@ -620,12 +620,33 @@ beskonacnu kupovinu talent poena.
   nema canvas, DOM ili console errora.
 - Automatizovana provera: `67/67` testova prolazi.
 
-### Sledeca faza - Faza 7G
+### Faza 7G
 
-1. Loot, item comparison i loadout polish: jasnije promene opreme, manje
-   slucajnog prodavanja, bolji quick-slot/loadout feedback i build affinity.
-2. Nakon toga doterati navigaciju i Bestiary da bolje pricaju sledeci cilj i
-   naucene countere bez previse teksta na glavnom ekranu.
+- Datum: 2026-07-22
+- Status: zavrseno
+- Cilj: uciniti loot, poredjenje opreme i loadoute jasnijim bez uvodjenja
+  novog inventory sistema.
+- Inventory detail panel sada jasnije razdvaja rarity/category info, vrednost,
+  sell price kod shop servisa, lock upozorenje i build affinity.
+- Equipment comparison sortira stat promene po najvecoj razlici i prikazuje
+  `UP`, `DOWN` i `SAME` chipove, tako da igrac brze vidi sta item stvarno menja.
+- Tooltip poredjenja koristi isti format kao detail panel, pa hover i otvoreni
+  inventory daju isti odgovor.
+- Progression sistem dobija `getLoadoutPreview`, cist helper koji kaze da li je
+  loadout spreman, koliko gear slotova menja, sta fali i koji quick slotovi ce
+  se ocistiti ako nema consumable-a.
+- Character panel loadout kartice sada prikazuju spremnost, missing gear i
+  quick-slot warning direktno na kartici; hover dodatno objasnjava detalje i
+  eksplicitno kaze da loadouti ne menjaju aktivni preparation elixir.
+- Regresioni test pokriva vaznu granicu: missing gear blokira loadout, ali
+  missing consumable samo cisti quick slot i ne zakljucava build.
+
+### Sledeca faza - Faza 7H
+
+1. Navigacija i Bestiary polish: jasnije nauceni counteri, otkrivene slabosti,
+   sledeci story cilj i putokazi bez zatrpavanja glavnog HUD-a.
+2. Nakon toga Homestead renewal/crafting service polish i finalna provera svih
+   novih segmenta zajedno.
 
 ## Van trenutnog scopea
 

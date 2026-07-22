@@ -1295,9 +1295,11 @@ function drawCharacterTab(ctx, state, x, y, width, height, bonuses) {
       ctx.fillText("ACTIVE", loadout.rect.x + loadout.rect.width - 10, loadout.rect.y + 17);
       ctx.textAlign = "left";
     }
-    ctx.fillStyle = "#aebdb6";
+    ctx.fillStyle = loadout.statusTone || "#aebdb6";
     ctx.font = "9px Segoe UI, Arial";
-    ctx.fillText(loadout.statusText, loadout.rect.x + 10, loadout.rect.y + 33);
+    loadout.statusLines.slice(0, 2).forEach((line, lineIndex) => {
+      ctx.fillText(line, loadout.rect.x + 10, loadout.rect.y + 33 + lineIndex * 12);
+    });
     if (loadout.saveButton) {
       drawActionButton(ctx, loadout.saveButton, state.ui.hoverTarget, "#17241b", "#eef7df");
     }
@@ -1364,22 +1366,41 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
   if (!selectedEntry) return;
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
-  ctx.fillRect(detailsX, detailsY - 18, 240, 214);
+  ctx.fillRect(detailsX, detailsY - 18, detailsRect.width, detailsRect.height);
   ctx.strokeStyle = "#2d3848";
-  ctx.strokeRect(detailsX, detailsY - 18, 240, 214);
+  ctx.strokeRect(detailsX, detailsY - 18, detailsRect.width, detailsRect.height);
   ctx.fillStyle = "#fff2d5";
   ctx.font = "700 14px Segoe UI, Arial";
   ctx.fillText(selectedEntry.name, detailsX + 12, detailsY + 2);
+  ctx.fillStyle = getRarityAccent(selectedEntry.rarity, "#fff6d8");
+  ctx.font = "700 10px Segoe UI, Arial";
+  ctx.fillText(
+    `${selectedEntry.rarity?.toUpperCase() || "COMMON"} ${
+      selectedEntry.category === "equipment" ? selectedEntry.slot.toUpperCase() : selectedEntry.category.toUpperCase()
+    }`,
+    detailsX + 12,
+    detailsY + 18
+  );
   ctx.fillStyle = "#cfd9d3";
   ctx.font = "12px Segoe UI, Arial";
-  wrapText(ctx, selectedEntry.description, detailsX + 12, detailsY + 26, 216, 18);
+  wrapText(ctx, selectedEntry.description, detailsX + 12, detailsY + 42, 216, 18);
   ctx.fillStyle = "#e9d281";
   ctx.font = "11px Segoe UI, Arial";
-  ctx.fillText(`Value ${getItemValue(selectedEntry.id)} silver`, detailsX + 12, detailsY + 76);
+  ctx.fillText(`Value ${getItemValue(selectedEntry.id)} silver`, detailsX + 12, detailsY + 88);
+  if (service?.kind === "shop") {
+    ctx.fillStyle = selectedEntry.locked ? "#e1bd68" : "#c9b18b";
+    ctx.fillText(
+      selectedEntry.locked
+        ? "Locked: cannot sell until unlocked."
+        : `Sell price ${getSellValue(selectedEntry)} silver`,
+      detailsX + 112,
+      detailsY + 88
+    );
+  }
   const affinity = getItemAspectAffinity(selectedEntry);
   if (affinity) {
     ctx.fillStyle = "#9dd9a2";
-    ctx.fillText(`Build affinity: ${affinity.label}`, detailsX + 12, detailsY + 92);
+    ctx.fillText(`Build affinity: ${affinity.label}`, detailsX + 12, detailsY + 104);
   }
 
   if (panel.primaryButton) {
@@ -1398,7 +1419,7 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
     );
   }
 
-  let detailY = detailsY + 140;
+  let detailY = detailsY + 158;
   if (selectedEntry.maxStack) {
     ctx.fillStyle = "#d7e4cf";
     ctx.font = "11px Segoe UI, Arial";
@@ -1437,11 +1458,17 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
       ctx.font = "700 11px Segoe UI, Arial";
       ctx.fillText(`Equipped: ${equippedItem.name}`, detailsX + 12, detailY);
       detailY += 16;
-      for (const line of buildComparisonLines(selectedEntry, equippedItem)) {
-        ctx.fillStyle = line.delta > 0 ? "#9ce1a3" : line.delta < 0 ? "#f0a08d" : "#d7e4cf";
+      const comparisonLines = buildComparisonLines(selectedEntry, equippedItem);
+      const comparisonSummary = getComparisonSummary(comparisonLines);
+      drawComparisonChip(ctx, "UP", comparisonSummary.up, detailsX + 12, detailY - 2, "#9ce1a3");
+      drawComparisonChip(ctx, "DOWN", comparisonSummary.down, detailsX + 68, detailY - 2, "#f0a08d");
+      drawComparisonChip(ctx, "SAME", comparisonSummary.same, detailsX + 140, detailY - 2, "#d7e4cf");
+      detailY += 22;
+      for (const line of comparisonLines) {
+        ctx.fillStyle = getComparisonDeltaColor(line.delta);
         ctx.font = "11px Segoe UI, Arial";
         ctx.fillText(
-          `${line.label}: ${line.equipped} -> ${line.current} (${line.delta > 0 ? "+" : ""}${line.delta})`,
+          `${line.label}: ${line.equipped} > ${line.current} ${formatComparisonDelta(line.delta)}`,
           detailsX + 12,
           detailY
         );
@@ -2226,16 +2253,59 @@ function buildComparisonLines(current, equipped) {
     ...Object.keys(equipped?.bonuses || {}),
   ]);
 
-  return [...keys].map((key) => {
-    const currentValue = current.bonuses?.[key] || 0;
-    const equippedValue = equipped?.bonuses?.[key] || 0;
-    return {
-      label: formatBonusKey(key),
-      current: `${currentValue > 0 ? "+" : ""}${currentValue}`,
-      equipped: `${equippedValue > 0 ? "+" : ""}${equippedValue}`,
-      delta: currentValue - equippedValue,
-    };
-  });
+  return [...keys]
+    .map((key) => {
+      const currentValue = current.bonuses?.[key] || 0;
+      const equippedValue = equipped?.bonuses?.[key] || 0;
+      return {
+        label: formatBonusKey(key),
+        current: `${currentValue > 0 ? "+" : ""}${currentValue}`,
+        equipped: `${equippedValue > 0 ? "+" : ""}${equippedValue}`,
+        delta: currentValue - equippedValue,
+      };
+    })
+    .sort((a, b) => {
+      const impactDelta = Math.abs(b.delta) - Math.abs(a.delta);
+      return impactDelta !== 0 ? impactDelta : a.label.localeCompare(b.label);
+    });
+}
+
+function getComparisonSummary(lines) {
+  return lines.reduce(
+    (summary, line) => {
+      if (line.delta > 0) summary.up += 1;
+      else if (line.delta < 0) summary.down += 1;
+      else summary.same += 1;
+      return summary;
+    },
+    { up: 0, down: 0, same: 0 }
+  );
+}
+
+function getComparisonDeltaColor(delta) {
+  if (delta > 0) return "#9ce1a3";
+  if (delta < 0) return "#f0a08d";
+  return "#d7e4cf";
+}
+
+function formatComparisonDelta(delta) {
+  if (delta > 0) return `(+${delta})`;
+  if (delta < 0) return `(${delta})`;
+  return "(same)";
+}
+
+function getSellValue(entry) {
+  return Math.max(1, Math.floor(getItemValue(entry.id) * 0.25));
+}
+
+function drawComparisonChip(ctx, label, value, x, y, color) {
+  ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
+  ctx.fillRect(x, y, label === "SAME" ? 58 : 48, 18);
+  ctx.strokeStyle = color;
+  ctx.strokeRect(x, y, label === "SAME" ? 58 : 48, 18);
+  ctx.fillStyle = color;
+  ctx.font = "700 9px Segoe UI, Arial";
+  ctx.fillText(`${label} ${value}`, x + 6, y + 12);
 }
 
 function formatActionCost(action) {
@@ -2488,7 +2558,7 @@ function getInventoryPanelData(state, frame) {
     service,
     filterButtons: makeOptionButtons(listX, frame.y + 84, INVENTORY_FILTER_BUTTONS, state.ui.inventoryFilter, "inventory-filter", "#8ecf9a"),
     sortButtons: makeOptionButtons(listX + 270, frame.y + 84, INVENTORY_SORT_BUTTONS, state.ui.inventorySort, "inventory-sort", "#8fb9ff"),
-    detailsRect: rect(detailsX, detailsY - 18, 240, 270),
+    detailsRect: rect(detailsX, detailsY - 18, 240, 300),
     primaryButton: null,
     sellButton: null,
     lockButton: null,
@@ -2505,7 +2575,7 @@ function getInventoryPanelData(state, frame) {
     const primaryLabel = selectedEntry.category === "equipment" ? "Equip" : "Use";
     data.primaryButton = makeButton(
       detailsX + 12,
-      detailsY + 100,
+      detailsY + 116,
       66,
       28,
       primaryLabel,
@@ -2517,7 +2587,7 @@ function getInventoryPanelData(state, frame) {
 
   data.lockButton = makeButton(
     detailsX + (data.primaryButton ? 86 : 12),
-    detailsY + 100,
+    detailsY + 116,
     66,
     28,
     selectedEntry.locked ? "Unlock" : "Lock",
@@ -2529,7 +2599,7 @@ function getInventoryPanelData(state, frame) {
   if (service?.kind === "shop") {
     data.sellButton = makeButton(
       detailsX + 160,
-      detailsY + 100,
+      detailsY + 116,
       68,
       28,
       "Sell",
@@ -2539,7 +2609,7 @@ function getInventoryPanelData(state, frame) {
     );
   }
 
-  let detailY = detailsY + 140;
+  let detailY = detailsY + 158;
   if (selectedEntry.maxStack) {
     detailY += 34;
   }
@@ -2548,7 +2618,7 @@ function getInventoryPanelData(state, frame) {
   }
   if (selectedEntry.category === "equipment" && selectedEntry.slot) {
     const equippedItem = getEquippedItems(state.progression).find((entry) => entry.slot === selectedEntry.slot)?.item;
-    detailY += equippedItem ? 58 + buildComparisonLines(selectedEntry, equippedItem).length * 14 : 42;
+    detailY += equippedItem ? 80 + buildComparisonLines(selectedEntry, equippedItem).length * 14 : 42;
   }
 
   if (selectedEntry.usable || selectedEntry.category === "consumable" || selectedEntry.effect) {
@@ -2583,26 +2653,24 @@ function getCharacterPanelData(state, frame) {
   ];
   const loadoutLabels = ["Grove Loadout I", "Grove Loadout II", "Grove Loadout III"];
   const loadouts = getLoadoutEntries(state.progression).map((entry, index) => {
-    const loadoutRect = rect(slotX, loadoutY + index * 78, 220, 72);
+    const loadoutRect = rect(slotX, loadoutY + index * 92, 220, 86);
+    const preview = entry.preview || null;
+    const status = getLoadoutStatus(entry, unlockLabels[index]);
     return {
       rect: loadoutRect,
       entry,
       label: loadoutLabels[index],
       unlocked: Boolean(entry.unlocked),
-      statusText: !entry.unlocked
-        ? unlockLabels[index]
-        : entry.active
-          ? "Current equipment and quick slots"
-          : entry.loadout
-            ? "Equipment and quick slots recorded"
-            : "No setup recorded yet",
+      preview,
+      statusLines: status.lines,
+      statusTone: status.color,
       saveButton: entry.unlocked
-        ? makeButton(loadoutRect.x + 10, loadoutRect.y + 42, 92, 22, "Save Current", "loadout-save", "#79b886", {
+        ? makeButton(loadoutRect.x + 10, loadoutRect.y + 56, 92, 22, "Save Current", "loadout-save", "#79b886", {
             index,
           })
         : null,
       activateButton: entry.unlocked && entry.loadout
-        ? makeButton(loadoutRect.x + 112, loadoutRect.y + 42, 98, 22, "Equip", "loadout-activate", "#79b8ff", {
+        ? makeButton(loadoutRect.x + 112, loadoutRect.y + 56, 98, 22, preview?.ready ? "Equip" : "Missing", "loadout-activate", preview?.ready ? "#79b8ff" : "#d59186", {
             index,
           })
         : null,
@@ -2619,6 +2687,90 @@ function getCharacterPanelData(state, frame) {
         : null,
     loadouts,
   };
+}
+
+function getLoadoutStatus(entry, lockedLabel) {
+  const preview = entry.preview;
+  if (!entry.unlocked) {
+    return {
+      color: "#8d9994",
+      lines: [lockedLabel, "Restore regions to earn setup slots."],
+    };
+  }
+
+  if (!entry.loadout) {
+    return {
+      color: "#aebdb6",
+      lines: ["No setup recorded yet", "Save gear and quick slots here."],
+    };
+  }
+
+  if (entry.active) {
+    return {
+      color: "#a9e8ac",
+      lines: [
+        `Active: ${preview.equipment.recorded} gear, ${preview.actionSlots.recorded} quick`,
+        "Matches current equipment.",
+      ],
+    };
+  }
+
+  if (!preview.ready) {
+    return {
+      color: "#e5a18f",
+      lines: [
+        `Missing gear: ${formatItemList(preview.missingItemIds, 2)}`,
+        "Recover item or save over it.",
+      ],
+    };
+  }
+
+  if (preview.actionSlots.missing > 0) {
+    return {
+      color: "#f1d786",
+      lines: [
+        `Ready: ${preview.equipment.changed} gear changes`,
+        `${preview.actionSlots.missing} quick slot will clear.`,
+      ],
+    };
+  }
+
+  return {
+    color: "#aebdb6",
+    lines: [
+      `Ready: ${preview.equipment.changed} gear changes`,
+      `${preview.actionSlots.recorded} quick slots recorded.`,
+    ],
+  };
+}
+
+function buildLoadoutTooltip(loadout) {
+  const lines = [...loadout.statusLines];
+  const preview = loadout.preview;
+
+  if (preview?.missingItemIds?.length) {
+    lines.push(`Missing: ${formatItemList(preview.missingItemIds, 4)}`);
+  }
+  if (preview?.missingActionItemIds?.length) {
+    lines.push(`Quick slots missing: ${formatItemList(preview.missingActionItemIds, 4)}`);
+  }
+  if (preview?.saved) {
+    lines.push("Preparation elixir is not changed by loadouts.");
+  }
+
+  return {
+    title: loadout.label,
+    lines,
+    accent: loadout.statusTone || "#79b8ff",
+  };
+}
+
+function formatItemList(itemIds, limit = 3) {
+  const names = itemIds
+    .slice(0, limit)
+    .map((itemId) => ITEM_DEFS[itemId]?.name || formatItemName(itemId));
+  const remaining = itemIds.length - names.length;
+  return remaining > 0 ? `${names.join(", ")} +${remaining}` : names.join(", ");
 }
 
 function getTalentPanelData(state, frame) {
@@ -2985,7 +3137,7 @@ function buildItemTooltip(entry, lines = [], progression = null) {
       tooltipLines.push(`Equipped: ${equippedItem.name}`);
       for (const comparison of buildComparisonLines(entry, equippedItem)) {
         tooltipLines.push(
-          `${comparison.label}: ${comparison.equipped} -> ${comparison.current} (${comparison.delta > 0 ? "+" : ""}${comparison.delta})`
+          `${comparison.label}: ${comparison.equipped} > ${comparison.current} ${formatComparisonDelta(comparison.delta)}`
         );
       }
     } else if (!equippedItem) {
@@ -3085,7 +3237,10 @@ function getMenuHoverTarget(state, mouseX, mouseY) {
           ...loadout.saveButton,
           tooltip: {
             title: `Save ${loadout.label}`,
-            lines: ["Record equipped items and available quick slots in this setup."],
+            lines: [
+              "Record equipped items and available quick slots in this setup.",
+              ...loadout.statusLines,
+            ],
             accent: loadout.saveButton.accent,
           },
         };
@@ -3098,9 +3253,20 @@ function getMenuHoverTarget(state, mouseX, mouseY) {
           ...loadout.activateButton,
           tooltip: {
             title: `Equip ${loadout.label}`,
-            lines: ["Restore its recorded equipment and available quick-slot items."],
+            lines: [
+              "Restore its recorded equipment and available quick-slot items.",
+              ...buildLoadoutTooltip(loadout).lines,
+            ],
             accent: loadout.activateButton.accent,
           },
+        };
+      }
+      if (pointInRect(mouseX, mouseY, loadout.rect)) {
+        return {
+          action: "loadout-hover",
+          index: loadout.entry.index,
+          rect: loadout.rect,
+          tooltip: buildLoadoutTooltip(loadout),
         };
       }
     }

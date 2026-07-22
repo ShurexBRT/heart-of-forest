@@ -580,13 +580,102 @@ export function getLoadoutEntries(progression) {
   const unlocked = Math.max(0, Math.min(3, progression.campaign?.loadoutSlots || 0));
   return Array.from({ length: 3 }, (_, index) => {
     const loadout = progression.loadouts?.[index] || null;
+    const preview = getLoadoutPreview(progression, index);
     return {
       index,
       unlocked: index < unlocked,
       loadout,
+      preview,
       active: Boolean(loadout && loadoutMatchesCurrentSetup(progression, loadout)),
     };
   });
+}
+
+export function getLoadoutPreview(progression, index) {
+  const unlocked = index >= 0 && index < Math.max(0, Math.min(3, progression.campaign?.loadoutSlots || 0));
+  const loadout = progression.loadouts?.[index] || null;
+  const emptySummary = {
+    recorded: 0,
+    available: 0,
+    missing: 0,
+    changed: 0,
+  };
+
+  if (!unlocked || !loadout) {
+    return {
+      unlocked,
+      saved: Boolean(loadout),
+      active: false,
+      ready: false,
+      equipment: { ...emptySummary },
+      actionSlots: { ...emptySummary },
+      missingItemIds: [],
+      missingActionItemIds: [],
+    };
+  }
+
+  const missingItemIds = [];
+  let equipmentRecorded = 0;
+  let equipmentAvailable = 0;
+  let equipmentChanged = 0;
+
+  for (const slot of EQUIPMENT_SLOTS) {
+    const desiredItemId = loadout.equipment?.[slot] || null;
+    const currentItemId = progression.equipment?.[slot] || null;
+    if (!desiredItemId) continue;
+
+    equipmentRecorded += 1;
+    const available = currentItemId === desiredItemId || getItemCount(progression, desiredItemId) > 0;
+    if (available) {
+      equipmentAvailable += 1;
+    } else {
+      missingItemIds.push(desiredItemId);
+    }
+    if (currentItemId !== desiredItemId) {
+      equipmentChanged += 1;
+    }
+  }
+
+  const currentActionSlots = normalizeActionSlots(progression.actionSlots);
+  const savedActionSlots = normalizeActionSlots(loadout.actionSlots);
+  const missingActionItemIds = [];
+  let actionRecorded = 0;
+  let actionAvailable = 0;
+  let actionChanged = 0;
+
+  savedActionSlots.forEach((itemId, slotIndex) => {
+    if (!itemId) return;
+    actionRecorded += 1;
+    if (getItemCount(progression, itemId) > 0) {
+      actionAvailable += 1;
+    } else {
+      missingActionItemIds.push(itemId);
+    }
+    if (currentActionSlots[slotIndex] !== itemId) {
+      actionChanged += 1;
+    }
+  });
+
+  return {
+    unlocked,
+    saved: true,
+    active: loadoutMatchesCurrentSetup(progression, loadout),
+    ready: missingItemIds.length === 0,
+    equipment: {
+      recorded: equipmentRecorded,
+      available: equipmentAvailable,
+      missing: missingItemIds.length,
+      changed: equipmentChanged,
+    },
+    actionSlots: {
+      recorded: actionRecorded,
+      available: actionAvailable,
+      missing: missingActionItemIds.length,
+      changed: actionChanged,
+    },
+    missingItemIds,
+    missingActionItemIds,
+  };
 }
 
 export function saveLoadout(progression, index) {
