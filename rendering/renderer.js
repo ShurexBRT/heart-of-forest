@@ -716,8 +716,122 @@ function drawCottage(ctx, cottage, sceneStyle, origin) {
   pixelRect(ctx, point.x + 55, point.y - 112, 20, 34, "#5d5149");
   drawWorldMaterialRect(ctx, "stone", point.x + 58, point.y - 109, 14, 31, variant + 2, 0.88);
   pixelRect(ctx, point.x + 54, point.y - 114, 22, 5, "#3d3532");
+  drawCottageBiomeTrim(ctx, point.x, point.y, sceneStyle, variant);
   pixelRect(ctx, point.x - 20, point.y - 4, 40, 4, "#c4b393");
   pixelRect(ctx, point.x - 76, point.y - 4, 152, 5, sceneStyle === "aylaHomestead" ? "#b79c72" : "#7b705e");
+}
+
+function drawCottageBiomeTrim(ctx, x, y, sceneStyle, variant) {
+  const trim = getCottageBiomeTrim(sceneStyle);
+  const mossOffset = variant % 5;
+
+  pixelRect(ctx, x - 72, y - 63, 144, 3, trim.shadow);
+  pixelRect(ctx, x - 68 + mossOffset, y - 65, 28, 3, trim.accent);
+  pixelRect(ctx, x + 31 - mossOffset, y - 64, 22, 2, trim.light);
+  pixelRect(ctx, x - 77, y - 88, 28, 3, trim.roofDust);
+  pixelRect(ctx, x + 46, y - 89, 34, 3, trim.roofDust);
+
+  if (trim.motif === "frost") {
+    pixelRect(ctx, x - 91, y - 88, 184, 3, "#f1fbff");
+    pixelRect(ctx, x + 52, y - 117, 26, 3, "#f6fdff");
+    pixelRect(ctx, x - 50, y - 47, 18, 2, "#f6fdff");
+    pixelRect(ctx, x + 32, y - 47, 18, 2, "#f6fdff");
+    return;
+  }
+
+  if (trim.motif === "ember") {
+    pixelRect(ctx, x - 92, y - 84, 36, 2, "#ff9b55");
+    pixelRect(ctx, x + 48, y - 82, 30, 2, "#e47244");
+    pixelRect(ctx, x + 62, y - 110, 8, 2, "#ffc078");
+    pixelRect(ctx, x - 18, y - 43, 36, 2, "#4a2a21");
+    return;
+  }
+
+  if (trim.motif === "thorn") {
+    drawPixelLine(ctx, x - 76, y - 30, x - 40, y - 42, trim.accent, 0.95);
+    drawPixelLine(ctx, x + 39, y - 23, x + 76, y - 34, trim.accent, 0.92);
+    pixelRect(ctx, x - 45, y - 43, 3, 2, trim.light);
+    pixelRect(ctx, x + 57, y - 35, 3, 2, trim.light);
+    return;
+  }
+
+  if (trim.motif === "rune") {
+    pixelRect(ctx, x - 60, y - 37, 8, 1, trim.light);
+    pixelRect(ctx, x - 57, y - 41, 1, 8, trim.light);
+    pixelRect(ctx, x + 52, y - 37, 8, 1, trim.light);
+    pixelRect(ctx, x + 55, y - 41, 1, 8, trim.light);
+    pixelRect(ctx, x - 3, y - 30, 6, 1, trim.accent);
+    return;
+  }
+
+  pixelRect(ctx, x - 64, y - 44, 18, 2, trim.accent);
+  pixelRect(ctx, x + 46, y - 45, 16, 2, trim.accent);
+  pixelRect(ctx, x - 58, y - 42, 2, 5, trim.light);
+  pixelRect(ctx, x + 53, y - 42, 2, 5, trim.light);
+}
+
+function getCottageBiomeTrim(sceneStyle) {
+  if (sceneStyle === "emberpineGrove") {
+    return {
+      motif: "ember",
+      accent: "#9c4f37",
+      light: "#ffbd74",
+      shadow: "#3f261f",
+      roofDust: "#5a2f24",
+    };
+  }
+
+  if (sceneStyle === "frostveilTundra") {
+    return {
+      motif: "frost",
+      accent: "#bad9e8",
+      light: "#f7fdff",
+      shadow: "#6f8391",
+      roofDust: "#d7eaf3",
+    };
+  }
+
+  if (sceneStyle === "blightedWoods" || sceneStyle === "hollowheartRuins") {
+    return {
+      motif: "thorn",
+      accent: "#5a2f2c",
+      light: "#c16a55",
+      shadow: "#2b1b1d",
+      roofDust: "#6f3f35",
+    };
+  }
+
+  if (
+    sceneStyle === "ancientHeart" ||
+    sceneStyle === "starfallSanctum" ||
+    sceneStyle === "sunkenReliquary"
+  ) {
+    return {
+      motif: "rune",
+      accent: "#b99ade",
+      light: "#fff1b5",
+      shadow: "#4e405a",
+      roofDust: "#6f5d79",
+    };
+  }
+
+  if (sceneStyle === "mossrootMarsh" || sceneStyle === "chapelOfTides") {
+    return {
+      motif: "reed",
+      accent: "#5e8b68",
+      light: "#c6d8a0",
+      shadow: "#385447",
+      roofDust: "#58705f",
+    };
+  }
+
+  return {
+    motif: "leaf",
+    accent: "#6f9f5e",
+    light: "#d7df94",
+    shadow: "#4d5b3c",
+    roofDust: "#7e6d4c",
+  };
 }
 
 function drawWell(ctx, well, origin) {
@@ -1563,6 +1677,23 @@ function fillRoofPattern(ctx, x, y, w, h, base, dark, light) {
       pixelRect(ctx, x + col, y + row + 4, 10, 1, dark);
     }
   }
+}
+
+function drawPixelLine(ctx, x1, y1, x2, y2, color, alpha = 1) {
+  const steps = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1));
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  ctx.fillStyle = color;
+  for (let index = 0; index <= steps; index += 1) {
+    const t = steps === 0 ? 0 : index / steps;
+    ctx.fillRect(
+      Math.round(x1 + (x2 - x1) * t),
+      Math.round(y1 + (y2 - y1) * t),
+      1,
+      1
+    );
+  }
+  ctx.restore();
 }
 
 function pixelRect(ctx, x, y, w, h, color) {

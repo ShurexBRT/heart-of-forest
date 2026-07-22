@@ -196,6 +196,7 @@ beskonacnu kupovinu talent poena.
 | 7C | Sunken Reliquary daily trial rewards | Zavrseno |
 | 7D | First-hour quest polish i collision reachability audit | Zavrseno |
 | 7E | HUD modernization pass | Zavrseno |
+| 7F | Biome floor and building texture pass | Zavrseno |
 
 ## Dnevnik implementacije
 
@@ -596,12 +597,35 @@ beskonacnu kupovinu talent poena.
   console errora osim ignorisanog favicon 404.
 - Automatizovana provera: `67/67` testova prolazi.
 
-### Sledeca faza - Faza 7F
+### Faza 7F
 
-1. Biome floor pass: Heartwood, Stillwater, Ember, Frost, Scarroot i Rootlight
-   podovi sa vise atlas-inspirisanog pixel materijala i jasnijim putevima.
-2. Nakon podova nastaviti zgrade/prop teksture i eventualno generisane asete
-   samo tamo gde atlas cropovi nisu dovoljno cisti.
+- Datum: 2026-07-22
+- Status: zavrseno
+- Cilj: dati svakom biomu prepoznatljiviji pod i materijalni karakter bez
+  rizicnog ukljucivanja prljavih atlas cropova.
+- `terrainAssets` sada preko postojeceg cistog terrain atlasa dodaje proceduralni
+  biome signature sloj: Heartwood listici/rootlets, Stillwater trska i ripples,
+  Ember zarke pukotine, Frost ledeni glints, Scarroot thorn veins i Rootlight
+  rune/star motes.
+- Dodatni detalji su vezani za ground family (`natural`, `path`, `stone`,
+  `water/ice`, `special`), pa putevi, arene i hazard povrsine ostaju citljive.
+- Cottage/building renderer dobija biome trim: mahovina i list za Heartwood,
+  reed tonovi za Stillwater, soot/ember za Ember, sneg za Frost, thorn veins za
+  Scarroot i rune za Rootlight/Ancient scene.
+- Nisu dodavani novi binary asseti u ovom segmentu, jer postojeći
+  `assets/terrain/biome-terrain.png` daje cistiji materijalni izvor od velikih
+  atlas sheet cropova. Veliki atlasi ostaju korisni kao inspiracija i za
+  selektivne propove.
+- Runtime QA je proverio svih sest bioma preko debug fixture-a na `1280x720`;
+  nema canvas, DOM ili console errora.
+- Automatizovana provera: `67/67` testova prolazi.
+
+### Sledeca faza - Faza 7G
+
+1. Loot, item comparison i loadout polish: jasnije promene opreme, manje
+   slucajnog prodavanja, bolji quick-slot/loadout feedback i build affinity.
+2. Nakon toga doterati navigaciju i Bestiary da bolje pricaju sledeci cilj i
+   naucene countere bez previse teksta na glavnom ekranu.
 
 ## Van trenutnog scopea
 

@@ -27,6 +27,7 @@ export function drawTerrainTile(ctx, options) {
   ctx.save();
   clipDiamond(ctx, x, y, halfW, halfH);
   drawMaterialDetails(ctx, x, y, halfW, halfH, tile.ground, palette, seed, tx, ty);
+  drawBiomeSignatureDetails(ctx, x, y, halfW, halfH, tile.ground, palette, seed, tx, ty, sceneStyle);
   ctx.restore();
 
   drawTerrainEdges(ctx, x, y, halfW, halfH, tile.ground, palette, neighbors);
@@ -365,6 +366,182 @@ function drawBlightDetails(ctx, x, y, palette, seed, tx, ty) {
   }
   if (seed % 10 === 0) {
     pixel(ctx, x + 5, y - 2, 1, 1, "#d0785d", 0.65);
+  }
+}
+
+function drawBiomeSignatureDetails(ctx, x, y, halfW, halfH, ground, palette, seed, tx, ty, sceneStyle) {
+  const profile = getBiomeDetailProfile(sceneStyle);
+  if (!profile) return;
+
+  const family = getTerrainFamily(ground);
+  const detailSeed = hashTile(tx, ty, seed, profile.id);
+
+  if (family === "natural" || family === "soil") {
+    drawNaturalSignature(ctx, x, y, profile, detailSeed, tx, ty);
+  }
+
+  if (family === "path" || family === "stone" || ground === "planks") {
+    drawPathSignature(ctx, x, y, halfW, profile, detailSeed, tx, ty, family);
+  }
+
+  if (family === "water" || family === "ice") {
+    drawLiquidSignature(ctx, x, y, profile, detailSeed, tx, ty, family);
+  }
+
+  if (ground === "ash" || ground === "ember" || ground === "blight") {
+    drawSpecialSignature(ctx, x, y, profile, detailSeed, tx, ty, ground);
+  }
+
+  if (detailSeed % 29 === 0 && profile.spark) {
+    pixel(ctx, x + ((detailSeed >> 2) % 13) - 6, y + ((detailSeed >> 6) % 5) - 2, 1, 1, profile.spark, 0.72);
+  }
+}
+
+function getBiomeDetailProfile(sceneStyle) {
+  if (sceneStyle === "mossrootMarsh" || sceneStyle === "chapelOfTides") {
+    return {
+      id: "stillwater",
+      leaf: "#6fb982",
+      flower: "#c5d99b",
+      root: "#4d6f59",
+      path: "#9db398",
+      pathDark: "#405552",
+      water: "#9ce3d8",
+      spark: "#d7efb7",
+      motif: "reed",
+    };
+  }
+
+  if (sceneStyle === "emberpineGrove") {
+    return {
+      id: "ember",
+      leaf: "#9d6048",
+      flower: "#ffbe6e",
+      root: "#4d2820",
+      path: "#b2876f",
+      pathDark: "#3c251f",
+      water: "#ff9b59",
+      spark: "#ffd18a",
+      motif: "ember",
+    };
+  }
+
+  if (sceneStyle === "frostveilTundra") {
+    return {
+      id: "frost",
+      leaf: "#b8d8e9",
+      flower: "#f6fdff",
+      root: "#7f94a9",
+      path: "#d5e5ee",
+      pathDark: "#6d8395",
+      water: "#effcff",
+      spark: "#ffffff",
+      motif: "frost",
+    };
+  }
+
+  if (sceneStyle === "blightedWoods" || sceneStyle === "hollowheartRuins") {
+    return {
+      id: "scarroot",
+      leaf: "#9a584c",
+      flower: "#d49174",
+      root: "#2a1718",
+      path: "#b08c7f",
+      pathDark: "#3d2a2d",
+      water: "#d08478",
+      spark: "#f0b47a",
+      motif: "thorn",
+    };
+  }
+
+  if (isAncientScene(sceneStyle)) {
+    return {
+      id: "rootlight",
+      leaf: "#b99ade",
+      flower: "#f0dd92",
+      root: "#665174",
+      path: "#c6b8d2",
+      pathDark: "#463b50",
+      water: "#d9d2ff",
+      spark: "#fff3b5",
+      motif: "rune",
+    };
+  }
+
+  return {
+    id: "heartwood",
+    leaf: "#78b969",
+    flower: "#e7d989",
+    root: "#5f4a2f",
+    path: "#d0b783",
+    pathDark: "#58462f",
+    water: "#9de1d2",
+    spark: "#d7dd96",
+    motif: "leaf",
+  };
+}
+
+function drawNaturalSignature(ctx, x, y, profile, seed, tx, ty) {
+  if (seed % 5 === 0) {
+    pixel(ctx, x - 7 + (seed % 5), y - 3, 2, 1, profile.leaf, 0.62);
+    pixel(ctx, x - 5 + (seed % 7), y - 1, 3, 1, profile.root, 0.36);
+  }
+
+  if (seed % 13 === 0) {
+    pixel(ctx, x + 4, y - 2, 2, 2, profile.flower, 0.7);
+    pixel(ctx, x + 5, y, 1, 1, profile.leaf, 0.58);
+  }
+
+  if (profile.motif === "reed" && (tx + ty) % 6 === 0) {
+    pixel(ctx, x - 2, y - 5, 1, 6, profile.root, 0.82);
+    pixel(ctx, x, y - 4, 1, 5, profile.leaf, 0.78);
+    pixel(ctx, x - 3, y - 5, 2, 1, "#a98665", 0.7);
+  }
+
+  if (profile.motif === "frost" && seed % 7 === 0) {
+    drawPixelLine(ctx, x - 7, y - 1, x - 2, y + 1, profile.path, 0.36);
+    pixel(ctx, x + 2, y - 3, 1, 1, profile.spark, 0.8);
+  }
+}
+
+function drawPathSignature(ctx, x, y, halfW, profile, seed, tx, ty, family) {
+  if ((tx + ty + seed) % 4 === 0) {
+    drawPixelLine(ctx, x - halfW + 7, y - 1, x - 4, y - 1, profile.path, family === "stone" ? 0.3 : 0.38);
+  }
+
+  if (seed % 6 === 0) {
+    drawPixelLine(ctx, x + 1, y + 2, x + halfW - 8, y + 1, profile.pathDark, 0.36);
+  }
+
+  if (profile.motif === "rune" && seed % 11 === 0) {
+    pixel(ctx, x - 2, y - 3, 5, 1, profile.spark, 0.54);
+    pixel(ctx, x, y - 2, 1, 4, profile.spark, 0.42);
+  }
+
+  if (profile.motif === "thorn" && seed % 9 === 0) {
+    drawPixelLine(ctx, x - 5, y + 2, x + 4, y - 1, profile.root, 0.58);
+    pixel(ctx, x + 4, y - 2, 2, 1, profile.flower, 0.52);
+  }
+}
+
+function drawLiquidSignature(ctx, x, y, profile, seed, tx, ty, family) {
+  if ((tx * 2 + ty + seed) % 5 === 0) {
+    pixel(ctx, x - 9, y - 2, 8, 1, profile.water, family === "ice" ? 0.5 : 0.36);
+  }
+  if (seed % 7 === 0) {
+    pixel(ctx, x + 3, y + 1, 6, 1, profile.pathDark, family === "ice" ? 0.22 : 0.3);
+  }
+}
+
+function drawSpecialSignature(ctx, x, y, profile, seed, tx, ty, ground) {
+  if (profile.motif === "ember" && seed % 4 === 0) {
+    drawPixelLine(ctx, x - 5, y, x + 4, y - 2, "#ff9a57", ground === "ember" ? 0.62 : 0.36);
+    pixel(ctx, x + 5, y - 2, 1, 1, profile.spark, 0.7);
+  }
+
+  if (profile.motif === "thorn" && seed % 5 === 0) {
+    drawPixelLine(ctx, x - 8, y + 1, x + 6, y - 1, profile.root, 0.7);
+    pixel(ctx, x - 2, y - 2, 2, 1, "#c26857", 0.52);
   }
 }
 
