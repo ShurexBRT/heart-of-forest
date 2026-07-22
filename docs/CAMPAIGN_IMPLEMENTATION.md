@@ -714,6 +714,30 @@ beskonacnu kupovinu talent poena.
 - Provera: syntax check za `rendering/renderer.js` i `systems/combat.js`, plus
   targeted boss/signature/layout testovi.
 
+### Faza 8B
+
+- Datum: 2026-07-22
+- Status: zavrseno
+- Cilj: dotegnuti prvi sat Heartwood questova tako da tutorial, priprema i prvi
+  boss imaju jasniji narativni razlog bez menjanja progresije.
+- Rani main quest opisi sada bolje objasnjavaju Ayline prve odluke: prvo slusaj
+  Hearthroot, zatim obnovi jedan zivi ritam u Homesteadu, pa tek onda idi na put.
+- `First Moonleaf`, `Thorns at the Gate`, `Brew Before Blood` i `The Rootwarden`
+  dobijaju preciznije objective label-e koji govore igracu sledeci konkretan
+  korak, ali zadrzavaju postojece countere i flow.
+- `Whispering Call` i `Apothecary's Route` su uvezani sa obnovom sela posle
+  Rootwardena: Rowan trazi dokaz da prvi patrolni put opet moze da se koristi,
+  a Tamsin pretvara siguran put u realne potione i opremu.
+- Prvi side questovi sada imaju quest-specific intro/progress/complete dijalog
+  za quest panel, umesto da zavise samo od generickog NPC tona.
+- Hearthroot shrine dijalog je poostren kroz iste rane faze: care pre komande,
+  Barkskin kao prednost umesto kljuca, i Rootwarden kao guardian zarobljen u
+  starom naredjenju.
+- Nagrade, prerequisite-i, counteri i testirane toast fraze nisu menjani.
+- Provera: syntax check za `data/storyData.js` i `world/arena.js`, targeted
+  `quest-flow`, `heartwood-phase-one` i `homestead` testovi, plus puna
+  regresija `node --test tests\*.test.mjs` sa 69/69 prolaza.
+
 ## Van trenutnog scopea
 
 - Durability i repair.

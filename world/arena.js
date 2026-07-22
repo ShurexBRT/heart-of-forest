@@ -462,40 +462,40 @@ function buildAylaHomestead(context, rng) {
 
   const hearthrootDialogue = flags.heartwood_restored
     ? [
-        "One root remembers your hands. Five remain beyond the quiet roads.",
-        "Prepare here, Ayla. Restoration begins at home, but it cannot end here.",
+        "Heartwood remembers your hands now. That is not the same as being finished.",
+        "Prepare here, Ayla. A restored home is not an escape from the road; it is how you return to it whole.",
       ]
     : !flags.hearthroot_awake
       ? [
-          "Ayla... do not reach for the weapon yet. The garden is asking whether you still remember care.",
-          "Your mother's seal is failing in six places. Wake one living thing before you follow the pain.",
+          "Ayla... the staff can wait. The garden is asking whether you know the difference between care and command.",
+          "Your mother's seal is failing in six places. Wake this root first, then follow the pain with open hands.",
         ]
       : questStates.first_moonleaf === "active"
         ? [
             "The forest will not trust another keeper who only arrives with a weapon.",
-            "Plant one Moonleaf seed, water the same plot, then sleep once. Bring me what reaches the dawn.",
+            "Plant one Moonleaf seed, water the same plot, then sleep once. Bring me the leaf that reaches the dawn.",
           ]
         : questStates.first_rootwarden === "active" ||
             questStates.brew_before_blood === "done"
           ? [
-              "Barkskin will soften the crown. It will not excuse standing where the thorns close.",
-              "Enter Mossy Ruins, watch for the open lane, and release the guardian from the oath.",
+              "Barkskin will soften Rootwarden's crown. It will not excuse standing where the thorns close.",
+              "Enter Mossy Ruins, watch for the open lane, and release the guardian from the order it can no longer question.",
             ]
           : questStates.brew_before_blood === "active" ||
               questStates.thorn_at_gate === "done"
             ? [
-                "Those splinters belong to Rootwarden's broken oath.",
+                "Those splinters belong to Rootwarden's broken oath. The road is showing you the shape of the wound.",
                 "Use Moonleaf and ironbark at the cauldron. Barkskin will soften the thorns long enough to read their pattern.",
               ]
             : questStates.thorn_at_gate === "active" ||
                 questStates.first_moonleaf === "done"
               ? [
                   "The first harvest carries a thorn-mark from beyond the gate.",
-                  "Follow it into Whispering Woods. The creatures there are being driven, not hunting by choice.",
+                  "Follow it into Whispering Woods. The creatures there are being driven toward you, not hunting by choice.",
                 ]
               : [
                   "The wound beyond the gate is tightening around an old guardian.",
-                  "Grow what heals, brew what protects, then listen before you strike.",
+                  "Grow what heals, brew what protects, then listen before you strike. That is how a keeper begins.",
                 ];
 
   const interactables = [
