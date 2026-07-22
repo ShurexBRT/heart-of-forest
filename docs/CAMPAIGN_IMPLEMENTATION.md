@@ -802,6 +802,26 @@ beskonacnu kupovinu talent poena.
   `systems/story.js` i `main.js`, targeted `quest-flow/heartwood-phase-one` sa
   22/22 prolaza i puna regresija `node --test tests\*.test.mjs` sa 72/72 prolaza.
 
+### Faza 8F
+
+- Datum: 2026-07-22
+- Status: zavrseno
+- Cilj: uciniti HUD quest tracker citljivijim bez novog panela ili dodatnog
+  ekranskog zauzeca.
+- `getActiveQuestEntries` i `getJournalQuestEntries` sada dodaju `stepLabel`
+  izveden iz sledeceg nedovrsenog objective-a.
+- Step label-i pokrivaju glavne namere: `NEW`, `TURN IN`, `CLAIM`, `BREW`,
+  `FIGHT`, `TEND`, `GATHER`, `SEARCH` i fallback `TRACK`.
+- Quest tracker prikazuje mali badge desno od quest naslova, sa bojom po tipu
+  koraka, pa igrac odmah vidi da li sledi borba, brewing, tending, gathering ili
+  pretraga.
+- UI ne tumaci questove samostalno; koristi `stepLabel` iz story sloja.
+- Test dodaje Heartwood proveru za `TEND`, `FIGHT`, `BREW` i `TURN IN` stanja.
+- Provera: syntax check za `systems/story.js`, `ui/hud.js` i
+  `tests/heartwood-phase-one.test.mjs`, targeted `heartwood-phase-one/quest-flow`
+  sa 23/23 prolaza i puna regresija `node --test tests\*.test.mjs` sa 73/73
+  prolaza.
+
 ## Van trenutnog scopea
 
 - Durability i repair.

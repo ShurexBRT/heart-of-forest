@@ -834,9 +834,21 @@ function drawQuestTracker(ctx, state) {
   let cursorY = y + 38;
   for (const row of rows) {
     const quest = row.quest;
+    const stepLabel = quest.stepLabel || "TRACK";
+    const badge = getQuestStepBadgeStyle(stepLabel, quest.status);
     ctx.fillStyle = quest.status === "complete" ? "#ffe4a8" : "#fff1c6";
     ctx.font = "700 13px Segoe UI, Arial";
-    ctx.fillText(shorten(quest.title, width < 280 ? 24 : 31), x + 17, cursorY);
+    const badgeW = Math.max(46, Math.ceil(ctx.measureText(stepLabel).width) + 16);
+    ctx.fillText(shorten(quest.title, width < 280 ? 18 : 25), x + 17, cursorY);
+    ctx.fillStyle = badge.fill;
+    ctx.fillRect(x + width - badgeW - 12, cursorY - 12, badgeW, 16);
+    ctx.strokeStyle = badge.border;
+    ctx.strokeRect(x + width - badgeW - 12, cursorY - 12, badgeW, 16);
+    ctx.textAlign = "center";
+    ctx.fillStyle = badge.text;
+    ctx.font = "700 9px Segoe UI, Arial";
+    ctx.fillText(stepLabel, x + width - badgeW / 2 - 12, cursorY);
+    ctx.textAlign = "left";
     cursorY += 15;
     ctx.fillStyle = quest.status === "complete" ? "#ffe4a8" : "rgba(246,255,241,0.78)";
     ctx.font = "11px Segoe UI, Arial";
@@ -845,6 +857,29 @@ function drawQuestTracker(ctx, state) {
       cursorY += 14;
     });
     cursorY += 5;
+  }
+}
+
+function getQuestStepBadgeStyle(label, status) {
+  if (status === "complete") {
+    return { fill: "rgba(95, 71, 31, 0.82)", border: "#e0bc68", text: "#fff0bd" };
+  }
+
+  switch (label) {
+    case "FIGHT":
+      return { fill: "rgba(75, 35, 31, 0.86)", border: "#d9785f", text: "#ffd8c9" };
+    case "BREW":
+      return { fill: "rgba(41, 68, 49, 0.86)", border: "#91d184", text: "#def7c1" };
+    case "TEND":
+      return { fill: "rgba(48, 78, 45, 0.86)", border: "#a5d57b", text: "#ecffd4" };
+    case "GATHER":
+      return { fill: "rgba(52, 75, 78, 0.86)", border: "#8ad8d1", text: "#d8fbf2" };
+    case "SEARCH":
+      return { fill: "rgba(56, 54, 82, 0.86)", border: "#bca0e4", text: "#f0e5ff" };
+    case "NEW":
+      return { fill: "rgba(45, 75, 55, 0.86)", border: "#9fdba2", text: "#f1ffe9" };
+    default:
+      return { fill: "rgba(36, 48, 58, 0.86)", border: "#86c6ff", text: "#e2f4ff" };
   }
 }
 

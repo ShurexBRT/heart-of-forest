@@ -405,14 +405,7 @@ export function getActiveQuestEntries(progression) {
       const status = progression.questStates[quest.id];
       return status === "available" || status === "active" || status === "complete";
     })
-    .map((quest) => ({
-      ...quest,
-      status: progression.questStates[quest.id],
-      objectives: quest.objectives.map((objective) => ({
-        ...objective,
-        current: getQuestCounter(progression, objective.key),
-      })),
-    }));
+    .map((quest) => buildQuestEntry(progression, quest));
 }
 
 export function getJournalQuestEntries(progression) {
@@ -422,15 +415,7 @@ export function getJournalQuestEntries(progression) {
       const status = progression.questStates[quest.id];
       return status && status !== "inactive";
     })
-    .map((quest, storyOrder) => ({
-      ...quest,
-      storyOrder,
-      status: progression.questStates[quest.id],
-      objectives: quest.objectives.map((objective) => ({
-        ...objective,
-        current: getQuestCounter(progression, objective.key),
-      })),
-    }))
+    .map((quest, storyOrder) => buildQuestEntry(progression, quest, { storyOrder }))
     .sort((a, b) => {
       const aCurrent = a.chapter === progression.campaign?.activeChapter ? 0 : 1;
       const bCurrent = b.chapter === progression.campaign?.activeChapter ? 0 : 1;
@@ -440,6 +425,41 @@ export function getJournalQuestEntries(progression) {
         a.storyOrder - b.storyOrder
       );
     });
+}
+
+function buildQuestEntry(progression, quest, extra = {}) {
+  const entry = {
+    ...quest,
+    ...extra,
+    status: progression.questStates[quest.id],
+    objectives: quest.objectives.map((objective) => ({
+      ...objective,
+      current: getQuestCounter(progression, objective.key),
+    })),
+  };
+
+  return {
+    ...entry,
+    stepLabel: getQuestStepLabel(entry),
+  };
+}
+
+export function getQuestStepLabel(quest) {
+  if (!quest) return "TRACK";
+  if (quest.status === "available") return "NEW";
+  if (quest.status === "complete") return quest.giverId ? "TURN IN" : "CLAIM";
+
+  const objective =
+    quest.objectives?.find((entry) => entry.current < entry.required) ||
+    quest.objectives?.[0];
+  const text = `${objective?.key || ""} ${objective?.label || ""}`.toLowerCase();
+
+  if (/brew|cauldron|draught|elixir|potion/.test(text)) return "BREW";
+  if (/defeat|release|boss|warden|matron|seraph|sentinel|hollow|creature|thornling|enemy/.test(text)) return "FIGHT";
+  if (/plant|water|sleep|harvest|moonleaf|sapling|tend|heartseed/.test(text)) return "TEND";
+  if (/gather|flower|bundle|bloom|herb/.test(text)) return "GATHER";
+  if (/light|lit|rekindle|totem|brazier|lantern|seal|recover|memory|cache|scout|satchel/.test(text)) return "SEARCH";
+  return "TRACK";
 }
 
 function openNpcInteraction(state, npc) {

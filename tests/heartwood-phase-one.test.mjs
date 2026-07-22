@@ -11,7 +11,7 @@ import {
   unequipItem,
 } from "../systems/progression.js";
 import { syncCampaignProgress } from "../systems/campaign.js";
-import { getJournalQuestEntries } from "../systems/story.js";
+import { getActiveQuestEntries, getJournalQuestEntries } from "../systems/story.js";
 import {
   createTrainingState,
   recordTrainingDamage,
@@ -77,6 +77,52 @@ test("First Moonleaf navigation advances through plant, water, rest, and harvest
   progression.questCounters.moonleafGrown = 1;
   navigation = getCampaignNavigation(progression, {}, "ayla_homestead");
   assert.match(navigation.hint, /Harvest/i);
+});
+
+test("quest entries expose readable HUD step labels", () => {
+  const moonleaf = createProgression({
+    worldFlags: { hearthroot_awake: true },
+    questStates: {
+      wake_hearthroot: "done",
+      first_moonleaf: "active",
+    },
+  });
+  assert.equal(
+    getActiveQuestEntries(moonleaf).find((quest) => quest.id === "first_moonleaf")?.stepLabel,
+    "TEND"
+  );
+
+  const gate = createProgression({
+    questStates: {
+      first_moonleaf: "done",
+      thorn_at_gate: "active",
+    },
+  });
+  assert.equal(
+    getActiveQuestEntries(gate).find((quest) => quest.id === "thorn_at_gate")?.stepLabel,
+    "FIGHT"
+  );
+
+  const brew = createProgression({
+    questStates: {
+      thorn_at_gate: "done",
+      brew_before_blood: "active",
+    },
+  });
+  assert.equal(
+    getActiveQuestEntries(brew).find((quest) => quest.id === "brew_before_blood")?.stepLabel,
+    "BREW"
+  );
+
+  const turnIn = createProgression({
+    questStates: {
+      whispering_call: "complete",
+    },
+  });
+  assert.equal(
+    getActiveQuestEntries(turnIn).find((quest) => quest.id === "whispering_call")?.stepLabel,
+    "TURN IN"
+  );
 });
 
 test("Grove Loadout restores recorded equipment without duplicating it", () => {
