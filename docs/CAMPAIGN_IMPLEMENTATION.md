@@ -738,6 +738,28 @@ beskonacnu kupovinu talent poena.
   `quest-flow`, `heartwood-phase-one` i `homestead` testovi, plus puna
   regresija `node --test tests\*.test.mjs` sa 69/69 prolaza.
 
+### Faza 8C
+
+- Datum: 2026-07-22
+- Status: zavrseno
+- Cilj: nastaviti atlas-inspirisan world art polish bez menjanja collision,
+  spawnova ili scene layout-a.
+- Fallback ruin renderer sada ima rasute kamene blokove, stubove, biome
+  akcent linije i dodatni shadow/glow tretman, dok atlas ruin sprite ostaje
+  prioritet kad je dostupan.
+- Cottage renderer dobija jaci krovni overhang, ridge highlight, tamniji
+  foundation, vertikalnu drvenu armaturu, prozorske plantere, dimnjak detalje
+  i novi `drawCottagePorch` sloj.
+- Marsh/Chapel cottage trim dobija poseban reed motiv umesto generickog leaf
+  tretmana; forest leaf trim dobija male lisnate elipse.
+- Hearthroot cauldron i shrine dobijaju citljivije postolje, materijalni stone
+  sloj i meki glow, da interaktivni centri budu vidljiviji bez dodatnog HUD-a.
+- Segment je renderer-only: hitboxi, interakcije, questovi i scene podaci nisu
+  menjani.
+- Provera: `node --check rendering\renderer.js`, targeted
+  `layout/world-restoration/homestead` testovi sa 15/15 prolaza i puna regresija
+  `node --test tests\*.test.mjs` sa 69/69 prolaza.
+
 ## Van trenutnog scopea
 
 - Durability i repair.

@@ -650,11 +650,12 @@ function drawWater(ctx, water, origin) {
 
 function drawRuin(ctx, ruin, sceneStyle, origin) {
   const point = toScreen(origin, ruin.anchorX, ruin.anchorY);
+  const variant = getPropVariant(ruin, 6);
   drawIsoShadow(ctx, point.x, point.y, 30, 12);
   if (
     drawBiomeProp(ctx, sceneStyle, "ruin", point.x, point.y + 2, {
       scale: Math.min(0.72, Math.max(0.44, ruin.w / 240)),
-      variant: getPropVariant(ruin, 6),
+      variant,
     })
   ) {
     return;
@@ -663,6 +664,10 @@ function drawRuin(ctx, ruin, sceneStyle, origin) {
   const midW = Math.round(ruin.w * 0.56);
   const topH = Math.round(ruin.h * 0.16);
   const midH = Math.round(ruin.h * 0.22);
+  const trim = getCottageBiomeTrim(sceneStyle);
+  fillPixelEllipse(ctx, point.x, point.y - 4, Math.max(34, midW * 0.32), 9, "rgba(38, 34, 31, 0.32)");
+  pixelRect(ctx, point.x - midW * 0.5 - 8, point.y - ruin.h * 0.18, 18, 4, "#4e4745");
+  pixelRect(ctx, point.x + midW * 0.5 - 10, point.y - ruin.h * 0.16, 24, 4, "#6a625e");
   fillBrickPattern(ctx, point.x - topW / 2, point.y - ruin.h * 0.52, topW, topH, "#807678", "#605759", "#b8abab");
   fillBrickPattern(ctx, point.x - midW / 2, point.y - ruin.h * 0.34, midW, midH, "#968c8a", "#6b6260", "#d1c5bc");
   drawWorldMaterialRect(
@@ -672,7 +677,7 @@ function drawRuin(ctx, ruin, sceneStyle, origin) {
     point.y - ruin.h * 0.52,
     topW,
     topH,
-    getPropVariant(ruin, 4),
+    variant,
     0.74
   );
   drawWorldMaterialRect(
@@ -682,42 +687,68 @@ function drawRuin(ctx, ruin, sceneStyle, origin) {
     point.y - ruin.h * 0.34,
     midW,
     midH,
-    getPropVariant(ruin, 4) + 1,
+    variant + 1,
     0.78
   );
+  pixelRect(ctx, point.x - midW * 0.46, point.y - ruin.h * 0.32, 8, midH + 12, "#6f6763");
+  pixelRect(ctx, point.x + midW * 0.39, point.y - ruin.h * 0.29, 9, midH + 6, "#5c5654");
+  drawWorldMaterialRect(ctx, "ruin", point.x - midW * 0.46, point.y - ruin.h * 0.32, 8, midH + 12, variant + 2, 0.7);
+  drawWorldMaterialRect(ctx, "ruin", point.x + midW * 0.39, point.y - ruin.h * 0.29, 9, midH + 6, variant + 3, 0.7);
+  drawPixelLine(ctx, point.x - midW * 0.44, point.y - ruin.h * 0.19, point.x - midW * 0.24, point.y - ruin.h * 0.28, trim.accent, 0.82);
+  drawPixelLine(ctx, point.x + midW * 0.2, point.y - ruin.h * 0.19, point.x + midW * 0.43, point.y - ruin.h * 0.25, trim.accent, 0.72);
+  pixelRect(ctx, point.x - midW * 0.18, point.y - ruin.h * 0.39, 24, 2, trim.light);
   pixelRect(ctx, point.x - ruin.w * 0.1, point.y - ruin.h * 0.2, ruin.w * 0.2, ruin.h * 0.12, "#cdbfae");
+  pixelRect(ctx, point.x - 5, point.y - ruin.h * 0.18, 10, ruin.h * 0.08, "rgba(34, 28, 28, 0.32)");
 }
 
 function drawCottage(ctx, cottage, sceneStyle, origin) {
   const point = toScreen(origin, cottage.anchorX, cottage.anchorY);
   const variant = getPropVariant(cottage, 4);
+  const trim = getCottageBiomeTrim(sceneStyle);
   drawIsoShadow(ctx, point.x, point.y, 54, 18);
 
+  fillPixelEllipse(ctx, point.x, point.y - 5, 70, 16, "rgba(46, 37, 28, 0.28)");
   pixelRect(ctx, point.x - 75, point.y - 63, 150, 63, "#4c4642");
+  pixelRect(ctx, point.x - 82, point.y - 66, 164, 7, "#3b332d");
   fillRoofPattern(ctx, point.x - 86, point.y - 116, 172, 30, "#c06f2f", "#8f451d", "#e79e54");
   fillRoofPattern(ctx, point.x - 100, point.y - 86, 200, 26, "#b85f27", "#83401b", "#dd9450");
   fillBrickPattern(ctx, point.x - 72, point.y - 60, 144, 58, "#8d8b88", "#686360", "#bbb7b2");
   drawWorldMaterialRect(ctx, "roof", point.x - 86, point.y - 116, 172, 30, variant, 0.96);
   drawWorldMaterialRect(ctx, "roof", point.x - 100, point.y - 86, 200, 26, variant + 1, 0.96);
   drawWorldMaterialRect(ctx, "stone", point.x - 72, point.y - 60, 144, 58, variant, 0.82);
+  pixelRect(ctx, point.x - 91, point.y - 89, 182, 5, "#6a351c");
+  pixelRect(ctx, point.x - 78, point.y - 118, 156, 4, "#f0a85e");
+  pixelRect(ctx, point.x - 104, point.y - 60, 208, 5, "rgba(36, 27, 21, 0.34)");
 
   pixelRect(ctx, point.x - 74, point.y - 62, 5, 60, "#58402d");
   pixelRect(ctx, point.x + 69, point.y - 62, 5, 60, "#3d2d22");
   pixelRect(ctx, point.x - 72, point.y - 35, 144, 4, "#6f5036");
+  pixelRect(ctx, point.x - 56, point.y - 59, 4, 54, "#6b5139");
+  pixelRect(ctx, point.x + 52, point.y - 59, 4, 54, "#56412f");
   pixelRect(ctx, point.x - 20, point.y - 44, 40, 46, "#6f4b30");
   drawWorldMaterialRect(ctx, "timber", point.x - 16, point.y - 40, 32, 42, variant, 0.95);
+  pixelRect(ctx, point.x - 18, point.y - 47, 36, 5, "#4e3626");
+  pixelRect(ctx, point.x - 15, point.y - 39, 3, 35, "#8f6542");
+  pixelRect(ctx, point.x + 12, point.y - 39, 3, 35, "#4d3629");
   pixelRect(ctx, point.x - 2, point.y - 29, 4, 4, "#d0aa61");
+  pixelRect(ctx, point.x - 11, point.y - 33, 22, 2, "rgba(244, 213, 142, 0.34)");
   pixelRect(ctx, point.x - 54, point.y - 46, 26, 18, "#abdff4");
   pixelRect(ctx, point.x - 50, point.y - 42, 18, 10, "#dff8ff");
   pixelRect(ctx, point.x - 43, point.y - 46, 3, 18, "#5e4937");
+  pixelRect(ctx, point.x - 56, point.y - 27, 30, 3, trim.shadow);
+  pixelRect(ctx, point.x - 49, point.y - 31, 15, 2, trim.accent);
   pixelRect(ctx, point.x + 28, point.y - 46, 26, 18, "#abdff4");
   pixelRect(ctx, point.x + 32, point.y - 42, 18, 10, "#dff8ff");
   pixelRect(ctx, point.x + 39, point.y - 46, 3, 18, "#5e4937");
+  pixelRect(ctx, point.x + 26, point.y - 27, 30, 3, trim.shadow);
+  pixelRect(ctx, point.x + 34, point.y - 31, 14, 2, trim.accent);
   pixelRect(ctx, point.x + 55, point.y - 112, 20, 34, "#5d5149");
   drawWorldMaterialRect(ctx, "stone", point.x + 58, point.y - 109, 14, 31, variant + 2, 0.88);
   pixelRect(ctx, point.x + 54, point.y - 114, 22, 5, "#3d3532");
+  pixelRect(ctx, point.x + 60, point.y - 121, 12, 5, "#2f2927");
+  pixelRect(ctx, point.x + 63, point.y - 127, 6, 7, "rgba(224, 204, 174, 0.4)");
   drawCottageBiomeTrim(ctx, point.x, point.y, sceneStyle, variant);
-  pixelRect(ctx, point.x - 20, point.y - 4, 40, 4, "#c4b393");
+  drawCottagePorch(ctx, point.x, point.y, sceneStyle, variant);
   pixelRect(ctx, point.x - 76, point.y - 4, 152, 5, sceneStyle === "aylaHomestead" ? "#b79c72" : "#7b705e");
 }
 
@@ -764,10 +795,37 @@ function drawCottageBiomeTrim(ctx, x, y, sceneStyle, variant) {
     return;
   }
 
+  if (trim.motif === "reed") {
+    drawPixelLine(ctx, x - 66, y - 39, x - 58, y - 53, trim.accent, 0.9);
+    drawPixelLine(ctx, x - 58, y - 39, x - 49, y - 50, trim.light, 0.82);
+    drawPixelLine(ctx, x + 51, y - 40, x + 45, y - 53, trim.accent, 0.9);
+    drawPixelLine(ctx, x + 59, y - 40, x + 66, y - 50, trim.light, 0.82);
+    pixelRect(ctx, x - 68, y - 36, 20, 2, trim.shadow);
+    pixelRect(ctx, x + 47, y - 36, 20, 2, trim.shadow);
+    return;
+  }
+
   pixelRect(ctx, x - 64, y - 44, 18, 2, trim.accent);
   pixelRect(ctx, x + 46, y - 45, 16, 2, trim.accent);
   pixelRect(ctx, x - 58, y - 42, 2, 5, trim.light);
   pixelRect(ctx, x + 53, y - 42, 2, 5, trim.light);
+  fillPixelEllipse(ctx, x - 49, y - 39, 6, 3, trim.accent);
+  fillPixelEllipse(ctx, x + 47, y - 39, 5, 3, trim.light);
+}
+
+function drawCottagePorch(ctx, x, y, sceneStyle, variant) {
+  const trim = getCottageBiomeTrim(sceneStyle);
+  pixelRect(ctx, x - 25, y - 8, 50, 6, "#7a5736");
+  drawWorldMaterialRect(ctx, "planks", x - 25, y - 8, 50, 6, variant, 0.9);
+  pixelRect(ctx, x - 20, y - 4, 40, 4, "#c4b393");
+  pixelRect(ctx, x - 30, y - 2, 60, 3, trim.shadow);
+  pixelRect(ctx, x - 27, y - 15, 3, 12, "#5b3d29");
+  pixelRect(ctx, x + 24, y - 15, 3, 12, "#5b3d29");
+  pixelRect(ctx, x - 32, y - 17, 64, 3, trim.accent);
+  if (sceneStyle === "aylaHomestead") {
+    pixelRect(ctx, x - 35, y - 22, 10, 3, "#86c978");
+    pixelRect(ctx, x + 25, y - 22, 10, 3, "#d7df94");
+  }
 }
 
 function getCottageBiomeTrim(sceneStyle) {
@@ -1229,22 +1287,34 @@ function drawInteractable(ctx, item, state, origin) {
   if (item.type === "shrine") {
     drawIsoShadow(ctx, point.x, point.y, 16, 8);
     if (item.serviceId === "hearthroot_cauldron") {
+      fillPixelEllipse(ctx, point.x, point.y - 8, 22, 7, "rgba(142, 209, 123, 0.2)");
+      pixelRect(ctx, point.x - 17, point.y - 8, 34, 6, "#5d5149");
+      drawWorldMaterialRect(ctx, "stone", point.x - 17, point.y - 8, 34, 6, getPropVariant(item, 4) + 1, 0.72);
       pixelRect(ctx, point.x - 13, point.y - 18, 26, 14, "#30383a");
       drawWorldMaterialRect(ctx, "metal", point.x - 13, point.y - 18, 26, 14, getPropVariant(item, 4), 0.9);
+      pixelRect(ctx, point.x - 15, point.y - 20, 30, 4, "#171d1f");
       pixelRect(ctx, point.x - 10, point.y - 18, 20, 4, "#8ed17b");
       pixelRect(ctx, point.x - 7, point.y - 17, 14, 2, "#d6f0a3");
+      pixelRect(ctx, point.x - 4, point.y - 16, 8, 1, "#f4ffd0");
       pixelRect(ctx, point.x - 17, point.y - 17, 5, 4, "#4d5759");
       pixelRect(ctx, point.x + 12, point.y - 17, 5, 4, "#4d5759");
       pixelRect(ctx, point.x - 9, point.y - 4, 4, 8, "#343033");
       pixelRect(ctx, point.x + 5, point.y - 4, 4, 8, "#343033");
       pixelRect(ctx, point.x - 6, point.y - 27, 3, 6, "rgba(180, 236, 153, 0.72)");
       pixelRect(ctx, point.x + 4, point.y - 31, 3, 8, "rgba(180, 236, 153, 0.56)");
+      pixelRect(ctx, point.x - 1, point.y - 34, 2, 10, "rgba(234, 255, 198, 0.34)");
     } else {
+      fillPixelEllipse(ctx, point.x, point.y - 8, 20, 7, "rgba(158, 232, 139, 0.16)");
+      pixelRect(ctx, point.x - 14, point.y - 5, 28, 5, "#514d50");
+      drawWorldMaterialRect(ctx, "stone", point.x - 14, point.y - 5, 28, 5, getPropVariant(item, 4) + 1, 0.72);
       pixelRect(ctx, point.x - 10, point.y - 28, 20, 24, "#6f6b71");
       drawWorldMaterialRect(ctx, "stone", point.x - 10, point.y - 28, 20, 24, getPropVariant(item, 4), 0.82);
       pixelRect(ctx, point.x - 6, point.y - 22, 12, 14, "#cfc6b7");
+      pixelRect(ctx, point.x - 8, point.y - 29, 16, 3, "#4b4649");
+      pixelRect(ctx, point.x - 4, point.y - 21, 8, 10, "rgba(168, 232, 139, 0.28)");
       pixelRect(ctx, point.x - 2, point.y - 34, 4, 8, "#9ee88b");
       pixelRect(ctx, point.x - 7, point.y - 36, 14, 2, "#f0de9a");
+      pixelRect(ctx, point.x - 1, point.y - 42, 2, 7, "rgba(240, 222, 154, 0.44)");
     }
   }
 }
