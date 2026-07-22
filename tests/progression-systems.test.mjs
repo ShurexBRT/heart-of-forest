@@ -11,6 +11,7 @@ import {
   getCurrency,
   getItemCount,
   getItemAttunementLevel,
+  getLootIntentLabel,
   getLoadoutPreview,
   isItemLocked,
   getPlayerBonuses,
@@ -41,6 +42,15 @@ import {
 import { REGION_DEFS } from "../data/regionData.js";
 import { QUEST_DEFS } from "../data/storyData.js";
 import { syncCampaignProgress } from "../systems/campaign.js";
+
+test("loot intent labels summarize item gameplay roles", () => {
+  assert.equal(getLootIntentLabel("barkskin_draught"), "thorn preparation");
+  assert.equal(getLootIntentLabel("health_potion"), "healing quick use");
+  assert.equal(getLootIntentLabel("moonleaf_seed"), "homestead seed");
+  assert.equal(getLootIntentLabel("relic_shard"), "attunement material");
+  assert.equal(getLootIntentLabel("thornbound_clasp"), "Thornwarden trinket");
+  assert.equal(getLootIntentLabel("emberglass_relic"), "Spiritweaver relic");
+});
 
 test("talent branches enforce prerequisites and one signature capstone", () => {
   const progression = createProgression({

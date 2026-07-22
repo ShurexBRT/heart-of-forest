@@ -9,7 +9,13 @@ import {
 import { getMovementVector, wasPressed } from "../core/input.js";
 import { getItemDef } from "../data/gameData.js";
 import { normalizeDamageType } from "../data/regionData.js";
-import { getPlayerBonuses, awardEliteBonusLoot, awardEnemyLoot, grantExperience } from "./progression.js";
+import {
+  getPlayerBonuses,
+  awardEliteBonusLoot,
+  awardEnemyLoot,
+  getLootIntentLabel,
+  grantExperience,
+} from "./progression.js";
 import { collidesWithObstacle } from "./collision.js";
 import { queueAudio } from "./audio.js";
 import { spawnBurst } from "./particles.js";
@@ -972,8 +978,15 @@ function damageHostile(state, target, amount, sourceX, sourceY, knockback, stun)
     const silverLoot = (lootResult?.silver || 0) + (eliteBonus?.silver || 0);
     if (combinedLoot.length > 0 && (target.isBoss || target.elite || combinedLoot.some((entry) => entry.itemId.includes("potion")))) {
       const lead = combinedLoot[0];
+      const extraItemCount = combinedLoot.reduce((total, entry) => total + Math.max(0, entry.amount || 0), 0) - (lead.amount || 0);
+      const roleText = getLootIntentLabel(lead.itemId);
+      const extraText = extraItemCount > 0 ? ` +${extraItemCount} more` : "";
       const silverText = silverLoot > 0 ? ` and ${silverLoot} silver` : "";
-      setToast(state, `Looted ${lead.amount} ${formatItemName(lead.itemId)}${silverText}`, 1.9);
+      setToast(
+        state,
+        `Looted ${lead.amount} ${formatItemName(lead.itemId)} (${roleText})${extraText}${silverText}`,
+        2.1
+      );
     }
 
     if (target.isBoss) {

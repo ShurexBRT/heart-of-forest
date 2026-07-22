@@ -1232,6 +1232,49 @@ export function getItemAspectAffinity(itemOrId) {
   };
 }
 
+export function getLootIntentLabel(itemOrId) {
+  const item = typeof itemOrId === "string" ? getItemDef(itemOrId) : itemOrId;
+  if (!item) return "unknown item";
+
+  if (item.category === "equipment") {
+    const affinity = getItemAspectAffinity(item);
+    const slotLabel = item.slot ? formatIntentToken(item.slot) : "gear";
+    return affinity ? `${affinity.label} ${slotLabel}` : `${slotLabel} gear`;
+  }
+
+  if (item.effect?.preparation) {
+    const typeLabel = formatIntentToken(item.effect.damageType || "regional");
+    return `${typeLabel} preparation`;
+  }
+
+  if (item.category === "consumable") {
+    if (item.effect?.heal && item.effect?.spirit) return "hybrid quick use";
+    if (item.effect?.heal) return "healing quick use";
+    if (item.effect?.spirit) return "spirit quick use";
+    if (item.effect?.damageReduction) return "defensive quick use";
+    if (item.effect?.speedBonus) return "mobility quick use";
+    return item.usable ? "quick use" : "consumable";
+  }
+
+  if (item.id === "relic_shard") return "attunement material";
+  if (item.id === "heartseed") return "renewal relic";
+  if (item.id === "spirit_bloom") return "rite material";
+  if (item.id?.endsWith("_seed")) return "homestead seed";
+  if (item.category === "material") return "brewing material";
+  if (item.category === "relic") return "relic material";
+
+  return formatIntentToken(item.category || "item");
+}
+
+function formatIntentToken(value) {
+  return String(value || "")
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ")
+    .toLowerCase();
+}
+
 export function sellInventoryItem(progression, itemId, amount = 1) {
   if (isItemLocked(progression, itemId)) {
     return { sold: false, value: 0, reason: "This item is locked." };

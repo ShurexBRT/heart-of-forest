@@ -11,6 +11,7 @@ import {
   getInventoryEntries,
   getItemAspectAffinity,
   getItemAttunementLevel,
+  getLootIntentLabel,
   getItemValue,
   getLoadoutEntries,
   getPlayerBonuses,
@@ -60,6 +61,26 @@ const SHOP_SORT_BUTTONS = [
   ["price", "Price"],
   ["recent", "Recent"],
 ];
+
+const COMPARISON_VISIBLE_LINES = 5;
+const PERCENT_BONUS_KEYS = new Set([
+  "incomingDamageReductionBonus",
+  "preparationReductionBonus",
+  "closeDamageReduction",
+  "bossSpellDamageBonus",
+]);
+const SECONDS_BONUS_KEYS = new Set([
+  "rootDurationBonus",
+]);
+const COOLDOWN_CUT_BONUS_KEYS = new Set([
+  "dashCooldownBonus",
+  "pulseCooldownBonus",
+]);
+const RANGE_BONUS_KEYS = new Set([
+  "boltRangeBonus",
+  "staffRangeBonus",
+  "pulseRadiusBonus",
+]);
 
 function getHudAbilitySpecs() {
   return [
@@ -1454,10 +1475,10 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
       detailsY + 88
     );
   }
-  const affinity = getItemAspectAffinity(selectedEntry);
-  if (affinity) {
+  const roleLabel = getLootIntentLabel(selectedEntry);
+  if (roleLabel) {
     ctx.fillStyle = "#9dd9a2";
-    ctx.fillText(`Build affinity: ${affinity.label}`, detailsX + 12, detailsY + 104);
+    ctx.fillText(`Role: ${roleLabel}`, detailsX + 12, detailsY + 104);
   }
 
   if (panel.primaryButton) {
@@ -1493,7 +1514,7 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
     let bonusY = detailY;
     for (const [key, value] of Object.entries(selectedEntry.bonuses)) {
       ctx.fillStyle = "#9ce1a3";
-      ctx.fillText(`${formatBonusKey(key)}: ${value > 0 ? "+" : ""}${value}`, detailsX + 12, bonusY);
+      ctx.fillText(`${formatBonusKey(key)}: ${formatBonusValue(key, value)}`, detailsX + 12, bonusY);
       bonusY += 16;
     }
     detailY = bonusY + 4;
@@ -1515,20 +1536,32 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
       ctx.font = "700 11px Segoe UI, Arial";
       ctx.fillText(`Equipped: ${equippedItem.name}`, detailsX + 12, detailY);
       detailY += 16;
-      const comparisonLines = buildComparisonLines(selectedEntry, equippedItem);
-      const comparisonSummary = getComparisonSummary(comparisonLines);
+      const comparison = buildEquipmentComparison(selectedEntry, equippedItem);
+      const comparisonSummary = comparison.summary;
       drawComparisonChip(ctx, "UP", comparisonSummary.up, detailsX + 12, detailY - 2, "#9ce1a3");
       drawComparisonChip(ctx, "DOWN", comparisonSummary.down, detailsX + 68, detailY - 2, "#f0a08d");
       drawComparisonChip(ctx, "SAME", comparisonSummary.same, detailsX + 140, detailY - 2, "#d7e4cf");
       detailY += 22;
-      for (const line of comparisonLines) {
+      for (const line of comparison.summaryLines) {
+        ctx.fillStyle = line.startsWith("Tradeoffs") ? "#d9bfa4" : "#cfe8c6";
+        ctx.font = "11px Segoe UI, Arial";
+        ctx.fillText(line, detailsX + 12, detailY);
+        detailY += 14;
+      }
+      for (const line of comparison.lines.slice(0, COMPARISON_VISIBLE_LINES)) {
         ctx.fillStyle = getComparisonDeltaColor(line.delta);
         ctx.font = "11px Segoe UI, Arial";
         ctx.fillText(
-          `${line.label}: ${line.equipped} > ${line.current} ${formatComparisonDelta(line.delta)}`,
+          `${line.label}: ${line.equipped} -> ${line.current} ${formatComparisonDelta(line.delta, line.key)}`,
           detailsX + 12,
           detailY
         );
+        detailY += 14;
+      }
+      if (comparison.lines.length > COMPARISON_VISIBLE_LINES) {
+        ctx.fillStyle = "#9fb0b8";
+        ctx.font = "10px Segoe UI, Arial";
+        ctx.fillText(`+${comparison.lines.length - COMPARISON_VISIBLE_LINES} more stats on hover`, detailsX + 12, detailY);
         detailY += 14;
       }
       detailY += 4;
@@ -1767,10 +1800,15 @@ function drawServiceTab(ctx, state, x, y, width, height) {
       ctx.fillStyle = "#e9d281";
       ctx.font = "11px Segoe UI, Arial";
       ctx.fillText(`Price ${panel.selected.price} silver`, panel.detailsRect.x + 12, panel.detailsRect.y + 106);
+      const roleLabel = getLootIntentLabel(selectedItem);
+      if (roleLabel) {
+        ctx.fillStyle = "#9dd9a2";
+        ctx.fillText(`Role: ${roleLabel}`, panel.detailsRect.x + 12, panel.detailsRect.y + 122);
+      }
 
       if (selectedItem.category === "equipment" && selectedItem.slot) {
         const equippedItem = getEquippedItems(state.progression).find((entry) => entry.slot === selectedItem.slot)?.item;
-        let compareY = panel.detailsRect.y + 130;
+        let compareY = panel.detailsRect.y + 146;
         ctx.fillStyle = "#fff2d5";
         ctx.font = "700 12px Segoe UI, Arial";
         ctx.fillText("Comparison", panel.detailsRect.x + 12, compareY);
@@ -1780,11 +1818,18 @@ function drawServiceTab(ctx, state, x, y, width, height) {
           ctx.font = "700 11px Segoe UI, Arial";
           ctx.fillText(`Equipped: ${equippedItem.name}`, panel.detailsRect.x + 12, compareY);
           compareY += 16;
-          for (const line of buildComparisonLines(selectedItem, equippedItem)) {
+          const comparison = buildEquipmentComparison(selectedItem, equippedItem);
+          for (const line of comparison.summaryLines.slice(0, 2)) {
+            ctx.fillStyle = line.startsWith("Tradeoffs") ? "#d9bfa4" : "#cfe8c6";
+            ctx.font = "11px Segoe UI, Arial";
+            ctx.fillText(line, panel.detailsRect.x + 12, compareY);
+            compareY += 14;
+          }
+          for (const line of comparison.lines.slice(0, 3)) {
             ctx.fillStyle = line.delta > 0 ? "#9ce1a3" : line.delta < 0 ? "#f0a08d" : "#d7e4cf";
             ctx.font = "11px Segoe UI, Arial";
             ctx.fillText(
-              `${line.label}: ${line.equipped} -> ${line.current} (${line.delta > 0 ? "+" : ""}${line.delta})`,
+              `${line.label}: ${line.equipped} -> ${line.current} ${formatComparisonDelta(line.delta, line.key)}`,
               panel.detailsRect.x + 12,
               compareY
             );
@@ -1886,6 +1931,44 @@ function formatBonusKey(key) {
     .replace(/([A-Z])/g, " $1")
     .replace(/^./, (value) => value.toUpperCase())
     .trim();
+}
+
+function formatBonusValue(key, value) {
+  if (typeof value !== "number" || Number.isNaN(value)) return String(value);
+  if (value === 0) return "0";
+
+  const sign = value > 0 ? "+" : "-";
+  const absValue = Math.abs(value);
+
+  if (key === "staffArcBonus") {
+    return `${sign}${Math.round((absValue * 180) / Math.PI)} deg arc`;
+  }
+
+  if (PERCENT_BONUS_KEYS.has(key)) {
+    return `${sign}${Math.round(absValue * 100)}%`;
+  }
+
+  if (COOLDOWN_CUT_BONUS_KEYS.has(key)) {
+    return `${sign}${formatTrimmedNumber(absValue, 2)}s cut`;
+  }
+
+  if (SECONDS_BONUS_KEYS.has(key)) {
+    return `${sign}${formatTrimmedNumber(absValue, 2)}s`;
+  }
+
+  if (RANGE_BONUS_KEYS.has(key)) {
+    return `${sign}${Math.round(absValue)} range`;
+  }
+
+  if (key === "moveSpeedBonus") {
+    return `${sign}${Math.round(absValue)} speed`;
+  }
+
+  return `${sign}${formatTrimmedNumber(absValue, 2)}`;
+}
+
+function formatTrimmedNumber(value, digits = 2) {
+  return value.toFixed(digits).replace(/\.?0+$/, "");
 }
 
 function shorten(value, max) {
@@ -2317,9 +2400,10 @@ function buildComparisonLines(current, equipped) {
       const currentValue = current.bonuses?.[key] || 0;
       const equippedValue = equipped?.bonuses?.[key] || 0;
       return {
+        key,
         label: formatBonusKey(key),
-        current: `${currentValue > 0 ? "+" : ""}${currentValue}`,
-        equipped: `${equippedValue > 0 ? "+" : ""}${equippedValue}`,
+        current: formatBonusValue(key, currentValue),
+        equipped: formatBonusValue(key, equippedValue),
         delta: currentValue - equippedValue,
       };
     })
@@ -2327,6 +2411,53 @@ function buildComparisonLines(current, equipped) {
       const impactDelta = Math.abs(b.delta) - Math.abs(a.delta);
       return impactDelta !== 0 ? impactDelta : a.label.localeCompare(b.label);
     });
+}
+
+function buildEquipmentComparison(current, equipped) {
+  const lines = buildComparisonLines(current, equipped);
+  return {
+    lines,
+    summary: getComparisonSummary(lines),
+    summaryLines: buildComparisonInsightLines(current, equipped, lines),
+  };
+}
+
+function buildComparisonInsightLines(current, equipped, lines) {
+  const currentAffinity = getItemAspectAffinity(current);
+  const equippedAffinity = getItemAspectAffinity(equipped);
+  const gains = lines
+    .filter((line) => line.delta > 0)
+    .slice(0, 2)
+    .map(formatComparisonTrait);
+  const tradeoffs = lines
+    .filter((line) => line.delta < 0)
+    .slice(0, 2)
+    .map(formatComparisonTrait);
+  const insightLines = [];
+
+  if (currentAffinity && equippedAffinity && currentAffinity.id !== equippedAffinity.id) {
+    insightLines.push(`Build shift: ${equippedAffinity.label} -> ${currentAffinity.label}`);
+  } else if (currentAffinity) {
+    insightLines.push(`Best for: ${currentAffinity.label}`);
+  } else {
+    insightLines.push("Best for: mixed utility");
+  }
+
+  if (gains.length > 0) {
+    insightLines.push(`Gains: ${gains.join(", ")}`);
+  }
+
+  if (tradeoffs.length > 0) {
+    insightLines.push(`Tradeoffs: ${tradeoffs.join(", ")}`);
+  } else if (gains.length > 0) {
+    insightLines.push("Tradeoffs: none");
+  }
+
+  return insightLines;
+}
+
+function formatComparisonTrait(line) {
+  return `${line.label} ${formatBonusValue(line.key, line.delta)}`;
 }
 
 function getComparisonSummary(lines) {
@@ -2347,9 +2478,8 @@ function getComparisonDeltaColor(delta) {
   return "#d7e4cf";
 }
 
-function formatComparisonDelta(delta) {
-  if (delta > 0) return `(+${delta})`;
-  if (delta < 0) return `(${delta})`;
+function formatComparisonDelta(delta, key = null) {
+  if (delta > 0 || delta < 0) return `(${formatBonusValue(key, delta)})`;
   return "(same)";
 }
 
@@ -2680,7 +2810,17 @@ function getInventoryPanelData(state, frame) {
   }
   if (selectedEntry.category === "equipment" && selectedEntry.slot) {
     const equippedItem = getEquippedItems(state.progression).find((entry) => entry.slot === selectedEntry.slot)?.item;
-    detailY += equippedItem ? 80 + buildComparisonLines(selectedEntry, equippedItem).length * 14 : 42;
+    if (equippedItem) {
+      const comparison = buildEquipmentComparison(selectedEntry, equippedItem);
+      const visibleStats = Math.min(COMPARISON_VISIBLE_LINES, comparison.lines.length);
+      detailY +=
+        80 +
+        comparison.summaryLines.length * 14 +
+        visibleStats * 14 +
+        (comparison.lines.length > COMPARISON_VISIBLE_LINES ? 14 : 0);
+    } else {
+      detailY += 42;
+    }
   }
 
   if (selectedEntry.usable || selectedEntry.category === "consumable" || selectedEntry.effect) {
@@ -3186,9 +3326,13 @@ function getQuestRewardSummary(rewards) {
 
 function buildItemTooltip(entry, lines = [], progression = null) {
   const tooltipLines = [entry.description];
+  const roleLabel = getLootIntentLabel(entry);
+  if (roleLabel) {
+    tooltipLines.push(`Role: ${roleLabel}`);
+  }
   if (entry.bonuses) {
     for (const [key, value] of Object.entries(entry.bonuses)) {
-      tooltipLines.push(`${formatBonusKey(key)}: ${value > 0 ? "+" : ""}${value}`);
+      tooltipLines.push(`${formatBonusKey(key)}: ${formatBonusValue(key, value)}`);
     }
   }
   if (progression && entry.category === "equipment" && entry.slot) {
@@ -3199,10 +3343,15 @@ function buildItemTooltip(entry, lines = [], progression = null) {
     const equippedItem = getEquippedItems(progression).find((candidate) => candidate.slot === entry.slot)?.item;
     if (equippedItem && equippedItem.id !== entry.id) {
       tooltipLines.push(`Equipped: ${equippedItem.name}`);
-      for (const comparison of buildComparisonLines(entry, equippedItem)) {
+      const comparisonResult = buildEquipmentComparison(entry, equippedItem);
+      tooltipLines.push(...comparisonResult.summaryLines);
+      for (const comparison of comparisonResult.lines.slice(0, COMPARISON_VISIBLE_LINES)) {
         tooltipLines.push(
-          `${comparison.label}: ${comparison.equipped} > ${comparison.current} ${formatComparisonDelta(comparison.delta)}`
+          `${comparison.label}: ${comparison.equipped} -> ${comparison.current} ${formatComparisonDelta(comparison.delta, comparison.key)}`
         );
+      }
+      if (comparisonResult.lines.length > COMPARISON_VISIBLE_LINES) {
+        tooltipLines.push(`+${comparisonResult.lines.length - COMPARISON_VISIBLE_LINES} more stat changes`);
       }
     } else if (!equippedItem) {
       tooltipLines.push("Open equipment slot.");
@@ -3210,10 +3359,6 @@ function buildItemTooltip(entry, lines = [], progression = null) {
   }
   if (entry.maxStack && typeof entry.amount === "number") {
     tooltipLines.push(`Stack ${entry.amount}/${entry.maxStack}`);
-  }
-  const affinity = getItemAspectAffinity(entry);
-  if (affinity) {
-    tooltipLines.push(`Build affinity: ${affinity.label}`);
   }
   if (entry.locked) {
     tooltipLines.push("Locked against selling.");

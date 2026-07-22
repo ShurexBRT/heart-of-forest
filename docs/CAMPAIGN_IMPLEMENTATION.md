@@ -822,6 +822,27 @@ beskonacnu kupovinu talent poena.
   sa 23/23 prolaza i puna regresija `node --test tests\*.test.mjs` sa 73/73
   prolaza.
 
+### Faza 8G
+
+- Datum: 2026-07-22
+- Status: zavrseno
+- Cilj: poboljsati citljivost loot-a i poredenja opreme bez uvodenja novog
+  inventarskog ekrana.
+- Progression sistem sada ima `getLootIntentLabel`, isti izvor istine za kratku
+  gameplay ulogu itema: preparation, quick use, brewing material, attunement
+  material ili equipment build fit.
+- Combat loot toast za boss/elite/vazne consumable dropove prikazuje vodeci
+  item, njegovu ulogu, dodatne iteme i silver, pa igrac odmah zna zasto je drop
+  bitan.
+- Inventory i shop detail paneli prikazuju `Role`, formatiraju procente,
+  cooldown cut, trajanje i range citljivije, i dodaju kratak compare rezime:
+  `Best for`, `Build shift`, `Gains` i `Tradeoffs`.
+- Hover tooltip za opremu sada nosi isti WoW-like redosled informacija:
+  opis, role, bonusi, attunement, equipped item, kratki compare rezime i top
+  stat promene.
+- Test pokriva loot intent role za preparation, quick use, seed, attunement
+  material i dve equipment build grane.
+
 ## Van trenutnog scopea
 
 - Durability i repair.
