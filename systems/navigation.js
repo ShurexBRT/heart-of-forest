@@ -329,14 +329,14 @@ function getNavigationHint(questId, status, targetSceneIds, progression) {
   if (status === "complete") return "Return to the quest giver.";
   if (status === "available") return "Speak with the local keeper.";
   if (questId === "wake_hearthroot") {
-    return "Approach the silent shrine beside Ayla's cottage and answer its pulse.";
+    return "Approach the silent shrine beside Ayla's cottage and answer the Hearthroot's pulse.";
   }
   if (questId === "first_moonleaf") {
     if (getQuestCounter(progression, "moonleafPlanted") < 1) {
-      return "Plant one of the Hearthroot's Moonleaf seeds in any garden plot.";
+      return "Plant one of the Hearthroot's Moonleaf seeds in any home garden plot.";
     }
     if (getQuestCounter(progression, "moonleafWatered") < 1) {
-      return "Water the planted Moonleaf before resting.";
+      return "Water the planted Moonleaf before resting so it can grow overnight.";
     }
     if (getQuestCounter(progression, "moonleafGrown") < 1) {
       return "Sleep once at Ayla's bed so the watered Moonleaf can mature.";
@@ -344,13 +344,13 @@ function getNavigationHint(questId, status, targetSceneIds, progression) {
     return "Harvest the mature Moonleaf at dawn.";
   }
   if (questId === "thorn_at_gate") {
-    return "Follow the road into Whispering Woods and clear the two creatures carrying the thorn-mark.";
+    return "Follow the opened road into Whispering Woods and free the two thorn-marked creatures.";
   }
   if (questId === "brew_before_blood") {
-    return "Return to the Homestead cauldron and brew one Barkskin Draught.";
+    return "Return to the Homestead cauldron and brew one Barkskin Draught before the ruins.";
   }
   if (questId === "first_rootwarden") {
-    return "Enter Mossy Ruins with Barkskin prepared and move through the open lane in Root Crown.";
+    return "Enter Mossy Ruins with Barkskin prepared and step through the open lane in Root Crown.";
   }
   if (questId === "bogbound_rot") {
     return "Cleanse the black roots after the marsh encounter is settled.";

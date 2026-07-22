@@ -6,6 +6,7 @@ import { collidesWithObstacle } from "../systems/collision.js";
 import { createArena } from "../world/arena.js";
 
 const PLAYER_RADIUS = 16;
+const PATH_STEP = 18;
 
 function hasReachableInteractionPoint(arena, target) {
   const interactionRadius = target.interactionRadius || 54;
@@ -35,6 +36,110 @@ function hasReachableInteractionPoint(arena, target) {
   return false;
 }
 
+function getReachableWalkCells(arena) {
+  const cols = Math.floor((arena.width - arena.boundsPadding * 2) / PATH_STEP) + 1;
+  const rows = Math.floor((arena.height - arena.boundsPadding * 2) / PATH_STEP) + 1;
+  const visited = new Set();
+  const queue = [];
+  const starts = [
+    arena.playerSpawn,
+    ...Object.values(arena.entrySpawns || {}),
+  ];
+
+  const toCell = (point) => ({
+    cx: Math.max(
+      0,
+      Math.min(cols - 1, Math.round((point.x - arena.boundsPadding) / PATH_STEP))
+    ),
+    cy: Math.max(
+      0,
+      Math.min(rows - 1, Math.round((point.y - arena.boundsPadding) / PATH_STEP))
+    ),
+  });
+  const toPoint = (cx, cy) => ({
+    x: arena.boundsPadding + cx * PATH_STEP,
+    y: arena.boundsPadding + cy * PATH_STEP,
+  });
+  const isWalkable = (cx, cy) => {
+    if (cx < 0 || cy < 0 || cx >= cols || cy >= rows) return false;
+    const point = toPoint(cx, cy);
+    return !collidesWithObstacle(point.x, point.y, PLAYER_RADIUS, arena);
+  };
+
+  for (const start of starts) {
+    const cell = toCell(start);
+    if (!isWalkable(cell.cx, cell.cy)) continue;
+    const key = `${cell.cx}:${cell.cy}`;
+    if (visited.has(key)) continue;
+    visited.add(key);
+    queue.push(cell);
+  }
+
+  for (let index = 0; index < queue.length; index += 1) {
+    const cell = queue[index];
+    for (const [dx, dy] of [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+      [1, 1],
+      [1, -1],
+      [-1, 1],
+      [-1, -1],
+    ]) {
+      const next = { cx: cell.cx + dx, cy: cell.cy + dy };
+      const key = `${next.cx}:${next.cy}`;
+      if (visited.has(key) || !isWalkable(next.cx, next.cy)) continue;
+      visited.add(key);
+      queue.push(next);
+    }
+  }
+
+  return {
+    has(point) {
+      const cell = toCell(point);
+      for (let cy = cell.cy - 1; cy <= cell.cy + 1; cy += 1) {
+        for (let cx = cell.cx - 1; cx <= cell.cx + 1; cx += 1) {
+          if (visited.has(`${cx}:${cy}`)) return true;
+        }
+      }
+      return false;
+    },
+  };
+}
+
+function hasPathReachableInteractionPoint(arena, target) {
+  const reachable = getReachableWalkCells(arena);
+  const interactionRadius = target.interactionRadius || 54;
+  const minRadius = Math.max(PLAYER_RADIUS + 2, 20);
+  const maxRadius = interactionRadius - 2;
+
+  for (let radius = minRadius; radius <= maxRadius; radius += 6) {
+    for (let degrees = 0; degrees < 360; degrees += 10) {
+      const angle = (degrees * Math.PI) / 180;
+      const x = target.x + Math.cos(angle) * radius;
+      const y = target.y + Math.sin(angle) * radius;
+
+      if (x < arena.boundsPadding + PLAYER_RADIUS || x > arena.width - arena.boundsPadding - PLAYER_RADIUS) {
+        continue;
+      }
+
+      if (y < arena.boundsPadding + PLAYER_RADIUS || y > arena.height - arena.boundsPadding - PLAYER_RADIUS) {
+        continue;
+      }
+
+      if (
+        !collidesWithObstacle(x, y, PLAYER_RADIUS, arena) &&
+        reachable.has({ x, y })
+      ) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 test("scene interactables always expose at least one reachable interaction point", () => {
   const failures = [];
 
@@ -43,6 +148,22 @@ test("scene interactables always expose at least one reachable interaction point
 
     for (const interactable of arena.interactables) {
       if (!hasReachableInteractionPoint(arena, interactable)) {
+        failures.push(`${scene.id}:${interactable.id}`);
+      }
+    }
+  }
+
+  assert.deepEqual(failures, []);
+});
+
+test("scene interactables can be path reached from a scene entry", () => {
+  const failures = [];
+
+  for (const scene of Object.values(SCENES)) {
+    const arena = createArena(scene);
+
+    for (const interactable of arena.interactables) {
+      if (!hasPathReachableInteractionPoint(arena, interactable)) {
         failures.push(`${scene.id}:${interactable.id}`);
       }
     }

@@ -66,6 +66,7 @@ test("new game can complete the Homestead to Rootwarden preparation loop", () =>
 
   updateQuestAvailability(state);
   assert.equal(state.progression.questStates.first_moonleaf, "active");
+  assert.match(state.story.toastText, /plant Moonleaf.*sleep once/i);
   const homeProgress = {};
   assert.equal(
     interactWithFarmPlot(
@@ -105,6 +106,7 @@ test("new game can complete the Homestead to Rootwarden preparation loop", () =>
   state.currentSceneId = "whispering_woods";
   updateQuestAvailability(state);
   assert.equal(state.progression.questStates.thorn_at_gate, "active");
+  assert.match(state.story.toastText, /Whispering Woods.*two driven creatures/i);
   state.storyEvents.push(
     { type: "enemyDefeated", enemyType: "thornling" },
     { type: "enemyDefeated", enemyType: "barkling" }
@@ -116,6 +118,7 @@ test("new game can complete the Homestead to Rootwarden preparation loop", () =>
   state.currentSceneId = "ayla_homestead";
   updateQuestAvailability(state);
   assert.equal(state.progression.questStates.brew_before_blood, "active");
+  assert.match(state.story.toastText, /Brew Barkskin.*Mossy Ruins/i);
   assert.equal(openServiceUi(state, "hearthroot_cauldron", "Hearthroot Cauldron"), true);
   const barkskinIndex = getServiceEntries(state).findIndex(
     (entry) => entry.id === "barkskin_draught"
@@ -132,6 +135,7 @@ test("new game can complete the Homestead to Rootwarden preparation loop", () =>
   state.currentSceneId = "mossy_ruins";
   updateQuestAvailability(state);
   assert.equal(state.progression.questStates.first_rootwarden, "active");
+  assert.match(state.story.toastText, /Rootwarden's open lanes/i);
   state.storyEvents.push({ type: "bossDefeated", bossId: "rootwarden" });
   consumeStoryEvents(state);
   assert.equal(state.progression.questStates.first_rootwarden, "done");

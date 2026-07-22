@@ -62,7 +62,7 @@ export function updateQuestAvailability(state) {
 
     if (quest.autoActivateSceneId && state.currentSceneId === quest.autoActivateSceneId) {
       progression.questStates[quest.id] = "active";
-      setToast(state, `Quest Started: ${quest.title}`, 2.4);
+      setToast(state, getQuestStartToast(quest), 2.4);
       queueAudio(state, "quest");
     }
   }
@@ -363,7 +363,7 @@ export function activateQuestPanelSelection(state) {
       if (view.quest.refreshSceneOnAccept) {
         state.pendingArenaRefresh = true;
       }
-      setToast(state, `Quest Started: ${view.quest.title}`, 2.4);
+      setToast(state, getQuestStartToast(view.quest), 2.4);
       queueAudio(state, "quest");
       updateQuestAvailability(state);
       refreshQuestStates(state);
@@ -474,7 +474,7 @@ function openNpcDialogue(state, npc, npcDef = NPC_DEFS[npc.id]) {
       lines = npcDef.dialogue.intro || lines;
       onClose = () => {
         progression.questStates[handledQuest.id] = "active";
-        setToast(state, `Quest Started: ${handledQuest.title}`, 2.4);
+        setToast(state, getQuestStartToast(handledQuest), 2.4);
         queueAudio(state, "quest");
         maybeOpenNpcService(state, npcDef);
       };
@@ -640,6 +640,10 @@ function getQuestCompletionToast(quest, rewardSummary, fallbackPrefix) {
   return rewardSummary.levelsGained > 0
     ? `${fallbackPrefix}: ${quest.title} - Level up`
     : `${fallbackPrefix}: ${quest.title}`;
+}
+
+function getQuestStartToast(quest) {
+  return quest.startToast || `Quest Started: ${quest.title}`;
 }
 
 function maybeOpenNpcService(state, npcDef) {

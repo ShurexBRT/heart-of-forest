@@ -194,6 +194,7 @@ beskonacnu kupovinu talent poena.
 | 7A | Daily Corruption Echo loop | Zavrseno |
 | 7B | Second Spring Homestead board | Zavrseno |
 | 7C | Sunken Reliquary daily trial rewards | Zavrseno |
+| 7D | First-hour quest polish i collision reachability audit | Zavrseno |
 
 ## Dnevnik implementacije
 
@@ -550,11 +551,32 @@ beskonacnu kupovinu talent poena.
   boss geara, board signal i reachability renewal cache-a.
 - Automatizovana provera: `66/66` testova prolazi.
 
-### Sledeca faza - Faza 7D
+### Faza 7D
 
-1. Doterati prve questove jos jednim narativnim polish prolazom: jasniji NPC
-   barkovi, bolje mikro-nagrade i manje suvi objective tekst.
-2. Nastaviti HUD i tile/texture modernizaciju kroz manje, pushovane segmente.
+- Datum: 2026-07-22
+- Status: zavrseno
+- Cilj: dodatno ispolirati prvi sat igre i proveriti sumnjive collision slucajeve
+  bez menjanja stabilnog Heartwood progression toka.
+- Prvih pet Heartwood main questova dobija `startToast` poruke. Auto-start,
+  quest panel accept i NPC accept sada koriste isti helper i mogu igracu odmah
+  reci sta sledece radi, umesto generickog `Quest Started` teksta.
+- First-hour navigation i farming feedback sada jasnije povezuju Hearthroot,
+  Moonleaf, odmor, Barkskin i Rootwarden citanje otvorenih linija.
+- Rowan i Tamsin dobijaju malo toplije barkove za rani Heartwood, tako da
+  side questovi zvuce kao deo sela, a ne kao izdvojeni counteri.
+- Layout testovi sada ne proveravaju samo da postoji slobodna interaction tacka
+  oko objekta, vec i da je do nje moguce stici iz player/entry spawn mreze.
+  Time se automatski hvataju itemi i quest objekti koje bi kolizija mogla da
+  odsece od igraca.
+- Ovaj segment nije nasao trenutno blokirane interactable objekte, ali sada ima
+  regresioni test za bas taj problem.
+- Automatizovana provera: `67/67` testova prolazi.
+
+### Sledeca faza - Faza 7E
+
+1. Modernizovati HUD: kompaktniji top/status sloj, citljiviji pinned quest,
+   bolji combat/resource feedback i manje zaklanjanja sveta.
+2. Posle HUD-a nastaviti tile/texture modernizaciju kroz biome podove i zgrade.
 
 ## Van trenutnog scopea
 

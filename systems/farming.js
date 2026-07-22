@@ -109,7 +109,7 @@ export function interactWithFarmPlot(sceneProgress, plotId, progression, clock) 
     if (!removeItem(progression, FARM_CROP.seedItemId, 1)) {
       return {
         changed: false,
-        text: "A Moonleaf Seed is needed for this plot.",
+        text: "This plot needs a Moonleaf Seed before it can answer the Hearthroot.",
       };
     }
 
@@ -122,7 +122,7 @@ export function interactWithFarmPlot(sceneProgress, plotId, progression, clock) 
     incrementQuestCounter(progression, "moonleafPlanted", 1);
     return {
       changed: true,
-      text: "Moonleaf planted. Water the plot to begin its growth.",
+      text: "Moonleaf planted. Water the soil before resting so it can reach for dawn.",
       event: "planted",
     };
   }
@@ -136,7 +136,7 @@ export function interactWithFarmPlot(sceneProgress, plotId, progression, clock) 
     delete plots[plotId];
     return {
       changed: true,
-      text: `Harvested ${FARM_CROP.harvestAmount} Moonleaf and recovered a seed.`,
+      text: `Harvested ${FARM_CROP.harvestAmount} Moonleaf and recovered one seed for the next planting.`,
       event: "harvested",
       harvestedItemId: FARM_CROP.harvestItemId,
       harvestedAmount: FARM_CROP.harvestAmount,
@@ -146,7 +146,7 @@ export function interactWithFarmPlot(sceneProgress, plotId, progression, clock) 
   if (plot.wateredDay === day) {
     return {
       changed: false,
-      text: "The soil is damp. This Moonleaf will grow after Ayla rests.",
+      text: "The soil is already damp. Rest when you are ready and Moonleaf will grow.",
     };
   }
 
@@ -154,7 +154,7 @@ export function interactWithFarmPlot(sceneProgress, plotId, progression, clock) 
   incrementQuestCounter(progression, "moonleafWatered", 1);
   return {
     changed: true,
-    text: "Moonleaf watered. It will grow overnight.",
+    text: "Moonleaf watered. Sleep once and it should be ready at dawn.",
     event: "watered",
   };
 }

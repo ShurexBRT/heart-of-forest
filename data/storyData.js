@@ -10,6 +10,7 @@ export const QUEST_DEFS = {
     completeFlags: ["hearthroot_awake"],
     refreshSceneOnComplete: true,
     rewards: { items: { moonleaf_seed: 2, ironbark: 1 }, silver: 20, xp: 30 },
+    startToast: "Ayla feels a pulse under the old shrine. Listen before taking the road.",
     completeToast: "Hearthroot wakes. Moonleaf seeds and ironbark are ready for Ayla's first preparation.",
     objectives: [{ key: "hearthrootAwakened", label: "Answer the Hearthroot's pulse", required: 1 }],
   },
@@ -24,6 +25,7 @@ export const QUEST_DEFS = {
     completeFlags: ["heartwood_first_harvest"],
     refreshSceneOnComplete: true,
     rewards: { items: { health_potion: 1 }, silver: 20, xp: 36 },
+    startToast: "Care comes first: plant Moonleaf, water it, sleep once, then harvest at dawn.",
     completeToast: "First Moonleaf harvested. The eastern gate can hear the garden again.",
     objectives: [
       { key: "moonleafPlanted", label: "Tuck one Moonleaf seed into a home plot", required: 1 },
@@ -46,6 +48,7 @@ export const QUEST_DEFS = {
       silver: 25,
       xp: 42,
     },
+    startToast: "The gate opens. Follow the thorn-mark into Whispering Woods and free two driven creatures.",
     completeToast: "The old road quiets. Barkskin Draught is now known at the Homestead cauldron.",
     objectives: [{ key: "gateThreatsDefeated", label: "Free the two thorn-marked creatures at the gate", required: 2 }],
   },
@@ -60,6 +63,7 @@ export const QUEST_DEFS = {
     completeFlags: ["heartwood_ruins_open"],
     refreshSceneOnComplete: true,
     rewards: { items: { spirit_tonic: 1 }, silver: 20, xp: 38 },
+    startToast: "The road splinters point home. Brew Barkskin at the cauldron before Mossy Ruins.",
     completeToast: "Barkskin is prepared. The Mossy Ruins trail opens, but Rootwarden's crown still has to be read.",
     objectives: [{ key: "barkskinBrewed", label: "Brew Barkskin Draught at the Hearthroot Cauldron", required: 1 }],
   },
@@ -78,6 +82,7 @@ export const QUEST_DEFS = {
       talentPoints: 1,
       xp: 140,
     },
+    startToast: "Mossy Ruins opens. Barkskin helps, but reading Rootwarden's open lanes wins the fight.",
     completeToast: "Heartwood breathes again. Journal, Training Grove, and Grove Loadout I are unlocked.",
     objectives: [{ key: "rootwardenDefeated", label: "Release Rootwarden from the thorn oath", required: 1 }],
   },
@@ -708,18 +713,18 @@ export const NPC_DEFS = {
     palette: { hood: "#efe9dd", cloak: "#6e9d63", accent: "#d6bb73" },
     dialogue: {
       intro: [
-        "Ayla, the whispering roots are restless.",
-        "Gather the Spirit Flowers before the blight reaches the cottages, then drive the Thornlings back from the road.",
+        "Ayla, the road is quiet because everyone is holding their breath.",
+        "Bring back Spirit Flowers and drive the Thornlings off the first trail. The village needs one safe morning more than it needs speeches.",
       ],
       progress: [
         "The woods still tremble. Finish the flowers and keep the Thornlings off our threshold.",
       ],
       complete: [
-        "Good. The grove can breathe again.",
+        "Good. That is not victory yet, but it is air in the lungs.",
         "Tamsin and the others can move again now that the first trail is clear.",
         "Take this windstep phial and catch your breath before you press deeper.",
       ],
-      after: ["The forest remembers what you restored here. Keep moving."],
+      after: ["The forest remembers what you restored here. Keep moving, but come home when the road starts sounding too certain."],
     },
   },
   lysa: {
@@ -787,7 +792,7 @@ export const NPC_DEFS = {
     dialogue: {
       intro: [
         "The tonic shelf is down to dust and stubborn hope.",
-        "Bring me moonleaf bundles and relight the marsh lanterns so the gatherers can walk again.",
+        "Bring me Moonleaf bundles and relight the marsh lanterns. I can brew miracles, but not from an empty shelf.",
       ],
       progress: [
         "Moonleaf and safe lanterns, Ayla. I can brew the rest once the path is open.",
@@ -796,7 +801,7 @@ export const NPC_DEFS = {
         "Perfect. This is enough to stock the satchels and prime the spirit flasks.",
         "Take the amulet and a groveguard phial. Both will hold you steadier when the road bites back.",
       ],
-      after: ["If the herbs keep flowing, I can keep the village standing."],
+      after: ["If the herbs keep flowing, I can keep the village standing instead of guessing which bottle still has one useful drop."],
     },
   },
   orras: {
