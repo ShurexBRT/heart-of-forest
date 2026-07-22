@@ -1381,6 +1381,36 @@ export const SERVICE_DEFS = {
     subtitle: "Store gear and reagents for later runs",
     kind: "stash",
   },
+  homestead_renewal: {
+    id: "homestead_renewal",
+    title: "Renewal Workbench",
+    subtitle: "Spend Reliquary supplies on homestead upkeep and road preparation",
+    kind: "renewal",
+    actions: [
+      {
+        id: "moonleaf_beds",
+        title: "Seed the Moonleaf Beds",
+        description: "Turn one Reliquary supply into living seed stock and a fresh Moonleaf bundle for tomorrow's preparation.",
+        costRenewalSupplies: 1,
+        grants: { items: { moonleaf_seed: 4, moonleaf: 1 } },
+      },
+      {
+        id: "attunement_crate",
+        title: "Sort Attunement Relics",
+        description: "Recover relic shards and ironbark from the supply crate so Ayla can test more gear at the Waystone.",
+        costRenewalSupplies: 1,
+        grants: { items: { relic_shard: 1, ironbark: 2 } },
+      },
+      {
+        id: "road_kit",
+        title: "Pack a Road Kit",
+        description: "Prepare a simple travel kit for the next echo road without turning preparation into a hard gate.",
+        costRenewalSupplies: 1,
+        costSilver: 8,
+        grants: { items: { health_potion: 1, spirit_tonic: 1 } },
+      },
+    ],
+  },
 };
 
 export const QUEST_TEMPLATES = {

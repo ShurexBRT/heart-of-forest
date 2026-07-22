@@ -1,5 +1,6 @@
 import { SERVICE_DEFS, getItemDef } from "../data/gameData.js";
 import {
+  addItem,
   attuneEquipmentItem,
   buyBackItem,
   buyInventoryItem,
@@ -10,11 +11,13 @@ import {
   getItemAttunementCost,
   getItemAttunementLevel,
   getItemCount,
+  getQuestCounter,
   getPlayerBonuses,
   getStashEntries,
   hasWorldFlag,
   resetTalents,
   sellInventoryItem,
+  spendQuestCounter,
   stashInventoryItem,
   spendCurrency,
   withdrawStashItem,
@@ -142,12 +145,22 @@ export function getServiceEntries(state) {
     }));
   }
 
+  if (service.kind === "renewal") {
+    const supplyCount = getQuestCounter(state.progression, "homesteadRenewalSupplies");
+    return service.actions.map((entry) => ({
+      ...entry,
+      supplyCount,
+      affordable: canAffordAction(state.progression, entry),
+    }));
+  }
+
   return [];
 }
 
 function canAffordAction(progression, action) {
   if (!action || action.maxed) return false;
   if ((action.costSilver || 0) > getCurrency(progression)) return false;
+  if ((action.costRenewalSupplies || 0) > getQuestCounter(progression, "homesteadRenewalSupplies")) return false;
   for (const [itemId, amount] of Object.entries(action.costItems || {})) {
     if (getItemCount(progression, itemId) < amount) return false;
   }
@@ -252,7 +265,41 @@ export function performSelectedServiceAction(state) {
     };
   }
 
+  if (service.kind === "renewal") {
+    const action = getServiceEntries(state)[state.ui.selectedServiceIndex];
+    if (!action) return { success: false };
+    if (!canAffordAction(state.progression, action)) {
+      return { success: false, reason: "More renewal supplies or silver are needed." };
+    }
+    if (
+      action.costRenewalSupplies &&
+      !spendQuestCounter(
+        state.progression,
+        "homesteadRenewalSupplies",
+        action.costRenewalSupplies
+      )
+    ) {
+      return { success: false, reason: "No renewal supplies are ready." };
+    }
+    spendCurrency(state.progression, action.costSilver || 0);
+    for (const [itemId, amount] of Object.entries(action.grants?.items || {})) {
+      addItem(state.progression, itemId, amount);
+    }
+    return {
+      success: true,
+      text: `${action.title}: ${formatGrantSummary(action.grants)}`,
+    };
+  }
+
   return { success: false };
+}
+
+function formatGrantSummary(grants = {}) {
+  const parts = Object.entries(grants.items || {}).map(([itemId, amount]) => {
+    const item = getItemDef(itemId);
+    return `${amount} ${item?.name || itemId}`;
+  });
+  return parts.join(", ") || "the Homestead settles";
 }
 
 export function sellSelectedInventoryEntry(state, entry) {

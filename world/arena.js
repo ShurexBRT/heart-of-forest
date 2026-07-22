@@ -601,7 +601,8 @@ function buildAylaHomestead(context, rng) {
             ? [
                 interactable("homestead-renewal-cache", "chest", 706, 736, {
                   name: "Renewal Supplies",
-                  promptLabel: "Inspect renewal supplies",
+                  promptLabel: "Open renewal supplies",
+                  serviceId: "homestead_renewal",
                   repeatable: true,
                   dialogueLines: [
                     `Reliquary renewal supplies recovered: ${renewalSupplies}.`,

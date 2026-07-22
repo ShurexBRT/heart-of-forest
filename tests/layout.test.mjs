@@ -444,5 +444,6 @@ test("Homestead renewal supplies remain readable and reachable", () => {
   );
 
   assert.ok(cache);
+  assert.equal(cache.serviceId, "homestead_renewal");
   assert.equal(hasReachableInteractionPoint(homestead, cache), true);
 });

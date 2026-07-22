@@ -1769,7 +1769,7 @@ function drawServiceTab(ctx, state, x, y, width, height) {
     return;
   }
 
-  if (service.kind === "altar" || service.kind === "crafting") {
+  if (service.kind === "altar" || service.kind === "crafting" || service.kind === "renewal") {
     panel.rows.forEach(({ entry, index, rect: rowRect, descriptionLines, compact }) => {
       const selected = index === state.ui.selectedServiceIndex;
       ctx.fillStyle = selected ? "rgba(121, 184, 255, 0.16)" : "rgba(0, 0, 0, 0.26)";
@@ -2335,6 +2335,9 @@ function drawComparisonChip(ctx, label, value, x, y, color) {
 function formatActionCost(action) {
   if (action.maxed) return "Maximum attunement";
   const parts = [];
+  if (action.costRenewalSupplies) {
+    parts.push(`${action.costRenewalSupplies} renewal supply`);
+  }
   if (action.costSilver) parts.push(`${action.costSilver} silver`);
   for (const [itemId, amount] of Object.entries(action.costItems || {})) {
     parts.push(`${amount} ${formatItemName(itemId)}`);
@@ -2950,7 +2953,7 @@ function getServicePanelData(state, frame) {
     };
   }
 
-  if (service.kind === "altar" || service.kind === "crafting") {
+  if (service.kind === "altar" || service.kind === "crafting" || service.kind === "renewal") {
     const entries = getServiceEntries(state);
     const rowWidth = frame.width - 280;
     const rows = [];
@@ -2983,9 +2986,11 @@ function getServicePanelData(state, frame) {
             selected.affordable
               ? service.kind === "crafting"
                 ? "Brew Preparation"
-                : selected.actionId === "attune"
-                  ? "Attune Gear"
-                  : "Invoke Rite"
+                : service.kind === "renewal"
+                  ? "Renew Homestead"
+                  : selected.actionId === "attune"
+                    ? "Attune Gear"
+                    : "Invoke Rite"
               : selected.maxed
                 ? "Maximum Attunement"
                 : "Requirements Not Met",
@@ -3415,7 +3420,8 @@ function getMenuHoverTarget(state, mouseX, mouseY) {
     if (
       panel.service.kind === "shop" ||
       panel.service.kind === "altar" ||
-      panel.service.kind === "crafting"
+      panel.service.kind === "crafting" ||
+      panel.service.kind === "renewal"
     ) {
       if (panel.service.kind === "shop") {
         for (const button of panel.subpanelButtons || []) {

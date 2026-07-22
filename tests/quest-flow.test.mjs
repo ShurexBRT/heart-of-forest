@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 
 import {
   createProgression,
+  getCurrency,
   getItemCount,
+  getQuestCounter,
   incrementQuestCounter,
 } from "../systems/progression.js";
 import {
@@ -141,6 +143,39 @@ test("new game can complete the Homestead to Rootwarden preparation loop", () =>
   assert.equal(state.progression.questStates.first_rootwarden, "done");
   assert.equal(state.progression.worldFlags.heartwood_restored, true);
   assert.equal(state.progression.talentPoints, 1);
+});
+
+test("Renewal Workbench turns Reliquary supplies into homestead materials", () => {
+  const state = createQuestFlowState();
+  state.progression.worldFlags.second_spring_started = true;
+  incrementQuestCounter(state.progression, "homesteadRenewalSupplies", 2);
+
+  assert.equal(openServiceUi(state, "homestead_renewal", "Renewal Supplies"), true);
+  const entries = getServiceEntries(state);
+  const crateIndex = entries.findIndex((entry) => entry.id === "attunement_crate");
+  assert.ok(crateIndex >= 0);
+  assert.equal(entries[crateIndex].affordable, true);
+
+  state.ui.selectedServiceIndex = crateIndex;
+  const crateResult = performSelectedServiceAction(state);
+  assert.equal(crateResult.success, true);
+  assert.match(crateResult.text, /Relic Shard/i);
+  assert.equal(getQuestCounter(state.progression, "homesteadRenewalSupplies"), 1);
+  assert.equal(getItemCount(state.progression, "relic_shard"), 1);
+  assert.equal(getItemCount(state.progression, "ironbark"), 2);
+
+  const roadKitIndex = getServiceEntries(state).findIndex((entry) => entry.id === "road_kit");
+  assert.ok(roadKitIndex >= 0);
+  const silverBefore = getCurrency(state.progression);
+  state.ui.selectedServiceIndex = roadKitIndex;
+  const roadKitResult = performSelectedServiceAction(state);
+  assert.equal(roadKitResult.success, true);
+  assert.equal(getQuestCounter(state.progression, "homesteadRenewalSupplies"), 0);
+  assert.equal(getCurrency(state.progression), silverBefore - 8);
+  assert.equal(getItemCount(state.progression, "health_potion"), 4);
+  assert.equal(getItemCount(state.progression, "spirit_tonic"), 2);
+
+  assert.equal(getServiceEntries(state).every((entry) => entry.affordable === false), true);
 });
 
 test("Ember restores only after the totems, guardian, ember recovery, and Garrick return", () => {

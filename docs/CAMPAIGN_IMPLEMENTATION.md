@@ -664,12 +664,35 @@ beskonacnu kupovinu talent poena.
 - Regresioni testovi proveravaju da rana Homestead navigacija javlja `AT LEAD`
   i da Stillwater Bestiary odvaja field read od counter logged stanja.
 
-### Sledeca faza - Faza 7I
+### Faza 7I
 
-1. Homestead renewal/crafting service polish: obnovljivi supply loop, usluge i
-   jasnije koriscenje materijala posle bossova.
-2. Finalna provera svih novih segmenta zajedno, ciscenje runtime procesa i
-   zavrsni push.
+- Datum: 2026-07-22
+- Status: zavrseno
+- Cilj: pretvoriti Reliquary renewal supply iz kozmetickog postgame countera u
+  malu, korisnu Homestead uslugu koja podrzava build eksperimentisanje.
+- `Renewal Supplies` cache u Homesteadu sada otvara `Renewal Workbench` service
+  kada Second Spring postoji i igrac ima bar jedan supply.
+- Workbench trosi `homesteadRenewalSupplies` na tri namerne opcije:
+  `Seed the Moonleaf Beds` za seme i Moonleaf, `Sort Attunement Relics` za
+  relic shard/ironbark i `Pack a Road Kit` za osnovne potione uz mali silver fee.
+- Service koristi postojeci service UI/action flow umesto novog overlay-a, tako
+  da se uklapa sa cauldron, Waystone i stash sistemima.
+- Progression dobija `spendQuestCounter`, da supply loop moze bezbedno da trosi
+  countere i bude pokriven testom.
+- Regresioni test proverava da Renewal Workbench trosi supply, dodaje materijale,
+  naplacuje road kit i zakljucava opcije kada vise nema supply-a.
+- Layout test sada proverava da je renewal cache i reachable i vezan za
+  `homestead_renewal` service.
+- Zavrsna provera ovog segmenta: syntax check, targeted service/layout testovi i
+  full regresija.
+
+### Sledeca faza
+
+- Nema preostalog obaveznog segmenta iz ovog sestodelnog prolaza.
+- Sledece potencijalno smisleno poliranje posle ovog commita: runtime vizuelni
+  QA sa kompletnim browser automation paketom, dodatne generated prop teksture
+  za pojedine zgrade i eventualno drugi nivo renewal nagrada ako postgame bude
+  trazio duzi loop.
 
 ## Van trenutnog scopea
 

@@ -1038,6 +1038,14 @@ export function incrementQuestCounter(progression, key, amount = 1) {
   progression.questCounters[key] = (progression.questCounters[key] || 0) + amount;
 }
 
+export function spendQuestCounter(progression, key, amount = 1) {
+  const safeAmount = Math.max(1, Math.floor(amount || 1));
+  const current = progression.questCounters[key] || 0;
+  if (current < safeAmount) return false;
+  progression.questCounters[key] = current - safeAmount;
+  return true;
+}
+
 export function awardEnemyLoot(progression, enemyType, biomeId, source = {}) {
   const isBoss = source === true || Boolean(source?.isBoss);
   const lootTable = BIOMES[biomeId]?.lootTable || ["spirit_bloom"];
