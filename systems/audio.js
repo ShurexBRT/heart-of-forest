@@ -267,6 +267,39 @@ function playCue(audio, event) {
     case "use-item":
       chord(audio, [330, 392], 0.18, 0.05, "sine");
       break;
+    case "collect":
+      toneSweep(audio, 520, 680, 0.12, 0.036, "triangle");
+      chord(audio, [392, 494], 0.18, 0.032, "sine");
+      break;
+    case "brew":
+      toneSweep(audio, 180, 260, 0.26, 0.052, "triangle");
+      chord(audio, [330, 392, 494], 0.22, 0.044, "sine");
+      noiseHit(audio, 0.12, 0.014, 920);
+      break;
+    case "attune":
+      toneSweep(audio, 246, 492, 0.32, 0.05, "triangle");
+      chord(audio, [330, 415, 554], 0.3, 0.052, "triangle");
+      break;
+    case "heal":
+      chord(audio, [262, 330, 392], 0.26, 0.052, "sine");
+      toneSweep(audio, 392, 524, 0.2, 0.028, "triangle");
+      break;
+    case "respec":
+      toneSweep(audio, 392, 196, 0.18, 0.044, "triangle");
+      toneSweep(audio, 220, 330, 0.2, 0.036, "sine");
+      break;
+    case "renewal":
+      chord(audio, [196, 247, 294], 0.34, 0.052, "triangle");
+      toneSweep(audio, 294, 392, 0.28, 0.032, "sine");
+      break;
+    case "training-start":
+      toneSweep(audio, 220, 330, 0.14, 0.045, "square");
+      toneSweep(audio, 330, 440, 0.14, 0.034, "triangle");
+      break;
+    case "training-complete":
+      chord(audio, [294, 370, 440], 0.28, 0.052, "triangle");
+      noiseHit(audio, 0.08, 0.012, 1180);
+      break;
     case "stash":
       toneSweep(audio, 180, 240, 0.1, 0.04, "triangle");
       break;

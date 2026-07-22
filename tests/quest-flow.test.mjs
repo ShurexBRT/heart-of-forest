@@ -127,7 +127,9 @@ test("new game can complete the Homestead to Rootwarden preparation loop", () =>
   );
   assert.ok(barkskinIndex >= 0);
   state.ui.selectedServiceIndex = barkskinIndex;
-  assert.equal(performSelectedServiceAction(state).success, true);
+  const brewResult = performSelectedServiceAction(state);
+  assert.equal(brewResult.success, true);
+  assert.equal(brewResult.audioCue, "brew");
   consumeStoryEvents(state);
   assert.equal(state.progression.questStates.brew_before_blood, "done");
   assert.match(state.story.toastText, /Mossy Ruins trail opens/i);
@@ -159,6 +161,7 @@ test("Renewal Workbench turns Reliquary supplies into homestead materials", () =
   state.ui.selectedServiceIndex = crateIndex;
   const crateResult = performSelectedServiceAction(state);
   assert.equal(crateResult.success, true);
+  assert.equal(crateResult.audioCue, "renewal");
   assert.match(crateResult.text, /Relic Shard/i);
   assert.equal(getQuestCounter(state.progression, "homesteadRenewalSupplies"), 1);
   assert.equal(getItemCount(state.progression, "relic_shard"), 1);
@@ -170,12 +173,31 @@ test("Renewal Workbench turns Reliquary supplies into homestead materials", () =
   state.ui.selectedServiceIndex = roadKitIndex;
   const roadKitResult = performSelectedServiceAction(state);
   assert.equal(roadKitResult.success, true);
+  assert.equal(roadKitResult.audioCue, "renewal");
   assert.equal(getQuestCounter(state.progression, "homesteadRenewalSupplies"), 0);
   assert.equal(getCurrency(state.progression), silverBefore - 8);
   assert.equal(getItemCount(state.progression, "health_potion"), 4);
   assert.equal(getItemCount(state.progression, "spirit_tonic"), 2);
 
   assert.equal(getServiceEntries(state).every((entry) => entry.affordable === false), true);
+});
+
+test("collectable quest objects use the collect audio cue", () => {
+  const state = createQuestFlowState();
+  state.audio = { enabled: true, queue: [] };
+  state.currentSceneId = "whispering_woods";
+  state.arena = createArena({
+    ...SCENES.whispering_woods,
+    worldFlags: { heartwood_restored: true },
+    questStates: { whispering_call: "active" },
+  });
+  const flower = state.arena.interactables.find(
+    (interactable) => interactable.id === "spirit-flower-1"
+  );
+
+  assert.ok(flower);
+  assert.equal(beginInteraction(state, { kind: "object", data: flower }), true);
+  assert.equal(state.audio.queue.at(-1)?.cue, "collect");
 });
 
 test("Ember restores only after the totems, guardian, ember recovery, and Garrick return", () => {

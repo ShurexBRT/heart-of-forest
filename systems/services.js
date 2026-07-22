@@ -192,6 +192,7 @@ export function performSelectedServiceAction(state) {
       return {
         success: true,
         text: `Recovered ${entry.name} for ${entry.price} silver`,
+        audioCue: "buy",
       };
     }
     const result = buyInventoryItem(state.progression, entry.itemId, 1, entry.price);
@@ -201,6 +202,7 @@ export function performSelectedServiceAction(state) {
     return {
       success: true,
       text: `Purchased ${entry.item.name} for ${entry.price} silver`,
+      audioCue: "buy",
     };
   }
 
@@ -225,6 +227,7 @@ export function performSelectedServiceAction(state) {
       return {
         success: true,
         text: `${result.item.name} attuned to ${formatAttunementRank(result.level)}.`,
+        audioCue: "attune",
       };
     }
 
@@ -235,7 +238,7 @@ export function performSelectedServiceAction(state) {
       spendCurrency(state.progression, action.costSilver || 0);
       state.player.hp = state.player.maxHp;
       state.player.spirit = state.player.maxSpirit;
-      return { success: true, text: "Ayla's vigor returns to full." };
+      return { success: true, text: "Ayla's vigor returns to full.", audioCue: "heal" };
     }
 
     if (action.id === "respec") {
@@ -245,7 +248,7 @@ export function performSelectedServiceAction(state) {
       }
       spendCurrency(state.progression, action.costSilver || 0);
       resetTalents(state.progression);
-      return { success: true, text: `Talents refocused. ${refunded} point(s) refunded.` };
+      return { success: true, text: `Talents refocused. ${refunded} point(s) refunded.`, audioCue: "respec" };
     }
   }
 
@@ -262,6 +265,7 @@ export function performSelectedServiceAction(state) {
     return {
       success: true,
       text: `Brewed ${result.recipe.name} for ${result.recipe.costSilver} silver`,
+      audioCue: "brew",
     };
   }
 
@@ -288,6 +292,7 @@ export function performSelectedServiceAction(state) {
     return {
       success: true,
       text: `${action.title}: ${formatGrantSummary(action.grants)}`,
+      audioCue: "renewal",
     };
   }
 

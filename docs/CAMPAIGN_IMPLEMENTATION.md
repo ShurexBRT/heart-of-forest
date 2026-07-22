@@ -781,6 +781,27 @@ beskonacnu kupovinu talent poena.
   `tests/layout.test.mjs`, targeted `layout` sa 11/11 prolaza i puna regresija
   `node --test tests\*.test.mjs` sa 71/71 prolaza.
 
+### Faza 8E
+
+- Datum: 2026-07-22
+- Status: zavrseno
+- Cilj: poboljsati game feel kroz postojece WebAudio cue-ve bez dodavanja
+  audio asset fajlova.
+- Service akcije sada vracaju `audioCue`, pa main vise ne pogadja cue po tekstu
+  rezultata. Kupovina/buyback ostaju `buy`, brewing vraca `brew`, attunement
+  `attune`, full restore `heal`, respec `respec`, a Renewal Workbench `renewal`.
+- Dodati su sinteticki cue-vi za `collect`, `brew`, `attune`, `heal`, `respec`,
+  `renewal`, `training-start` i `training-complete`.
+- Harvest sada koristi `collect`, Second Spring board koristi UI cue, a
+  Training Grove start/finish vise ne zvuce kao quest completion.
+- Quest collectable interactable-i sada queue-uju `collect`, dok obicni shrine
+  i object use ostaju na `use-item`.
+- Testovi proveravaju da Barkskin brewing i Renewal Workbench vracaju pravi
+  `audioCue`, kao i da `spirit-flower-1` collectable queue-uje `collect`.
+- Provera: syntax check za `systems/audio.js`, `systems/services.js`,
+  `systems/story.js` i `main.js`, targeted `quest-flow/heartwood-phase-one` sa
+  22/22 prolaza i puna regresija `node --test tests\*.test.mjs` sa 72/72 prolaza.
+
 ## Van trenutnog scopea
 
 - Durability i repair.

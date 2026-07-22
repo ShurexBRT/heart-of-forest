@@ -1626,7 +1626,7 @@ function handleInteractionAction(interaction) {
       state.clock
     );
     setToast(result.text, result.changed ? 2.6 : 2);
-    queueAudio(state, result.event === "harvested" ? "quest" : "use-item");
+    queueAudio(state, result.event === "harvested" ? "collect" : "use-item");
     if (result.changed) saveCurrentGame();
     return true;
   }
@@ -1652,7 +1652,7 @@ function handleInteractionAction(interaction) {
         : "All tracked Second Spring echoes are quiet today.",
       2.6
     );
-    queueAudio(state, "use-item");
+    queueAudio(state, "ui");
     return true;
   }
 
@@ -1677,7 +1677,7 @@ function handleInteractionAction(interaction) {
         : result.reason,
       result.started ? 3 : 2
     );
-    if (result.started) queueAudio(state, "quest");
+    if (result.started) queueAudio(state, "training-start");
     return true;
   }
 
@@ -1702,7 +1702,7 @@ function handleInteractionAction(interaction) {
         : result.reason,
       result.started ? 3 : 2
     );
-    if (result.started) queueAudio(state, "quest");
+    if (result.started) queueAudio(state, "training-start");
     return true;
   }
 
@@ -1727,7 +1727,7 @@ function handleInteractionAction(interaction) {
         : result.reason,
       result.started ? 3 : 2
     );
-    if (result.started) queueAudio(state, "quest");
+    if (result.started) queueAudio(state, "training-start");
     return true;
   }
 
@@ -2296,12 +2296,7 @@ function runSelectedServiceAction() {
   if (result.success) {
     refreshPlayerFromProgression();
     setToast(result.text, 2);
-    queueAudio(
-      state,
-      result.text.startsWith("Purchased") || result.text.startsWith("Recovered")
-        ? "buy"
-        : "quest"
-    );
+    queueAudio(state, result.audioCue || "quest");
   } else if (result.reason) {
     setToast(result.reason, 1.8);
   }
@@ -2939,7 +2934,7 @@ function update(dt) {
             : `${drillLabel} complete: ${trainingResult.dps} DPS, ${trainingResult.damage} damage, ${trainingResult.hits} hits.`,
           4
         );
-        queueAudio(state, "quest");
+        queueAudio(state, "training-complete");
         saveCurrentGame();
       }
       resolveEnemyCrowding(state);

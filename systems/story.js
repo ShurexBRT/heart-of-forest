@@ -586,7 +586,7 @@ function useInteractable(state, interactable) {
   }
 
   setToast(state, interactable.toastText || `${interactable.name} secured`, 2);
-  queueAudio(state, "use-item");
+  queueAudio(state, interactable.collectKey ? "collect" : "use-item");
   return true;
 }
 
