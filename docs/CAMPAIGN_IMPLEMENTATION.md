@@ -760,6 +760,27 @@ beskonacnu kupovinu talent poena.
   `layout/world-restoration/homestead` testovi sa 15/15 prolaza i puna regresija
   `node --test tests\*.test.mjs` sa 69/69 prolaza.
 
+### Faza 8D
+
+- Datum: 2026-07-22
+- Status: zavrseno
+- Cilj: smanjiti sansu da mali quest/collectable item deluje nedostupno zbog
+  blizine collision zona ili premalog click targeta.
+- Combat loot ostaje auto-pickup; audit je pokazao da nema posebnog ground loot
+  sistema koji bi mogao da zarobi drop u solid objectu.
+- Svi collectable interactable-i (`collectKey`) sada dobijaju najmanje 64px
+  interaction radius, osim ako vec imaju veci rucno postavljen radius.
+- Hover/click box za collectable predmete je prosiren na 22px minimum, dok
+  obicni objekti ostaju na starom manjem hover footprintu.
+- Layout testovi sada proveravaju dodatne dinamicne scene state-ove:
+  side-active Whispering Woods, active marsh/ruins/chapel/ancient-heart,
+  recovery state za Ember/Frost/Scarroot i Starfall archive/echo state.
+- Dodat je test da mali collectable (`spirit-flower-1`) ima forgiving radius i
+  da ga hover hvata i kada je kursor malo izvan sprite centra.
+- Provera: syntax check za `world/arena.js`, `systems/story.js` i
+  `tests/layout.test.mjs`, targeted `layout` sa 11/11 prolaza i puna regresija
+  `node --test tests\*.test.mjs` sa 71/71 prolaza.
+
 ## Van trenutnog scopea
 
 - Durability i repair.

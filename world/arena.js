@@ -331,6 +331,11 @@ function npc(id, x, y) {
 }
 
 function interactable(id, type, x, y, extra = {}) {
+  const baseInteractionRadius = extra.interactionRadius ?? 54;
+  const interactionRadius = extra.collectKey
+    ? Math.max(baseInteractionRadius, 64)
+    : baseInteractionRadius;
+
   return {
     id,
     type,
@@ -339,7 +344,7 @@ function interactable(id, type, x, y, extra = {}) {
     w: extra.w || 18,
     h: extra.h || 18,
     promptLabel: extra.promptLabel || extra.name || "Interact",
-    interactionRadius: extra.interactionRadius || 54,
+    interactionRadius,
     requiresCleared: Boolean(extra.requiresCleared),
     collectKey: extra.collectKey || null,
     requiredItemId: extra.requiredItemId || null,

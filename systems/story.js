@@ -210,8 +210,9 @@ export function getHoveredInteractionTarget(state, worldX, worldY) {
   const candidates = (state.arena.interactables || [])
     .filter((interactable) => !interactable.disabled)
     .filter((interactable) => {
-      const halfW = Math.max(14, (interactable.w || 18) * 0.5);
-      const halfH = Math.max(14, (interactable.h || 18) * 0.5);
+      const hoverPad = interactable.collectKey ? 22 : 14;
+      const halfW = Math.max(hoverPad, (interactable.w || 18) * 0.5);
+      const halfH = Math.max(hoverPad, (interactable.h || 18) * 0.5);
       return (
         worldX >= interactable.x - halfW &&
         worldX <= interactable.x + halfW &&

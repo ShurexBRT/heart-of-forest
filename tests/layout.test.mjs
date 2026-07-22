@@ -3,10 +3,91 @@ import assert from "node:assert/strict";
 
 import { SCENES } from "../data/sceneNetwork.js";
 import { collidesWithObstacle } from "../systems/collision.js";
+import { getHoveredInteractionTarget } from "../systems/story.js";
 import { createArena } from "../world/arena.js";
 
 const PLAYER_RADIUS = 16;
 const PATH_STEP = 18;
+const DYNAMIC_SCENE_VARIANTS = [
+  {
+    sceneId: "ayla_homestead",
+    label: "moonleaf",
+    worldFlags: { hearthroot_awake: true },
+    questStates: { first_moonleaf: "active" },
+  },
+  {
+    sceneId: "ayla_homestead",
+    label: "postgame-supply",
+    worldFlags: { heartwood_restored: true, epilogue_ready: true, second_spring_started: true },
+    questCounters: { homesteadRenewalSupplies: 3 },
+  },
+  {
+    sceneId: "whispering_woods",
+    label: "side-active",
+    worldFlags: { heartwood_restored: true },
+    questStates: { whispering_call: "active", apothecarys_route: "active" },
+  },
+  {
+    sceneId: "mossroot_marsh",
+    label: "all-active",
+    worldFlags: { heartwood_restored: true, marsh_route_lit: true, chapel_of_tides_open: true },
+    questStates: { bogbound_rot: "active", tidebound_threshold: "active", apothecarys_route: "active" },
+  },
+  {
+    sceneId: "mossy_ruins",
+    label: "optional-active",
+    worldFlags: { heartwood_restored: true, ruins_listening_post: true, sunken_reliquary_open: true },
+    questStates: { ruins_of_memory: "active", sealed_reliquary: "active", tidebound_threshold: "active" },
+  },
+  {
+    sceneId: "chapel_of_tides",
+    label: "active",
+    worldFlags: { chapel_of_tides_open: true },
+    questStates: { chapel_of_tides: "active" },
+  },
+  {
+    sceneId: "emberpine_grove",
+    label: "recovery",
+    worldFlags: { ember_pass_reopened: true, cinder_warden_released: true },
+    questStates: { cinder_warden: "done" },
+  },
+  {
+    sceneId: "frostveil_tundra",
+    label: "recovery",
+    worldFlags: { ridge_signal_recovered: true, veil_seraph_released: true },
+    questStates: { veil_seraph: "done" },
+  },
+  {
+    sceneId: "hollowheart_ruins",
+    label: "memory",
+    worldFlags: { court_approach_secured: true, elder_hollow_broken: true },
+    questStates: { elder_hollow: "done" },
+  },
+  {
+    sceneId: "blighted_woods",
+    label: "saplings",
+    worldFlags: { court_approach_secured: true, scarroot_restored: true },
+    questStates: { smallest_grove: "active" },
+  },
+  {
+    sceneId: "ancient_heart",
+    label: "active",
+    worldFlags: { starfall_sanctum_open: true },
+    questStates: { rootlight_threshold: "active" },
+  },
+  {
+    sceneId: "starfall_sanctum",
+    label: "archive-active",
+    worldFlags: { starfall_sanctum_open: true },
+    questStates: { starfall_sanctum: "active" },
+  },
+  {
+    sceneId: "starfall_sanctum",
+    label: "sentinel-echo",
+    worldFlags: { starfall_sanctum_open: true, starfall_truth_recovered: true, starfall_sanctum_cleansed: true },
+    questStates: { starfall_sanctum: "done" },
+  },
+];
 
 function hasReachableInteractionPoint(arena, target) {
   const interactionRadius = target.interactionRadius || 54;
@@ -170,6 +251,54 @@ test("scene interactables can be path reached from a scene entry", () => {
   }
 
   assert.deepEqual(failures, []);
+});
+
+test("dynamic quest interactables stay reachable across scene states", () => {
+  const failures = [];
+
+  for (const variant of DYNAMIC_SCENE_VARIANTS) {
+    const scene = SCENES[variant.sceneId];
+    const arena = createArena({
+      ...scene,
+      worldFlags: variant.worldFlags || {},
+      questStates: variant.questStates || {},
+      questCounters: variant.questCounters || {},
+    });
+
+    for (const interactable of arena.interactables) {
+      if (!hasPathReachableInteractionPoint(arena, interactable)) {
+        failures.push(`${variant.sceneId}:${variant.label}:${interactable.id}`);
+      }
+    }
+  }
+
+  assert.deepEqual(failures, []);
+});
+
+test("small collectable items have forgiving click and approach affordance", () => {
+  const arena = createArena({
+    ...SCENES.whispering_woods,
+    worldFlags: { heartwood_restored: true },
+    questStates: { whispering_call: "active" },
+  });
+  const flower = arena.interactables.find(
+    (interactable) => interactable.id === "spirit-flower-1"
+  );
+
+  assert.ok(flower);
+
+  const state = {
+    arena,
+    player: { x: flower.x + 80, y: flower.y },
+    story: { hovered: null },
+  };
+
+  assert.equal(flower.collectKey, "spiritFlowers");
+  assert.equal(flower.interactionRadius >= 64, true);
+  assert.equal(
+    getHoveredInteractionTarget(state, flower.x + 21, flower.y)?.data.id,
+    flower.id
+  );
 });
 
 test("restored Homestead keeps the Training Grove reachable", () => {
