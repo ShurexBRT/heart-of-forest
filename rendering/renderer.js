@@ -838,6 +838,7 @@ function drawWell(ctx, well, origin) {
   const point = toScreen(origin, well.anchorX, well.anchorY);
   const variant = getPropVariant(well, 4);
   drawIsoShadow(ctx, point.x, point.y, 18, 8);
+  fillPixelEllipse(ctx, point.x, point.y - 3, 24, 8, "rgba(58, 43, 31, 0.38)");
   pixelRect(ctx, point.x - 12, point.y - 34, 4, 20, "#6f4b32");
   pixelRect(ctx, point.x + 8, point.y - 34, 4, 20, "#6f4b32");
   pixelRect(ctx, point.x - 16, point.y - 30, 32, 6, "#936645");
@@ -847,6 +848,9 @@ function drawWell(ctx, well, origin) {
   pixelRect(ctx, point.x - 10, point.y - 14, 20, 8, "#4f7284");
   pixelRect(ctx, point.x - 8, point.y - 13, 16, 2, "#8dc4d0");
   pixelRect(ctx, point.x - 1, point.y - 35, 2, 13, "#3d3330");
+  pixelRect(ctx, point.x - 15, point.y - 2, 30, 3, "#5e4837");
+  pixelRect(ctx, point.x - 13, point.y - 25, 26, 2, "#eef7f2");
+  pixelRect(ctx, point.x + 2, point.y - 38, 10, 3, "#d9b56f");
 }
 
 function drawFence(ctx, fence, sceneStyle, origin) {
@@ -902,15 +906,19 @@ function drawLantern(ctx, lantern, sceneStyle, origin) {
   pixelRect(ctx, point.x - 2, point.y - 24, 4, 22, "#6e4a34");
   pixelRect(ctx, point.x - 8, point.y - 36, 16, 12, "#4e3a28");
   drawWorldMaterialRect(ctx, "metal", point.x - 8, point.y - 36, 16, 12, getPropVariant(lantern, 4), 0.78);
-  pixelRect(
-    ctx,
-    point.x - 5,
-    point.y - 33,
-    10,
-    8,
-    lantern.style === "cool" ? "#9bd8ff" : lantern.style === "frost" ? "#dff6ff" : lantern.style === "ember" ? "#ffb16c" : "#efcf79"
-  );
+  const glowColor =
+    lantern.style === "cool"
+      ? "#9bd8ff"
+      : lantern.style === "frost"
+        ? "#dff6ff"
+        : lantern.style === "ember"
+          ? "#ffb16c"
+          : "#efcf79";
+  fillPixelEllipse(ctx, point.x, point.y - 28, 16, 10, `${glowColor}55`);
+  pixelRect(ctx, point.x - 5, point.y - 33, 10, 8, glowColor);
   pixelRect(ctx, point.x - 2, point.y - 30, 4, 2, "#fff6cf");
+  pixelRect(ctx, point.x - 6, point.y - 36, 12, 2, "#c6a775");
+  pixelRect(ctx, point.x - 6, point.y - 24, 12, 2, "#3c2b22");
 }
 
 function drawBridge(ctx, bridge, sceneStyle, origin) {
@@ -1202,11 +1210,20 @@ function drawInteractable(ctx, item, state, origin) {
 
   if (item.type === "chest") {
     drawIsoShadow(ctx, point.x, point.y, 12, 6);
-    pixelRect(ctx, point.x - 12, point.y - 16, 24, 12, "#6d4b30");
-    pixelRect(ctx, point.x - 12, point.y - 10, 24, 8, "#8f613d");
-    drawWorldMaterialRect(ctx, "timber", point.x - 12, point.y - 16, 24, 14, getPropVariant(item, 4), 0.88);
-    pixelRect(ctx, point.x - 12, point.y - 10, 24, 2, "#4d3829");
-    pixelRect(ctx, point.x - 2, point.y - 12, 4, 10, "#d3b67d");
+    const renewal = item.serviceId === "homestead_renewal";
+    const lid = renewal ? "#6e5d7f" : "#6d4b30";
+    const body = renewal ? "#8b7450" : "#8f613d";
+    pixelRect(ctx, point.x - 14, point.y - 17, 28, 13, lid);
+    pixelRect(ctx, point.x - 14, point.y - 10, 28, 9, body);
+    drawWorldMaterialRect(ctx, "timber", point.x - 14, point.y - 17, 28, 15, getPropVariant(item, 4), 0.88);
+    pixelRect(ctx, point.x - 14, point.y - 10, 28, 2, "#4d3829");
+    pixelRect(ctx, point.x - 2, point.y - 13, 4, 11, renewal ? "#d9d0ff" : "#d3b67d");
+    pixelRect(ctx, point.x - 12, point.y - 19, 24, 2, renewal ? "#d7ceff" : "#c9a16b");
+    if (renewal) {
+      pixelRect(ctx, point.x - 8, point.y - 24, 16, 4, "#9edb82");
+      pixelRect(ctx, point.x - 4, point.y - 28, 8, 5, "#eff5ad");
+      fillPixelEllipse(ctx, point.x, point.y - 9, 22, 8, "rgba(160, 219, 130, 0.24)");
+    }
   }
 
   if (item.type === "shrine") {
@@ -1518,8 +1535,10 @@ function drawSwings(ctx, state, origin) {
   for (const swing of state.swings) {
     const ratio = Math.max(0, swing.life / swing.maxLife);
     ctx.save();
-    ctx.globalAlpha = ratio;
-    const steps = 7;
+    ctx.globalAlpha = Math.min(1, ratio * (swing.hit ? 1.2 : 0.9));
+    const steps = swing.hit ? 11 : 7;
+    const outerColor = swing.openedBloom ? "#efffaa" : swing.hit ? "#ffe19b" : "#fff0a8";
+    const innerColor = swing.openedBloom ? "#83eb83" : swing.hit ? "#f5b96a" : "#8bdc75";
     for (let i = 0; i < steps; i += 1) {
       const t = i / (steps - 1);
       const angle = swing.angle - swing.arc / 2 + swing.arc * t;
@@ -1527,8 +1546,13 @@ function drawSwings(ctx, state, origin) {
       const x = swing.x + Math.cos(angle) * radius;
       const y = swing.y + Math.sin(angle) * radius;
       const point = toScreen(origin, x, y, 18);
-      pixelRect(ctx, point.x - 5, point.y - 3, 10, 6, "#fff0a8");
-      pixelRect(ctx, point.x - 3, point.y - 1, 6, 2, "#8bdc75");
+      const size = swing.hit ? 12 - Math.abs(0.5 - t) * 6 : 10;
+      pixelRect(ctx, point.x - size / 2, point.y - 3, size, 6, outerColor);
+      pixelRect(ctx, point.x - size / 2 + 2, point.y - 1, Math.max(4, size - 4), 2, innerColor);
+      if (swing.hit && i % 2 === 0) {
+        const echo = toScreen(origin, x - Math.cos(angle) * 10, y - Math.sin(angle) * 10, 18);
+        pixelRect(ctx, echo.x - 3, echo.y - 2, 6, 4, "rgba(255, 241, 198, 0.72)");
+      }
     }
     ctx.restore();
   }
@@ -1556,15 +1580,20 @@ function drawCombatText(ctx, state, origin) {
   for (const entry of state.combatText || []) {
     const alpha = Math.max(0, Math.min(1, entry.life / entry.maxLife));
     const point = toScreen(origin, entry.x, entry.y, 24);
+    const scale = entry.scale || 1;
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.textAlign = "center";
-    ctx.font = "800 14px Segoe UI, Arial";
-    ctx.lineWidth = 4;
+    ctx.font = `800 ${Math.round(14 * scale)}px Segoe UI, Arial`;
+    ctx.lineWidth = entry.heavy ? 5 : 4;
     ctx.strokeStyle = "rgba(16, 12, 10, 0.88)";
     ctx.strokeText(entry.text, point.x, point.y);
     ctx.fillStyle = entry.color;
     ctx.fillText(entry.text, point.x, point.y);
+    if (entry.heavy) {
+      ctx.fillStyle = "rgba(255, 241, 180, 0.78)";
+      pixelRect(ctx, point.x - 9, point.y - 18 * scale, 18, 2, ctx.fillStyle);
+    }
     ctx.restore();
   }
 }

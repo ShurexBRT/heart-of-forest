@@ -694,6 +694,26 @@ beskonacnu kupovinu talent poena.
   za pojedine zgrade i eventualno drugi nivo renewal nagrada ako postgame bude
   trazio duzi loop.
 
+### Faza 8A
+
+- Datum: 2026-07-22
+- Status: zavrseno
+- Cilj: prvi dodatni polish posle sestodelnog prolaza, fokusiran na prop
+  citljivost i combat feel bez uvodjenja novog sistema.
+- Well, lantern i Renewal Supplies chest dobijaju bogatiji pixel tretman preko
+  postojecih world material tekstura, senki, highlights i malih biome/service
+  detalja.
+- Renewal chest sada vizuelno nosi Second Spring identitet: leaf glow, svetliji
+  lock i mekani zeleni highlight, pa igrac jasnije vidi da nije obican sanduk.
+- Staff swing render sada razlikuje prazan zamah od pogotka i Bloom otvaranja:
+  pogodak dobija puniji luk, topliji trag i kratke echo pixele.
+- Combat damage numbers sada imaju `heavy` varijantu za boss/velike/kill hitove:
+  malo veci font, duzi rise i citljiviji marker.
+- Combat logika samo prosiruje postojece `swings` i `combatText` objekte
+  (`hit`, `openedBloom`, `heavy`, `scale`), bez menjanja damage matematike.
+- Provera: syntax check za `rendering/renderer.js` i `systems/combat.js`, plus
+  targeted boss/signature/layout testovi.
+
 ## Van trenutnog scopea
 
 - Durability i repair.

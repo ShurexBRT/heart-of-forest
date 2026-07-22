@@ -180,6 +180,8 @@ function castStaffStrike(state) {
     arc,
     life: 0.14,
     maxLife: 0.14,
+    hit: false,
+    openedBloom: false,
   });
 
   let hit = false;
@@ -237,6 +239,11 @@ function castStaffStrike(state) {
   });
 
   if (hit) state.shake = Math.max(state.shake, 3.5);
+  const activeSwing = state.swings[state.swings.length - 1];
+  if (activeSwing) {
+    activeSwing.hit = hit;
+    activeSwing.openedBloom = openedBloom;
+  }
 }
 
 function castSpiritBolt(state) {
@@ -866,7 +873,9 @@ function damageHostile(state, target, amount, sourceX, sourceY, knockback, stun)
     target.hitFlash = 0.12;
     target.stun = Math.max(target.stun, Math.min(0.08, stun));
     recordTrainingDamage(state, target, amount);
-    pushCombatText(state, target.x, target.y - 34, Math.round(amount), "#ffe5a8");
+    pushCombatText(state, target.x, target.y - 34, Math.round(amount), "#ffe5a8", false, {
+      heavy: amount >= 24,
+    });
     state.hitStop = Math.max(state.hitStop || 0, amount >= 24 ? 0.04 : 0.02);
     spawnBurst(state, target.x, target.y - 8, {
       count: amount >= 24 ? 12 : 8,
@@ -889,7 +898,11 @@ function damageHostile(state, target, amount, sourceX, sourceY, knockback, stun)
     target.x,
     target.y - (target.isBoss ? 42 : 24),
     Math.round(amount),
-    target.isBoss ? "#ffe19b" : "#fff2cf"
+    target.isBoss ? "#ffe19b" : "#fff2cf",
+    false,
+    {
+      heavy: target.isBoss || amount >= 24 || target.hp <= 0,
+    }
   );
   state.hitStop = Math.max(
     state.hitStop || 0,
@@ -1004,17 +1017,20 @@ function damageHostile(state, target, amount, sourceX, sourceY, knockback, stun)
   }
 }
 
-function pushCombatText(state, x, y, amount, color, playerHit = false) {
+function pushCombatText(state, x, y, amount, color, playerHit = false, options = {}) {
   if (state.settings?.damageNumbers === false) return;
   state.combatText = state.combatText || [];
+  const heavy = Boolean(options.heavy);
   state.combatText.push({
     x,
     y,
     text: `${playerHit ? "-" : ""}${Math.max(1, Math.round(amount))}`,
     color,
-    life: 0.72,
-    maxLife: 0.72,
-    rise: playerHit ? 24 : 30,
+    life: heavy ? 0.86 : 0.72,
+    maxLife: heavy ? 0.86 : 0.72,
+    rise: playerHit ? 24 : heavy ? 36 : 30,
+    scale: heavy ? 1.14 : 1,
+    heavy,
   });
   if (state.combatText.length > 32) {
     state.combatText.splice(0, state.combatText.length - 32);
