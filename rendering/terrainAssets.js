@@ -2,6 +2,7 @@ import { getBiomeFloorTexture } from "./atlasAssets.js";
 
 const PATH_GROUNDS = new Set(["path", "ashPath", "snowPath"]);
 const WATER_GROUNDS = new Set(["water", "ice"]);
+const VARIANT_BREAKUP_FAMILIES = new Set(["natural", "path", "soil", "stone", "scorched", "blight"]);
 
 export function drawTerrainTile(ctx, options) {
   const {
@@ -18,7 +19,8 @@ export function drawTerrainTile(ctx, options) {
   } = options;
   const visualVariant = getVisualVariant(tile.ground, tile.variant, tx, ty, sceneStyle);
   const palette = getTerrainPalette(tile.ground, visualVariant, theme, sceneStyle);
-  const seed = hashTile(tx, ty, tile.variant, sceneStyle);
+  const seed = hashTile(tx, ty, visualVariant, sceneStyle);
+  const profile = getBiomeDetailProfile(sceneStyle);
 
   drawDiamond(ctx, x, y, halfW, halfH, palette.base);
   drawTerrainFacets(ctx, x, y, halfW, halfH, tile.ground, palette, seed);
@@ -26,8 +28,10 @@ export function drawTerrainTile(ctx, options) {
 
   ctx.save();
   clipDiamond(ctx, x, y, halfW, halfH);
+  drawSurfaceBreakup(ctx, x, y, halfW, halfH, tile.ground, palette, profile, seed, tx, ty);
   drawMaterialDetails(ctx, x, y, halfW, halfH, tile.ground, palette, seed, tx, ty);
-  drawBiomeSignatureDetails(ctx, x, y, halfW, halfH, tile.ground, palette, seed, tx, ty, sceneStyle);
+  drawBiomeSignatureDetails(ctx, x, y, halfW, halfH, tile.ground, palette, seed, tx, ty, profile);
+  drawTerrainTransitionDetails(ctx, x, y, halfW, halfH, tile.ground, palette, profile, seed, neighbors);
   ctx.restore();
 
   drawTerrainEdges(ctx, x, y, halfW, halfH, tile.ground, palette, neighbors);
@@ -78,10 +82,19 @@ export function getTerrainFamily(ground) {
 }
 
 function getVisualVariant(ground, variant, tx, ty, sceneStyle) {
-  if (ground !== "grass") return variant;
-  const coarseX = Math.floor((tx + Math.floor(ty / 3)) / 4);
-  const coarseY = Math.floor((ty + Math.floor(tx / 4)) / 4);
-  return hashTile(coarseX, coarseY, 0, sceneStyle) % 3;
+  const family = getTerrainFamily(ground);
+  if (!VARIANT_BREAKUP_FAMILIES.has(family)) return variant;
+
+  const scale =
+    family === "path" || family === "stone"
+      ? 3
+      : family === "scorched" || family === "blight"
+        ? 4
+        : 5;
+  const coarseX = Math.floor((tx + Math.floor(ty / 3)) / scale);
+  const coarseY = Math.floor((ty + Math.floor(tx / 4)) / scale);
+  const drift = hashTile(coarseX, coarseY, variant, `${sceneStyle}:${family}`) % 3;
+  return variant + drift;
 }
 
 function getTerrainPalette(ground, variant, theme, sceneStyle) {
@@ -205,6 +218,81 @@ function drawTerrainFacets(ctx, x, y, halfW, halfH, ground, palette, seed) {
   ctx.closePath();
   ctx.fill();
   ctx.restore();
+}
+
+function drawSurfaceBreakup(ctx, x, y, halfW, halfH, ground, palette, profile, seed, tx, ty) {
+  const family = getTerrainFamily(ground);
+
+  if (family === "water" || family === "ice") return;
+
+  if (family === "natural") {
+    if (ground === "snow") {
+      if (seed % 4 === 0) {
+        drawPixelLine(ctx, x - 12, y + 1, x - 5, y + 2, palette.dark, 0.16);
+      }
+      if (seed % 9 === 0) {
+        pixel(ctx, x + 7, y - 3, 2, 1, profile.spark, 0.62);
+      }
+      return;
+    }
+
+    if (ground === "emberGrass") {
+      if (seed % 4 === 0) {
+        drawPixelLine(ctx, x - 9, y + 2, x - 2, y, profile.root, 0.42);
+      }
+      if (seed % 11 === 0) {
+        pixel(ctx, x + 6, y - 2, 1, 1, profile.spark, 0.58);
+      }
+      return;
+    }
+
+    if (seed % 3 === 0) {
+      pixel(ctx, x - 10 + (seed % 7), y + 1, 5, 1, palette.dark, 0.18);
+    }
+    if (hashTile(tx >> 1, ty >> 1, seed, profile.id) % 6 === 0) {
+      pixel(ctx, x + 5, y - 3, 3, 1, profile.leaf, 0.38);
+      pixel(ctx, x + 7, y - 1, 1, 1, profile.flower, 0.46);
+    }
+    return;
+  }
+
+  if (family === "path") {
+    if (seed % 4 === 0) {
+      drawPixelLine(ctx, x - 11, y + 2, x - 5, y + 3, palette.dark, 0.25);
+    }
+    if (seed % 7 === 0) {
+      pixel(ctx, x + 6, y - 3, 5, 1, palette.light, ground === "snowPath" ? 0.42 : 0.28);
+    }
+    return;
+  }
+
+  if (family === "soil") {
+    if ((tx + ty) % 2 === 0) {
+      drawPixelLine(ctx, x - 14, y - 1, x - 4, y + 3, palette.dark, 0.26);
+      drawPixelLine(ctx, x + 2, y - 2, x + 11, y + 1, palette.light, 0.18);
+    }
+    return;
+  }
+
+  if (family === "stone") {
+    if (seed % 3 === 0) {
+      drawPixelLine(ctx, x - halfW + 8, y - 2, x - 3, y - 1, palette.dark, 0.22);
+    }
+    if (seed % 5 === 0) {
+      drawPixelLine(ctx, x + 2, y + 2, x + halfW - 9, y + 1, palette.light, 0.18);
+    }
+    return;
+  }
+
+  if (family === "scorched" || family === "blight") {
+    if (seed % 3 === 0) {
+      drawPixelLine(ctx, x - 8, y - 1, x - 1, y + 2, palette.dark, family === "blight" ? 0.62 : 0.46);
+      drawPixelLine(ctx, x - 1, y + 2, x + 6, y, profile.root, family === "blight" ? 0.44 : 0.3);
+    }
+    if (family === "scorched" && seed % 13 === 0) {
+      pixel(ctx, x + 8, y - 2, 1, 1, profile.spark, 0.74);
+    }
+  }
 }
 
 function drawMaterialDetails(ctx, x, y, halfW, halfH, ground, palette, seed, tx, ty) {
@@ -369,8 +457,7 @@ function drawBlightDetails(ctx, x, y, palette, seed, tx, ty) {
   }
 }
 
-function drawBiomeSignatureDetails(ctx, x, y, halfW, halfH, ground, palette, seed, tx, ty, sceneStyle) {
-  const profile = getBiomeDetailProfile(sceneStyle);
+function drawBiomeSignatureDetails(ctx, x, y, halfW, halfH, ground, palette, seed, tx, ty, profile) {
   if (!profile) return;
 
   const family = getTerrainFamily(ground);
@@ -394,6 +481,78 @@ function drawBiomeSignatureDetails(ctx, x, y, halfW, halfH, ground, palette, see
 
   if (detailSeed % 29 === 0 && profile.spark) {
     pixel(ctx, x + ((detailSeed >> 2) % 13) - 6, y + ((detailSeed >> 6) % 5) - 2, 1, 1, profile.spark, 0.72);
+  }
+}
+
+function drawTerrainTransitionDetails(ctx, x, y, halfW, halfH, ground, palette, profile, seed, neighbors) {
+  if (!profile || !neighbors) return;
+
+  const family = getTerrainFamily(ground);
+  const sideEntries = [
+    ["topLeft", neighbors.topLeft],
+    ["topRight", neighbors.topRight],
+    ["bottomRight", neighbors.bottomRight],
+    ["bottomLeft", neighbors.bottomLeft],
+  ];
+
+  for (const [side, neighborGround] of sideEntries) {
+    if (!neighborGround) continue;
+    const neighborFamily = getTerrainFamily(neighborGround);
+    if (neighborFamily === family) continue;
+
+    const edgeSeed = hashTile(seed, side.length, neighborGround.length, profile.id);
+
+    if (family === "path" && (neighborFamily === "natural" || neighborFamily === "soil")) {
+      drawBrokenEdgeLine(ctx, x, y, halfW, halfH, side, palette.dark, 0.3, edgeSeed);
+      drawEdgeTufts(ctx, x, y, halfW, halfH, side, profile.leaf, profile.root, 0.58, edgeSeed);
+      continue;
+    }
+
+    if ((family === "natural" || family === "soil") && neighborFamily === "path") {
+      drawBrokenEdgeLine(ctx, x, y, halfW, halfH, side, profile.pathDark, 0.24, edgeSeed);
+      if (profile.motif === "leaf" || profile.motif === "reed") {
+        drawEdgeTufts(ctx, x, y, halfW, halfH, side, profile.leaf, profile.flower, 0.38, edgeSeed + 3);
+      }
+      continue;
+    }
+
+    if (family === "water" || family === "ice" || neighborFamily === "water" || neighborFamily === "ice") {
+      const shoreColor = family === "water" || family === "ice" ? palette.light : profile.water;
+      const shadowColor = family === "water" || family === "ice" ? palette.dark : profile.pathDark;
+      drawBrokenEdgeLine(ctx, x, y, halfW, halfH, side, shoreColor, family === "ice" ? 0.48 : 0.38, edgeSeed);
+      drawBrokenEdgeLine(ctx, x, y, halfW, halfH, side, shadowColor, 0.22, edgeSeed + 11, 0.56);
+      if (profile.motif === "reed" && family !== "ice" && neighborFamily !== "ice") {
+        drawEdgeTufts(ctx, x, y, halfW, halfH, side, profile.leaf, profile.root, 0.68, edgeSeed + 5);
+      }
+      continue;
+    }
+
+    if (family === "stone" || neighborFamily === "stone") {
+      drawBrokenEdgeLine(ctx, x, y, halfW, halfH, side, family === "stone" ? palette.dark : profile.pathDark, 0.28, edgeSeed);
+      if (profile.motif === "leaf" || profile.motif === "reed") {
+        drawEdgeTufts(ctx, x, y, halfW, halfH, side, profile.leaf, profile.root, 0.36, edgeSeed + 7);
+      }
+      if (profile.motif === "rune" && edgeSeed % 3 === 0) {
+        drawEdgeRunes(ctx, x, y, halfW, halfH, side, profile.spark, 0.5, edgeSeed);
+      }
+      continue;
+    }
+
+    if (family === "scorched" || neighborFamily === "scorched") {
+      drawBrokenEdgeLine(ctx, x, y, halfW, halfH, side, "#ff9254", 0.22, edgeSeed);
+      drawBrokenEdgeLine(ctx, x, y, halfW, halfH, side, profile.root, 0.34, edgeSeed + 9, 0.5);
+      continue;
+    }
+
+    if (family === "blight" || neighborFamily === "blight") {
+      drawBrokenEdgeLine(ctx, x, y, halfW, halfH, side, profile.root, 0.56, edgeSeed);
+      drawEdgeThorns(ctx, x, y, halfW, halfH, side, profile.flower, 0.44, edgeSeed);
+      continue;
+    }
+
+    if (ground === "snow" || neighborGround === "snow" || ground === "snowPath" || neighborGround === "snowPath") {
+      drawBrokenEdgeLine(ctx, x, y, halfW, halfH, side, profile.spark, 0.36, edgeSeed);
+    }
   }
 }
 
@@ -545,6 +704,67 @@ function drawSpecialSignature(ctx, x, y, profile, seed, tx, ty, ground) {
   }
 }
 
+function drawBrokenEdgeLine(ctx, x, y, halfW, halfH, side, color, alpha, seed, density = 1) {
+  const [x1, y1, x2, y2] = getEdgePoints(x, y, halfW, halfH, side, 2);
+  const segmentCount = density >= 0.75 ? 3 : 2;
+
+  for (let index = 0; index < segmentCount; index += 1) {
+    const segmentSeed = hashTile(seed, index, side.length, color);
+    if (segmentSeed % 5 === 0 && density < 0.75) continue;
+    const t = 0.18 + index * (0.58 / segmentCount) + ((segmentSeed % 7) - 3) * 0.01;
+    const span = density >= 0.75 ? 0.14 : 0.1;
+    const start = clamp01(t);
+    const end = clamp01(t + span);
+    drawPixelLine(
+      ctx,
+      lerp(x1, x2, start),
+      lerp(y1, y2, start),
+      lerp(x1, x2, end),
+      lerp(y1, y2, end),
+      color,
+      alpha
+    );
+  }
+}
+
+function drawEdgeTufts(ctx, x, y, halfW, halfH, side, leafColor, rootColor, alpha, seed) {
+  const [x1, y1, x2, y2] = getEdgePoints(x, y, halfW, halfH, side, 4);
+  const count = seed % 3 === 0 ? 2 : 1;
+
+  for (let index = 0; index < count; index += 1) {
+    const t = 0.28 + index * 0.28 + ((seed >> (index + 2)) % 5) * 0.025;
+    const px = Math.round(lerp(x1, x2, clamp01(t)));
+    const py = Math.round(lerp(y1, y2, clamp01(t)));
+    pixel(ctx, px - 1, py - 2, 1, 3, rootColor, alpha * 0.78);
+    pixel(ctx, px, py - 3, 2, 1, leafColor, alpha);
+    if (seed % 5 === 0) {
+      pixel(ctx, px + 2, py - 1, 1, 1, leafColor, alpha * 0.72);
+    }
+  }
+}
+
+function drawEdgeRunes(ctx, x, y, halfW, halfH, side, color, alpha, seed) {
+  const [x1, y1, x2, y2] = getEdgePoints(x, y, halfW, halfH, side, 5);
+  const t = 0.35 + (seed % 4) * 0.08;
+  const px = Math.round(lerp(x1, x2, clamp01(t)));
+  const py = Math.round(lerp(y1, y2, clamp01(t)));
+  pixel(ctx, px - 2, py - 2, 4, 1, color, alpha);
+  pixel(ctx, px, py - 1, 1, 3, color, alpha * 0.78);
+}
+
+function drawEdgeThorns(ctx, x, y, halfW, halfH, side, color, alpha, seed) {
+  const [x1, y1, x2, y2] = getEdgePoints(x, y, halfW, halfH, side, 4);
+  const count = seed % 2 === 0 ? 2 : 1;
+
+  for (let index = 0; index < count; index += 1) {
+    const t = 0.22 + index * 0.34 + ((seed >> (index + 3)) % 4) * 0.025;
+    const px = Math.round(lerp(x1, x2, clamp01(t)));
+    const py = Math.round(lerp(y1, y2, clamp01(t)));
+    drawPixelLine(ctx, px - 2, py + 1, px + 2, py - 1, color, alpha);
+    pixel(ctx, px + 2, py - 2, 1, 1, color, alpha * 0.76);
+  }
+}
+
 function drawTerrainEdges(ctx, x, y, halfW, halfH, ground, palette, neighbors) {
   const family = getTerrainFamily(ground);
   const edgeAlpha = ground === "water" || ground === "ice" ? 0.76 : 0.58;
@@ -569,6 +789,15 @@ function drawTerrainEdges(ctx, x, y, halfW, halfH, ground, palette, neighbors) {
 
 function sameFamily(family, neighborGround) {
   return neighborGround && getTerrainFamily(neighborGround) === family;
+}
+
+function getEdgePoints(x, y, halfW, halfH, side, inset = 0) {
+  return {
+    topLeft: [x - inset, y - halfH + inset, x - halfW + inset, y],
+    topRight: [x + inset, y - halfH + inset, x + halfW - inset, y],
+    bottomRight: [x + halfW - inset, y, x + inset, y + halfH - inset],
+    bottomLeft: [x - inset, y + halfH - inset, x - halfW + inset, y],
+  }[side];
 }
 
 function drawEdge(ctx, x, y, halfW, halfH, side, color, alpha) {
@@ -714,6 +943,14 @@ function mixColors(colorA, colorB, amount) {
   const b = parseHex(colorB);
   const mix = (from, to) => Math.round(from + (to - from) * amount);
   return toHexColor(mix(a.r, b.r), mix(a.g, b.g), mix(a.b, b.b));
+}
+
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function clamp01(value) {
+  return Math.max(0, Math.min(1, value));
 }
 
 function parseHex(color) {

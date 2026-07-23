@@ -843,6 +843,28 @@ beskonacnu kupovinu talent poena.
 - Test pokriva loot intent role za preparation, quick use, seed, attunement
   material i dve equipment build grane.
 
+### Faza 8H
+
+- Datum: 2026-07-23
+- Status: zavrseno
+- Cilj: zavrsni terrain readability pass koji cini biome podove bogatijim bez
+  menjanja collisiona, scena ili prljavih atlas tile cropova.
+- `terrainAssets` sada koristi siru deterministic variant breakup logiku za
+  natural, path, soil, stone, scorched i blight materijale, pa ponavljajuci
+  tile pattern manje lici na ravnu tablu.
+- Svaki tile dobija dodatni clipped surface breakup sloj: sneg ima meke
+  plave drift senke, Ember naprsle korene i zar, kamen mikro pukotine, soil
+  brazde, a blight jace tamne veins.
+- Dodati su transition detalji po ivici materijala: put dobija travnate rubove,
+  voda obalu i reeds, ruin stone mahovinu/rune, Ember spaljeni prelaz, a
+  Scarroot thorn rub.
+- Terrain pass ostaje renderer-only: nema promena u map layoutu, reachability,
+  collision pravilima, spawnovima ili quest flow-u.
+- Test dodaje terrain family grouping proveru zato sto transition renderer zavisi
+  od stabilnih porodica materijala.
+- Runtime QA je proverio Heartwood, Stillwater, Ember, Frost, Scarroot i
+  Rootlight screenshotove preko headless Chrome debug fixture-a na `1280x720`.
+
 ## Van trenutnog scopea
 
 - Durability i repair.
