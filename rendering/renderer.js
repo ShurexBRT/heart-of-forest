@@ -531,7 +531,7 @@ function drawObstacle(ctx, obstacle, theme, sceneStyle, origin) {
   if (obstacle.type === "water") drawWater(ctx, obstacle, origin);
   if (obstacle.type === "ruin") drawRuin(ctx, obstacle, sceneStyle, origin);
   if (obstacle.type === "cottage") drawCottage(ctx, obstacle, sceneStyle, origin);
-  if (obstacle.type === "well") drawWell(ctx, obstacle, origin);
+  if (obstacle.type === "well") drawWell(ctx, obstacle, sceneStyle, origin);
   if (obstacle.type === "fenceH" || obstacle.type === "fenceV") drawFence(ctx, obstacle, sceneStyle, origin);
   if (obstacle.type === "signpost") drawSignpost(ctx, obstacle, sceneStyle, origin);
   if (obstacle.type === "lantern") drawLantern(ctx, obstacle, sceneStyle, origin);
@@ -749,6 +749,7 @@ function drawCottage(ctx, cottage, sceneStyle, origin) {
   pixelRect(ctx, point.x + 63, point.y - 127, 6, 7, "rgba(224, 204, 174, 0.4)");
   drawCottageBiomeTrim(ctx, point.x, point.y, sceneStyle, variant);
   drawCottagePorch(ctx, point.x, point.y, sceneStyle, variant);
+  drawCottageSettlementDetails(ctx, point.x, point.y, sceneStyle, variant);
   pixelRect(ctx, point.x - 76, point.y - 4, 152, 5, sceneStyle === "aylaHomestead" ? "#b79c72" : "#7b705e");
 }
 
@@ -828,6 +829,63 @@ function drawCottagePorch(ctx, x, y, sceneStyle, variant) {
   }
 }
 
+function drawCottageSettlementDetails(ctx, x, y, sceneStyle, variant) {
+  const trim = getCottageBiomeTrim(sceneStyle);
+  const notch = variant % 3;
+
+  pixelRect(ctx, x - 94, y - 59, 188, 2, "rgba(246, 221, 166, 0.22)");
+  pixelRect(ctx, x - 92 + notch * 9, y - 84, 34, 2, "rgba(255, 224, 150, 0.36)");
+  pixelRect(ctx, x + 42 - notch * 5, y - 111, 28, 2, "rgba(255, 224, 150, 0.3)");
+  pixelRect(ctx, x - 66, y - 6, 132, 2, "rgba(28, 23, 20, 0.38)");
+
+  for (let step = 0; step < 4; step += 1) {
+    const sx = x - 44 + step * 29 + ((variant + step) % 2) * 3;
+    pixelRect(ctx, sx, y - 72, 1, 7, "rgba(68, 45, 31, 0.48)");
+    pixelRect(ctx, sx + 1, y - 72, 1, 5, "rgba(248, 196, 112, 0.28)");
+  }
+
+  if (trim.motif === "ember") {
+    fillPixelEllipse(ctx, x + 67, y - 125, 8, 4, "rgba(255, 151, 84, 0.18)");
+    pixelRect(ctx, x + 64, y - 127, 3, 3, "#ffb878");
+    pixelRect(ctx, x + 70, y - 123, 2, 2, "#e46f46");
+    return;
+  }
+
+  if (trim.motif === "frost") {
+    pixelRect(ctx, x - 82, y - 118, 42, 2, "#f8feff");
+    pixelRect(ctx, x + 22, y - 117, 38, 2, "#edf8ff");
+    pixelRect(ctx, x + 60, y - 77, 14, 2, "#f8feff");
+    return;
+  }
+
+  if (trim.motif === "thorn") {
+    drawPixelLine(ctx, x - 87, y - 56, x - 58, y - 67, trim.accent, 0.82);
+    drawPixelLine(ctx, x + 54, y - 56, x + 84, y - 70, trim.accent, 0.78);
+    pixelRect(ctx, x - 70, y - 66, 2, 2, trim.light);
+    pixelRect(ctx, x + 73, y - 68, 2, 2, trim.light);
+    return;
+  }
+
+  if (trim.motif === "rune") {
+    pixelRect(ctx, x - 72, y - 55, 6, 1, trim.light);
+    pixelRect(ctx, x - 69, y - 58, 1, 6, trim.light);
+    pixelRect(ctx, x + 66, y - 55, 6, 1, trim.light);
+    pixelRect(ctx, x + 69, y - 58, 1, 6, trim.light);
+    return;
+  }
+
+  if (trim.motif === "reed") {
+    pixelRect(ctx, x - 88, y - 16, 17, 2, trim.shadow);
+    pixelRect(ctx, x + 70, y - 16, 18, 2, trim.shadow);
+    drawPixelLine(ctx, x - 82, y - 17, x - 74, y - 31, trim.accent, 0.72);
+    drawPixelLine(ctx, x + 80, y - 17, x + 75, y - 30, trim.light, 0.66);
+    return;
+  }
+
+  fillPixelEllipse(ctx, x - 83, y - 18, 8, 4, trim.accent);
+  fillPixelEllipse(ctx, x + 82, y - 18, 8, 4, trim.light);
+}
+
 function getCottageBiomeTrim(sceneStyle) {
   if (sceneStyle === "emberpineGrove") {
     return {
@@ -892,11 +950,15 @@ function getCottageBiomeTrim(sceneStyle) {
   };
 }
 
-function drawWell(ctx, well, origin) {
+function drawWell(ctx, well, sceneStyle, origin) {
   const point = toScreen(origin, well.anchorX, well.anchorY);
   const variant = getPropVariant(well, 4);
+  const trim = getCottageBiomeTrim(sceneStyle);
   drawIsoShadow(ctx, point.x, point.y, 18, 8);
   fillPixelEllipse(ctx, point.x, point.y - 3, 24, 8, "rgba(58, 43, 31, 0.38)");
+  pixelRect(ctx, point.x - 18, point.y - 42, 36, 7, "#7d4526");
+  drawWorldMaterialRect(ctx, "roof", point.x - 18, point.y - 42, 36, 7, variant + 1, 0.86);
+  pixelRect(ctx, point.x - 20, point.y - 36, 40, 4, "#4c3427");
   pixelRect(ctx, point.x - 12, point.y - 34, 4, 20, "#6f4b32");
   pixelRect(ctx, point.x + 8, point.y - 34, 4, 20, "#6f4b32");
   pixelRect(ctx, point.x - 16, point.y - 30, 32, 6, "#936645");
@@ -906,14 +968,22 @@ function drawWell(ctx, well, origin) {
   pixelRect(ctx, point.x - 10, point.y - 14, 20, 8, "#4f7284");
   pixelRect(ctx, point.x - 8, point.y - 13, 16, 2, "#8dc4d0");
   pixelRect(ctx, point.x - 1, point.y - 35, 2, 13, "#3d3330");
+  pixelRect(ctx, point.x + 2, point.y - 23, 8, 8, "#5f4634");
+  pixelRect(ctx, point.x + 3, point.y - 22, 6, 2, "#c49a62");
   pixelRect(ctx, point.x - 15, point.y - 2, 30, 3, "#5e4837");
   pixelRect(ctx, point.x - 13, point.y - 25, 26, 2, "#eef7f2");
   pixelRect(ctx, point.x + 2, point.y - 38, 10, 3, "#d9b56f");
+  drawSmallBiomeAccent(ctx, point.x, point.y - 4, trim, variant);
 }
 
 function drawFence(ctx, fence, sceneStyle, origin) {
   const point = toScreen(origin, fence.anchorX, fence.anchorY);
-  drawIsoShadow(ctx, point.x, point.y, 16, 6);
+  const trim = getCottageBiomeTrim(sceneStyle);
+  const variant = getPropVariant(fence, 4);
+  const horizontal = fence.type === "fenceH";
+  const length = horizontal ? fence.w : fence.h;
+
+  drawIsoShadow(ctx, point.x, point.y, horizontal ? Math.max(18, fence.w * 0.18) : 16, 6);
   if (
     drawBiomeProp(ctx, sceneStyle, fence.type, point.x, point.y + 2, {
       scale: fence.type === "fenceH" ? Math.max(0.9, fence.w / 128) : Math.max(0.9, fence.h / 92),
@@ -921,20 +991,41 @@ function drawFence(ctx, fence, sceneStyle, origin) {
   ) {
     return;
   }
-  const width = Math.round(fence.w * 0.36);
-  const left = Math.round(point.x - width / 2);
-  pixelRect(ctx, left, point.y - 18, width, 4, "#cba16c");
-  pixelRect(ctx, left, point.y - 10, width, 4, "#8f633d");
-  drawWorldMaterialRect(ctx, "planks", left, point.y - 18, width, 4, getPropVariant(fence, 4), 0.9);
-  drawWorldMaterialRect(ctx, "planks", left, point.y - 10, width, 4, getPropVariant(fence, 4) + 1, 0.9);
-  for (let x = left + 4; x < left + width; x += 12) {
-    pixelRect(ctx, x, point.y - 22, 4, 18, "#6c482f");
-    drawWorldMaterialRect(ctx, "timber", x, point.y - 22, 4, 18, getPropVariant(fence, 4), 0.82);
+
+  const startWorld = horizontal
+    ? { x: fence.x + 8, y: fence.y + 11 }
+    : { x: fence.x + 11, y: fence.y + 8 };
+  const endWorld = horizontal
+    ? { x: fence.x + fence.w - 8, y: fence.y + 11 }
+    : { x: fence.x + 11, y: fence.y + fence.h - 8 };
+  const topStart = toScreen(origin, startWorld.x, startWorld.y, 22);
+  const topEnd = toScreen(origin, endWorld.x, endWorld.y, 22);
+  const lowStart = toScreen(origin, startWorld.x, startWorld.y, 13);
+  const lowEnd = toScreen(origin, endWorld.x, endWorld.y, 13);
+
+  drawThickPixelLine(ctx, topStart, topEnd, 4, "#cba16c");
+  drawThickPixelLine(ctx, lowStart, lowEnd, 4, "#8f633d");
+  drawThickPixelLine(ctx, { x: topStart.x, y: topStart.y - 1 }, { x: topEnd.x, y: topEnd.y - 1 }, 1, "#f0c98f", 0.6);
+  drawThickPixelLine(ctx, { x: lowStart.x, y: lowStart.y + 2 }, { x: lowEnd.x, y: lowEnd.y + 2 }, 1, "#4f3422", 0.72);
+
+  const postCount = Math.max(2, Math.floor(length / 82) + 2);
+  for (let index = 0; index < postCount; index += 1) {
+    const t = postCount === 1 ? 0 : index / (postCount - 1);
+    const wx = startWorld.x + (endWorld.x - startWorld.x) * t;
+    const wy = startWorld.y + (endWorld.y - startWorld.y) * t;
+    const post = toScreen(origin, wx, wy);
+    pixelRect(ctx, post.x - 3, post.y - 25, 6, 24, "#6c482f");
+    drawWorldMaterialRect(ctx, "timber", post.x - 3, post.y - 25, 6, 24, variant + index, 0.82);
+    pixelRect(ctx, post.x - 4, post.y - 27, 8, 3, trim.accent);
+    pixelRect(ctx, post.x - 2, post.y - 24, 2, 20, "rgba(242, 198, 126, 0.25)");
   }
+
+  drawFenceBiomeAccent(ctx, topStart, topEnd, lowStart, lowEnd, trim, variant);
 }
 
 function drawSignpost(ctx, sign, sceneStyle, origin) {
   const point = toScreen(origin, sign.anchorX, sign.anchorY);
+  const trim = getCottageBiomeTrim(sceneStyle);
   drawIsoShadow(ctx, point.x, point.y, 10, 4);
   if (
     drawBiomeProp(ctx, sceneStyle, "signpost", point.x, point.y + 2, {
@@ -949,38 +1040,34 @@ function drawSignpost(ctx, sign, sceneStyle, origin) {
   drawWorldMaterialRect(ctx, "planks", point.x - 16, point.y - 32, 32, 12, getPropVariant(sign, 4), 0.76);
   pixelRect(ctx, point.x - 14, point.y - 30, 28, 2, "#f4ddb2");
   pixelRect(ctx, point.x - 12, point.y - 26, 20, 2, "#9c7a4a");
+  pixelRect(ctx, point.x - 17, point.y - 33, 34, 2, trim.accent);
+  pixelRect(ctx, point.x + 10, point.y - 28, 6, 3, trim.light);
+  drawSmallBiomeAccent(ctx, point.x - 9, point.y - 19, trim, getPropVariant(sign, 4));
 }
 
 function drawLantern(ctx, lantern, sceneStyle, origin) {
   const point = toScreen(origin, lantern.anchorX, lantern.anchorY);
+  const trim = getCottageBiomeTrim(sceneStyle);
   drawIsoShadow(ctx, point.x, point.y, 8, 4);
   if (
     drawBiomeProp(ctx, sceneStyle, "lantern", point.x, point.y + 2, {
       scale: 0.56,
     })
   ) {
+    drawLanternGlow(ctx, point.x, point.y, lantern, trim, true);
     return;
   }
   pixelRect(ctx, point.x - 2, point.y - 24, 4, 22, "#6e4a34");
   pixelRect(ctx, point.x - 8, point.y - 36, 16, 12, "#4e3a28");
   drawWorldMaterialRect(ctx, "metal", point.x - 8, point.y - 36, 16, 12, getPropVariant(lantern, 4), 0.78);
-  const glowColor =
-    lantern.style === "cool"
-      ? "#9bd8ff"
-      : lantern.style === "frost"
-        ? "#dff6ff"
-        : lantern.style === "ember"
-          ? "#ffb16c"
-          : "#efcf79";
-  fillPixelEllipse(ctx, point.x, point.y - 28, 16, 10, `${glowColor}55`);
-  pixelRect(ctx, point.x - 5, point.y - 33, 10, 8, glowColor);
-  pixelRect(ctx, point.x - 2, point.y - 30, 4, 2, "#fff6cf");
+  drawLanternGlow(ctx, point.x, point.y, lantern, trim, false);
   pixelRect(ctx, point.x - 6, point.y - 36, 12, 2, "#c6a775");
   pixelRect(ctx, point.x - 6, point.y - 24, 12, 2, "#3c2b22");
 }
 
 function drawBridge(ctx, bridge, sceneStyle, origin) {
   const center = toScreen(origin, bridge.x + bridge.w / 2, bridge.y + bridge.h);
+  const trim = getCottageBiomeTrim(sceneStyle);
   if (
     drawBiomeProp(ctx, sceneStyle, "bridge", center.x, center.y + 2, {
       scale: bridge.w > bridge.h ? Math.max(0.72, bridge.w / 190) : Math.max(0.72, bridge.h / 190),
@@ -1058,7 +1145,197 @@ function drawBridge(ctx, bridge, sceneStyle, origin) {
     ctx.stroke();
   }
 
+  drawBridgeRails(ctx, corners, bridge, trim);
   ctx.restore();
+}
+
+function drawLanternGlow(ctx, x, y, lantern, trim, atlasSprite = false) {
+  const glowColor =
+    lantern.style === "cool"
+      ? "#9bd8ff"
+      : lantern.style === "frost"
+        ? "#dff6ff"
+        : lantern.style === "ember"
+          ? "#ffb16c"
+          : "#efcf79";
+  const lampY = y + (atlasSprite ? -42 : -28);
+
+  fillPixelEllipse(ctx, x, lampY, atlasSprite ? 18 : 16, atlasSprite ? 12 : 10, `${glowColor}42`);
+  pixelRect(ctx, x - 5, lampY - 5, 10, 8, glowColor);
+  pixelRect(ctx, x - 2, lampY - 2, 4, 2, "#fff6cf");
+  pixelRect(ctx, x - 7, lampY - 7, 14, 2, trim.accent);
+  pixelRect(ctx, x - 1, lampY + 7, 2, 4, trim.shadow);
+}
+
+function drawFenceBiomeAccent(ctx, topStart, topEnd, lowStart, lowEnd, trim, variant) {
+  const t = 0.32 + (variant % 3) * 0.14;
+  const top = interpolatePoint(topStart, topEnd, Math.min(0.72, t));
+  const low = interpolatePoint(lowStart, lowEnd, Math.max(0.2, t - 0.16));
+
+  if (trim.motif === "frost") {
+    drawThickPixelLine(ctx, { x: topStart.x, y: topStart.y - 3 }, { x: topEnd.x, y: topEnd.y - 3 }, 2, "#f8fdff", 0.86);
+    pixelRect(ctx, top.x - 3, top.y - 7, 7, 2, "#d7eaf3");
+    return;
+  }
+
+  if (trim.motif === "ember") {
+    pixelRect(ctx, top.x - 2, top.y - 3, 4, 2, "#ffb16c");
+    pixelRect(ctx, low.x + 5, low.y + 1, 3, 2, "#d86a43");
+    return;
+  }
+
+  if (trim.motif === "thorn") {
+    drawPixelLine(ctx, low.x - 8, low.y + 3, top.x + 10, top.y - 5, trim.accent, 0.9);
+    pixelRect(ctx, top.x + 8, top.y - 6, 2, 2, trim.light);
+    return;
+  }
+
+  if (trim.motif === "rune") {
+    pixelRect(ctx, top.x - 4, top.y - 5, 8, 1, trim.light);
+    pixelRect(ctx, top.x - 1, top.y - 8, 1, 6, trim.light);
+    return;
+  }
+
+  if (trim.motif === "reed") {
+    drawPixelLine(ctx, low.x - 6, low.y + 2, low.x - 1, low.y - 10, trim.accent, 0.74);
+    drawPixelLine(ctx, low.x + 2, low.y + 2, low.x + 8, low.y - 8, trim.light, 0.7);
+    return;
+  }
+
+  drawPixelLine(ctx, low.x - 8, low.y + 2, top.x + 8, top.y - 4, trim.accent, 0.72);
+  fillPixelEllipse(ctx, top.x + 7, top.y - 5, 4, 2, trim.light);
+}
+
+function drawBridgeRails(ctx, corners, bridge, trim) {
+  const horizontal = bridge.w >= bridge.h;
+  const sideAStart = horizontal ? corners[0] : corners[0];
+  const sideAEnd = horizontal ? corners[1] : corners[3];
+  const sideBStart = horizontal ? corners[3] : corners[1];
+  const sideBEnd = horizontal ? corners[2] : corners[2];
+  const railYOffset = -9;
+  const innerYOffset = -3;
+
+  drawThickPixelLine(
+    ctx,
+    { x: sideAStart.x, y: sideAStart.y + railYOffset },
+    { x: sideAEnd.x, y: sideAEnd.y + railYOffset },
+    3,
+    "#4d3523",
+    0.9
+  );
+  drawThickPixelLine(
+    ctx,
+    { x: sideBStart.x, y: sideBStart.y + innerYOffset },
+    { x: sideBEnd.x, y: sideBEnd.y + innerYOffset },
+    3,
+    "#3c291d",
+    0.82
+  );
+  drawThickPixelLine(
+    ctx,
+    { x: sideAStart.x, y: sideAStart.y + railYOffset - 2 },
+    { x: sideAEnd.x, y: sideAEnd.y + railYOffset - 2 },
+    1,
+    trim.accent,
+    0.74
+  );
+
+  const posts = Math.max(3, Math.floor((horizontal ? bridge.w : bridge.h) / 84) + 2);
+  for (let index = 0; index < posts; index += 1) {
+    const t = index / (posts - 1);
+    const front = interpolatePoint(sideBStart, sideBEnd, t);
+    pixelRect(ctx, front.x - 2, front.y - 14, 4, 14, "#5d3d28");
+    pixelRect(ctx, front.x - 3, front.y - 16, 6, 3, trim.shadow);
+    if ((index + getBridgeVariantSeed(bridge)) % 2 === 0) {
+      pixelRect(ctx, front.x - 2, front.y - 17, 4, 2, trim.accent);
+    }
+  }
+
+  const marker = interpolatePoint(sideAStart, sideAEnd, 0.5);
+  if (trim.motif === "frost") {
+    drawThickPixelLine(
+      ctx,
+      { x: sideAStart.x, y: sideAStart.y + railYOffset - 4 },
+      { x: sideAEnd.x, y: sideAEnd.y + railYOffset - 4 },
+      2,
+      "#f4fcff",
+      0.76
+    );
+    return;
+  }
+
+  if (trim.motif === "ember") {
+    pixelRect(ctx, marker.x - 5, marker.y + railYOffset - 3, 10, 2, "#ff9a52");
+    pixelRect(ctx, marker.x + 8, marker.y + railYOffset + 1, 3, 2, "#ffc46c");
+    return;
+  }
+
+  if (trim.motif === "rune") {
+    pixelRect(ctx, marker.x - 4, marker.y + railYOffset - 4, 8, 1, trim.light);
+    pixelRect(ctx, marker.x - 1, marker.y + railYOffset - 7, 1, 6, trim.light);
+    return;
+  }
+
+  if (trim.motif === "reed") {
+    drawPixelLine(ctx, marker.x - 7, marker.y + innerYOffset + 4, marker.x - 2, marker.y + innerYOffset - 9, trim.accent, 0.72);
+    drawPixelLine(ctx, marker.x + 4, marker.y + innerYOffset + 4, marker.x + 10, marker.y + innerYOffset - 8, trim.light, 0.62);
+    return;
+  }
+
+  if (trim.motif === "thorn") {
+    drawPixelLine(ctx, marker.x - 12, marker.y + innerYOffset + 2, marker.x + 12, marker.y + innerYOffset - 8, trim.accent, 0.78);
+    pixelRect(ctx, marker.x + 8, marker.y + innerYOffset - 9, 2, 2, trim.light);
+    return;
+  }
+
+  fillPixelEllipse(ctx, marker.x - 8, marker.y + innerYOffset - 4, 5, 2, trim.accent);
+  fillPixelEllipse(ctx, marker.x + 8, marker.y + innerYOffset - 3, 4, 2, trim.light);
+}
+
+function drawSmallBiomeAccent(ctx, x, y, trim, variant = 0) {
+  const offset = (variant % 3) * 3;
+
+  if (trim.motif === "frost") {
+    pixelRect(ctx, x - 15 + offset, y - 23, 14, 2, "#f7fdff");
+    return;
+  }
+
+  if (trim.motif === "ember") {
+    pixelRect(ctx, x + 8 - offset, y - 21, 4, 2, "#ff9b55");
+    pixelRect(ctx, x + 12 - offset, y - 18, 2, 2, "#ffc078");
+    return;
+  }
+
+  if (trim.motif === "thorn") {
+    drawPixelLine(ctx, x - 15, y - 8, x + 12, y - 16, trim.accent, 0.78);
+    return;
+  }
+
+  if (trim.motif === "rune") {
+    pixelRect(ctx, x - 4, y - 17, 8, 1, trim.light);
+    pixelRect(ctx, x - 1, y - 20, 1, 6, trim.light);
+    return;
+  }
+
+  if (trim.motif === "reed") {
+    drawPixelLine(ctx, x - 12, y - 6, x - 8, y - 19, trim.accent, 0.68);
+    drawPixelLine(ctx, x + 10, y - 6, x + 15, y - 18, trim.light, 0.62);
+    return;
+  }
+
+  fillPixelEllipse(ctx, x - 12 + offset, y - 8, 5, 2, trim.accent);
+  fillPixelEllipse(ctx, x + 11 - offset, y - 7, 4, 2, trim.light);
+}
+
+function drawThickPixelLine(ctx, start, end, width, color, alpha = 1) {
+  const half = Math.floor(width / 2);
+  for (let offset = -half; offset <= half; offset += 1) {
+    drawPixelLine(ctx, start.x, start.y + offset, end.x, end.y + offset, color, alpha);
+  }
+}
+
+function getBridgeVariantSeed(bridge) {
+  return Math.abs(((bridge.x || 0) * 13 + (bridge.y || 0) * 7 + (bridge.w || 0) * 3) | 0);
 }
 
 function interpolatePoint(start, end, t) {

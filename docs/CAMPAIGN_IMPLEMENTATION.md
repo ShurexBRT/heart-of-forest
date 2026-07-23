@@ -865,6 +865,32 @@ beskonacnu kupovinu talent poena.
 - Runtime QA je proverio Heartwood, Stillwater, Ember, Frost, Scarroot i
   Rootlight screenshotove preko headless Chrome debug fixture-a na `1280x720`.
 
+### Faza 8I
+
+- Datum: 2026-07-23
+- Status: zavrseno
+- Cilj: nastaviti atlas-inspirisan prop/building polish nakon terrain pass-a,
+  bez menjanja collisiona, scena, spawnova ili quest toka.
+- Cottage renderer dobija dodatni settlement sloj: krovne highlight linije,
+  grounding senku, sitne shingle/nail detalje i biome-specific akcent koji
+  prati isti `leaf/reed/ember/frost/thorn/rune` jezik kao terrain.
+- Well sada izgleda kao nameran homestead prop, sa malim krovom, rope/bucket
+  detaljem, materijalnim stone/timber slojem i diskretnim biome akcentom.
+- Fallback fence renderer je prebacen sa ravne horizontalne trake na
+  iso-aware rail/post crtanje koje postuje `fenceH` i buduci `fenceV`, uz
+  sneg, trsku, rune, thorns, leaf ili ember detalje po biomu.
+- Lantern glow je izdvojen u zajednicki helper i sada se dodaje i preko cistih
+  atlas lantern spriteova, pa svetla imaju isti citljiv gameplay signal u svim
+  scenama.
+- Bridge fallback dobija rail/post sloj, materijalne plank detalje i biome
+  akcent bez ukljucivanja rizicnih atlas bridge cropova.
+- Signpost fallback dobija jasniji top trim, route mark i mali biome akcent,
+  korisno posebno u scenama gde je atlas fallback namerno iskljucen.
+- Runtime QA je proverio Homestead, Stillwater, Ember, Frost, Scarroot i
+  Rootlight screenshotove preko headless Chrome debug fixture-a na `1280x720`.
+- Automatizovana provera: syntax check za renderer/atlas/world material module i
+  puna regresija `node --test tests\*.test.mjs` sa `75/75` prolaza.
+
 ## Van trenutnog scopea
 
 - Durability i repair.
