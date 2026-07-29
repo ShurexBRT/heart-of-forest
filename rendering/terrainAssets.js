@@ -29,7 +29,7 @@ export function drawTerrainTile(ctx, options) {
   ctx.save();
   clipDiamond(ctx, x, y, halfW, halfH);
   drawSurfaceBreakup(ctx, x, y, halfW, halfH, tile.ground, palette, profile, seed, tx, ty);
-  drawMaterialDetails(ctx, x, y, halfW, halfH, tile.ground, palette, seed, tx, ty);
+  drawMaterialDetails(ctx, x, y, halfW, halfH, tile.ground, palette, profile, seed, tx, ty, neighbors);
   drawBiomeSignatureDetails(ctx, x, y, halfW, halfH, tile.ground, palette, seed, tx, ty, profile);
   drawTerrainTransitionDetails(ctx, x, y, halfW, halfH, tile.ground, palette, profile, seed, neighbors);
   ctx.restore();
@@ -295,7 +295,7 @@ function drawSurfaceBreakup(ctx, x, y, halfW, halfH, ground, palette, profile, s
   }
 }
 
-function drawMaterialDetails(ctx, x, y, halfW, halfH, ground, palette, seed, tx, ty) {
+function drawMaterialDetails(ctx, x, y, halfW, halfH, ground, palette, profile, seed, tx, ty, neighbors) {
   if (ground === "grass") {
     drawGrassDetails(ctx, x, y, palette, seed, tx, ty);
     return;
@@ -303,6 +303,7 @@ function drawMaterialDetails(ctx, x, y, halfW, halfH, ground, palette, seed, tx,
 
   if (ground === "path" || ground === "ashPath" || ground === "snowPath") {
     drawPathDetails(ctx, x, y, ground, palette, seed, tx, ty);
+    drawFloorRelief(ctx, x, y, halfW, "path", ground, palette, profile, seed, tx, ty);
     return;
   }
 
@@ -313,16 +314,17 @@ function drawMaterialDetails(ctx, x, y, halfW, halfH, ground, palette, seed, tx,
 
   if (ground === "planks") {
     drawPlankDetails(ctx, x, y, halfW, palette, seed, tx, ty);
+    drawFloorRelief(ctx, x, y, halfW, "planks", ground, palette, profile, seed, tx, ty);
     return;
   }
 
   if (ground === "water") {
-    drawWaterDetails(ctx, x, y, palette, seed, tx, ty);
+    drawWaterDetails(ctx, x, y, halfW, halfH, palette, profile, seed, tx, ty, neighbors);
     return;
   }
 
   if (ground === "ice") {
-    drawIceDetails(ctx, x, y, palette, seed, tx, ty);
+    drawIceDetails(ctx, x, y, halfW, halfH, palette, profile, seed, tx, ty, neighbors);
     return;
   }
 
@@ -338,6 +340,7 @@ function drawMaterialDetails(ctx, x, y, halfW, halfH, ground, palette, seed, tx,
 
   if (ground === "ruinStone") {
     drawStoneDetails(ctx, x, y, palette, seed, tx, ty);
+    drawFloorRelief(ctx, x, y, halfW, "stone", ground, palette, profile, seed, tx, ty);
     return;
   }
 
@@ -393,7 +396,13 @@ function drawPlankDetails(ctx, x, y, halfW, palette, seed, tx, ty) {
   }
 }
 
-function drawWaterDetails(ctx, x, y, palette, seed, tx, ty) {
+function drawWaterDetails(ctx, x, y, halfW, halfH, palette, profile, seed, tx, ty, neighbors) {
+  const shoreMask = getShoreMask(neighbors);
+  const depthAlpha = shoreMask.openWater >= 3 ? 0.22 : 0.12;
+
+  pixel(ctx, x - halfW + 3, y - 1, halfW * 2 - 6, 1, palette.dark, depthAlpha);
+  pixel(ctx, x - halfW + 7, y + 2, halfW * 2 - 14, 1, palette.dark, depthAlpha * 0.72);
+
   const phase = (tx * 2 + ty) % 4;
   if (phase === 0 || phase === 2) {
     pixel(ctx, x - 8 + phase, y - 2, 7, 1, palette.light, 0.42);
@@ -404,9 +413,24 @@ function drawWaterDetails(ctx, x, y, palette, seed, tx, ty) {
   if (seed % 13 === 0) {
     pixel(ctx, x + 6, y - 2, 2, 1, palette.sparkle, 0.7);
   }
+
+  drawLiquidWaveBand(ctx, x, y, halfW, -4, palette.light, profile.water, 0.34, seed);
+  drawLiquidWaveBand(ctx, x, y, halfW, 1, profile.water, palette.dark, 0.26, seed + 17);
+
+  if (shoreMask.hasShore) {
+    drawShoreGlints(ctx, x, y, halfW, halfH, palette.light, profile.water, shoreMask, seed);
+  }
+
+  if (profile.motif === "reed" && shoreMask.hasShore && seed % 4 === 0) {
+    const side = shoreMask.firstShoreSide || "bottomLeft";
+    drawShoreReed(ctx, x, y, halfW, halfH, side, profile.root, profile.leaf, seed);
+  }
 }
 
-function drawIceDetails(ctx, x, y, palette, seed, tx, ty) {
+function drawIceDetails(ctx, x, y, halfW, halfH, palette, profile, seed, tx, ty, neighbors) {
+  const shoreMask = getShoreMask(neighbors);
+
+  pixel(ctx, x - halfW + 5, y - 1, halfW * 2 - 10, 1, palette.dark, 0.11);
   if ((tx + ty) % 5 === 0) {
     drawPixelLine(ctx, x - 6, y - 2, x - 1, y + 1, palette.light, 0.6);
     drawPixelLine(ctx, x - 1, y + 1, x + 3, y, palette.dark, 0.42);
@@ -414,6 +438,111 @@ function drawIceDetails(ctx, x, y, palette, seed, tx, ty) {
   if (seed % 4 === 0) {
     pixel(ctx, x + 5, y - 2, 3, 1, palette.sparkle, 0.68);
   }
+
+  if (seed % 6 === 0) {
+    drawPixelLine(ctx, x - 10, y + 2, x - 2, y - 1, profile.pathDark, 0.34);
+    drawPixelLine(ctx, x - 2, y - 1, x + 5, y, palette.light, 0.48);
+  }
+
+  if (shoreMask.hasShore) {
+    drawShoreGlints(ctx, x, y, halfW, halfH, palette.light, profile.spark, shoreMask, seed + 23, 0.42);
+  }
+}
+
+function drawFloorRelief(ctx, x, y, halfW, family, ground, palette, profile, seed, tx, ty) {
+  const reliefSeed = hashTile(tx, ty, seed, `${profile.id}:${family}:${ground}`);
+  const isSnow = ground === "snowPath";
+  const isAsh = ground === "ashPath";
+
+  if (family === "path") {
+    if (reliefSeed % 3 === 0) {
+      drawPixelLine(ctx, x - halfW + 6, y + 2, x - 4, y + 1, palette.dark, isSnow ? 0.18 : 0.28);
+    }
+    if (reliefSeed % 5 === 0) {
+      drawPixelLine(ctx, x + 3, y - 2, x + halfW - 7, y - 1, palette.light, isSnow ? 0.36 : 0.26);
+    }
+    if (isAsh && reliefSeed % 7 === 0) {
+      pixel(ctx, x - 2, y - 1, 2, 1, profile.spark, 0.62);
+    }
+    return;
+  }
+
+  if (family === "stone") {
+    const tint = profile.motif === "rune" ? profile.spark : profile.leaf;
+    if (reliefSeed % 2 === 0) {
+      pixel(ctx, x - 9, y - 3, 8, 1, palette.dark, 0.32);
+      pixel(ctx, x - 8, y - 2, 1, 2, palette.dark, 0.24);
+    }
+    if (reliefSeed % 6 === 0) {
+      pixel(ctx, x + 4, y + 1, 7, 1, tint, profile.motif === "rune" ? 0.46 : 0.24);
+    }
+    return;
+  }
+
+  if (family === "planks") {
+    const nailColor = profile.motif === "rune" ? profile.spark : palette.dark;
+    pixel(ctx, x - 10 + (reliefSeed % 6), y - 2, 1, 1, nailColor, 0.58);
+    if (reliefSeed % 4 === 0) {
+      drawPixelLine(ctx, x - halfW + 4, y + 4, x + halfW - 5, y + 3, palette.dark, 0.32);
+    }
+  }
+}
+
+function drawLiquidWaveBand(ctx, x, y, halfW, offsetY, lightColor, darkColor, alpha, seed) {
+  const drift = (seed % 5) - 2;
+  drawPixelLine(ctx, x - halfW + 7 + drift, y + offsetY, x - 3 + drift, y + offsetY + 1, lightColor, alpha);
+  drawPixelLine(ctx, x + 3 + drift, y + offsetY + 1, x + halfW - 8 + drift, y + offsetY, lightColor, alpha * 0.82);
+  if (seed % 3 === 0) {
+    pixel(ctx, x - 1 + drift, y + offsetY + 2, 6, 1, darkColor, alpha * 0.58);
+  }
+}
+
+function drawShoreGlints(ctx, x, y, halfW, halfH, lightColor, foamColor, shoreMask, seed, alpha = 0.34) {
+  for (const side of shoreMask.sides) {
+    const [x1, y1, x2, y2] = getEdgePoints(x, y, halfW, halfH, side, 5);
+    const t = 0.28 + (hashTile(seed, side.length, 5, foamColor) % 34) / 100;
+    const px = Math.round(lerp(x1, x2, clamp01(t)));
+    const py = Math.round(lerp(y1, y2, clamp01(t)));
+    pixel(ctx, px - 2, py - 1, 5, 1, lightColor, alpha);
+    pixel(ctx, px - 1, py, 3, 1, foamColor, alpha * 0.72);
+  }
+}
+
+function drawShoreReed(ctx, x, y, halfW, halfH, side, rootColor, leafColor, seed) {
+  const [x1, y1, x2, y2] = getEdgePoints(x, y, halfW, halfH, side, 6);
+  const t = 0.26 + (seed % 36) / 100;
+  const px = Math.round(lerp(x1, x2, clamp01(t)));
+  const py = Math.round(lerp(y1, y2, clamp01(t)));
+  pixel(ctx, px, py - 5, 1, 5, rootColor, 0.78);
+  pixel(ctx, px + 1, py - 4, 1, 4, leafColor, 0.72);
+  pixel(ctx, px - 2, py - 5, 2, 1, leafColor, 0.62);
+}
+
+function getShoreMask(neighbors) {
+  const sides = [];
+  let openWater = 0;
+  const entries = [
+    ["topLeft", neighbors?.topLeft],
+    ["topRight", neighbors?.topRight],
+    ["bottomRight", neighbors?.bottomRight],
+    ["bottomLeft", neighbors?.bottomLeft],
+  ];
+
+  for (const [side, ground] of entries) {
+    const family = ground ? getTerrainFamily(ground) : null;
+    if (family === "water" || family === "ice") {
+      openWater += 1;
+    } else {
+      sides.push(side);
+    }
+  }
+
+  return {
+    sides,
+    openWater,
+    hasShore: sides.length > 0,
+    firstShoreSide: sides[0] || null,
+  };
 }
 
 function drawSnowDetails(ctx, x, y, palette, seed, tx, ty) {

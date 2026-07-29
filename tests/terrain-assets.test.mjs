@@ -10,6 +10,7 @@ test("terrain family grouping supports readable material transitions", () => {
   assert.equal(getTerrainFamily("path"), "path");
   assert.equal(getTerrainFamily("ashPath"), "path");
   assert.equal(getTerrainFamily("snowPath"), "path");
+  assert.equal(getTerrainFamily("planks"), "planks");
   assert.equal(getTerrainFamily("ruinStone"), "stone");
   assert.equal(getTerrainFamily("ash"), "scorched");
   assert.equal(getTerrainFamily("ember"), "scorched");

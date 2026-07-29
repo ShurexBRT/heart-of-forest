@@ -198,6 +198,7 @@ beskonacnu kupovinu talent poena.
 | 7E | HUD modernization pass | Zavrseno |
 | 7F | Biome floor and building texture pass | Zavrseno |
 | 8AB | Enemy hit-flash mask bugfix | Zavrseno |
+| 8AC | Terrain water, ice, path and floor relief polish | Zavrseno |
 
 ## Dnevnik implementacije
 
@@ -1328,6 +1329,27 @@ beskonacnu kupovinu talent poena.
   smoke screenshot `enemy-hitflash-mask-forced-enemy.png` u `Whispering Woods`.
 - Segment ne menja enemy collision, radius, AI, combat brojeve, hit timing,
   health bar, damage text ili spawn table.
+
+### Faza 8AC
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: nastaviti podove/vodu u modernijem atlas-inspirisanom smeru bez
+  vracanja velikih overlay poligona.
+- `rendering/terrainAssets.js` sada vodi i led crta sa lokalnim tile-aligned
+  depth linijama, wave bandovima, shore glintovima i Stillwater reed detaljem
+  koji ostaje unutar diamond clip-a svakog tile-a.
+- Path, planks i ruinStone podovi dobijaju dodatni `drawFloorRelief` sloj:
+  kratke seam/crack/nail/rune detalje po materijalu i biomu, da podovi citaju
+  vise kao authored pixel material a manje kao ravna ispuna.
+- Dodata je regresija da `planks` ostane poseban terrain family i ne sklizne u
+  path/stone tretman.
+- QA: syntax check za `rendering/terrainAssets.js`, targeted
+  `terrain-assets/layout/heartwood-phase-one` testovi, puna regresija
+  `node --test tests\*.test.mjs` sa `82/82` prolaza i browser screenshots za
+  `mossroot_marsh`, `chapel_of_tides`, `frostveil_tundra` i `mossy_ruins`.
+- Segment ne menja tile placement, collision, bridge ignore, water obstacle
+  podatke, scene progression, prop asete, enemy spawnove ili HUD layout.
 
 ## Van trenutnog scopea
 
