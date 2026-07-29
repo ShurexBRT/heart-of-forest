@@ -1,0 +1,57 @@
+{
+  "cellSize": 128,
+  "columns": [
+    "down",
+    "right",
+    "left",
+    "up"
+  ],
+  "rows": [
+    "rootwarden",
+    "bog_matron",
+    "cinder_warden",
+    "veil_seraph",
+    "elder_hollow",
+    "rootbound_custodian",
+    "starwoken_sentinel"
+  ],
+  "bosses": [
+    {
+      "id": "rootwarden",
+      "name": "Rootwarden",
+      "role": "Heartwood guardian"
+    },
+    {
+      "id": "bog_matron",
+      "name": "Bog Matron",
+      "role": "Stillwater oathkeeper"
+    },
+    {
+      "id": "cinder_warden",
+      "name": "Cinder Warden",
+      "role": "Ember Hollow furnace knight"
+    },
+    {
+      "id": "veil_seraph",
+      "name": "Veil Seraph",
+      "role": "Frostpine sealed herald"
+    },
+    {
+      "id": "elder_hollow",
+      "name": "Elder Hollow",
+      "role": "Scarroot single will"
+    },
+    {
+      "id": "rootbound_custodian",
+      "name": "Rootbound Custodian",
+      "role": "Sunken Reliquary vault keeper"
+    },
+    {
+      "id": "starwoken_sentinel",
+      "name": "Starwoken Sentinel",
+      "role": "Rootlight archive judge"
+    }
+  ],
+  "anchor": "bottom-center",
+  "generatedBy": "scripts/generate-boss-sprites.mjs"
+}

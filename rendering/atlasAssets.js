@@ -3,6 +3,7 @@ const ATLAS_PATHS = {
   aylaV3: "./assets/characters/ayla-v3-directional-game-sheet.png",
   aylaV2: "./assets/characters/ayla-v2-game-sheet.png",
   enemyV1: "./assets/enemies/enemy-v1-directional-game-sheet.png",
+  bossV1: "./assets/bosses/boss-v1-directional-game-sheet.png",
   "blighted-woods": "./assets/atlases/blighted-woods.png",
   "ember-hollow": "./assets/atlases/ember-hollow.png",
   "frostpine-tundra": "./assets/atlases/frostpine-tundra.png",
@@ -253,6 +254,7 @@ const atlasState = {
   aylaFrames: null,
   aylaPortrait: null,
   enemyFrames: null,
+  bossFrames: null,
 };
 
 const AYLA_FRAME_RECTS = {
@@ -325,6 +327,17 @@ const ENEMY_FIXED_TYPES = [
   "rot_weaver",
   "relic_sentinel",
   "starbound_archer",
+];
+const BOSS_FIXED_FRAME_SIZE = 128;
+const BOSS_FIXED_FACINGS = ["down", "right", "left", "up"];
+const BOSS_FIXED_TYPES = [
+  "rootwarden",
+  "bog_matron",
+  "cinder_warden",
+  "veil_seraph",
+  "elder_hollow",
+  "rootbound_custodian",
+  "starwoken_sentinel",
 ];
 
 if (typeof window !== "undefined" && typeof Image !== "undefined") {
@@ -429,6 +442,30 @@ export function drawEnemyAtlasSprite(ctx, x, y, type, facing, frame, pose, optio
   return true;
 }
 
+export function drawBossAtlasSprite(ctx, x, y, bossId, facing, frame, pose, options = {}) {
+  if (!atlasState.bossFrames) return false;
+
+  const frameCanvas = pickBossFrame(bossId, facing);
+  if (!frameCanvas) return false;
+
+  const bob = pose === "slam" ? 2 : pose === "stun" ? 3 : [0, 1, 0, -1][frame % 4];
+  const poseScale =
+    pose === "slam" || pose === "summon" || pose === "rootCrown"
+      ? 1.06
+      : pose === "stun"
+        ? 0.98
+        : 1;
+  drawSpriteCanvas(ctx, frameCanvas, x, y + bob, {
+    anchorX: 0.5,
+    anchorY: 0.96,
+    scale: (options.scale || 1.04) * poseScale,
+    alpha: options.alpha ?? 1,
+    tint: options.tint || null,
+    tintAlpha: options.tintAlpha ?? 0.7,
+  });
+  return true;
+}
+
 export function drawBiomeProp(ctx, sceneStyle, type, x, y, options = {}) {
   if (!ATLAS_WORLD_ART_ENABLED) return false;
   const atlasKey = SCENE_ATLAS_KEYS[sceneStyle];
@@ -497,6 +534,7 @@ function loadAtlases() {
         buildFixedAylaFrames(atlasState.images.aylaV2) ||
         buildAylaFrames(atlasState.images.ayla);
       atlasState.enemyFrames = buildFixedEnemyFrames(atlasState.images.enemyV1);
+      atlasState.bossFrames = buildFixedBossFrames(atlasState.images.bossV1);
       atlasState.aylaPortrait = extractSprite(atlasState.images.ayla, AYLA_FRAME_RECTS.portrait, {
         trim: true,
         component: "cluster",
@@ -633,6 +671,29 @@ function buildFixedEnemyFrames(image) {
           y: row * ENEMY_FIXED_FRAME_SIZE,
           w: ENEMY_FIXED_FRAME_SIZE,
           h: ENEMY_FIXED_FRAME_SIZE,
+        },
+        { trim: false, padding: 0 }
+      );
+    }
+  }
+  return frames;
+}
+
+function buildFixedBossFrames(image) {
+  if (!image) return null;
+  const frames = {};
+  for (let row = 0; row < BOSS_FIXED_TYPES.length; row += 1) {
+    const type = BOSS_FIXED_TYPES[row];
+    frames[type] = {};
+    for (let col = 0; col < BOSS_FIXED_FACINGS.length; col += 1) {
+      const facing = BOSS_FIXED_FACINGS[col];
+      frames[type][facing] = extractSprite(
+        image,
+        {
+          x: col * BOSS_FIXED_FRAME_SIZE,
+          y: row * BOSS_FIXED_FRAME_SIZE,
+          w: BOSS_FIXED_FRAME_SIZE,
+          h: BOSS_FIXED_FRAME_SIZE,
         },
         { trim: false, padding: 0 }
       );
@@ -1199,6 +1260,12 @@ function pickAylaFrame(facing, frame, pose) {
 
 function pickEnemyFrame(type, facing) {
   const bucket = atlasState.enemyFrames?.[type];
+  if (!bucket) return null;
+  return bucket[facing] || bucket.down || null;
+}
+
+function pickBossFrame(bossId, facing) {
+  const bucket = atlasState.bossFrames?.[bossId] || atlasState.bossFrames?.elder_hollow;
   if (!bucket) return null;
   return bucket[facing] || bucket.down || null;
 }

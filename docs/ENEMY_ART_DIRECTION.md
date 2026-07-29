@@ -31,6 +31,21 @@ Heart of Forest enemies should read by gameplay role first and biome identity se
 | Relic Sentinel | Melee | Ancient stone idol with gold runes, slab body, and astral glyph chest. |
 | Starbound Archer | Ranged | Rootlight archer with star halo, violet cloak, and golden astral bow. |
 
+## Boss Roster
+
+Bosses should feel like the same world as the v1 enemy sheet, but with larger
+silhouettes, stronger biome ownership, and one unmistakable story motif each.
+
+| Boss | Region | Visual Direction |
+|---|---|---|
+| Rootwarden | Heartwood | Massive bark guardian with branch crown, moss growth, thorn lanes, and old oath light. |
+| Bog Matron | Stillwater | Wide marsh matriarch with reed crown, waterline skirt, teal oath glow, and drowned-mask face. |
+| Cinder Warden | Ember | Heavy furnace knight with ember core, horned helm, charred armor, and hot gauntlets. |
+| Veil Seraph | Frost | Floating frost herald with pale veil, wing shapes, ice halo, and sealed-message calm. |
+| Elder Hollow | Scarroot | Twisted hollow-root sovereign with antler crown, purple command core, and corrupted tendrils. |
+| Rootbound Custodian | Reliquary | Vault construct bound by roots, slab shoulders, crossed seals, and astral-gold lock light. |
+| Starwoken Sentinel | Rootlight | Tall archive judge with spire halo, star core, orbit shards, and luminous verdict posture. |
+
 ## Current Implementation
 
 - The production pass now uses `assets/enemies/enemy-v1-directional-game-sheet.png`
@@ -47,6 +62,13 @@ Heart of Forest enemies should read by gameplay role first and biome identity se
 - No combat numbers, AI, radius, damage, spawn rules, or quest progression are changed.
 - Future animation passes can add extra walk/windup frames per facing, but must
   preserve the same row/type and facing order unless the loader is updated.
+- Boss production sprites now use
+  `assets/bosses/boss-v1-directional-game-sheet.png`, loaded through
+  `rendering/atlasAssets.js` with the same fixed 128x128, down/right/left/up
+  directional contract as enemies.
+- `assets/bosses/boss-v1-directional-metadata.json` records the row order and
+  bottom-center anchor. `scripts/generate-boss-sprites.mjs` is the deterministic
+  generator for this first production pass.
 
 ## Accepted Concept Translation
 

@@ -9,6 +9,7 @@ import { NPC_DEFS } from "../data/storyData.js";
 import {
   drawAylaAtlasSprite,
   drawBiomeProp,
+  drawBossAtlasSprite,
   drawEnemyAtlasSprite,
   getAtlasRevision,
 } from "./atlasAssets.js";
@@ -1828,10 +1829,19 @@ function drawTrainingDummy(ctx, x, y, item, hit = false) {
 function drawBoss(ctx, boss, state, origin) {
   const point = toScreen(origin, boss.x, boss.y, 26);
   drawBossAura(ctx, boss, state, origin, point);
-  drawPixelSprite(ctx, getBossSprite(Math.floor(boss.animTime) % 4, boss.pose), point.x, point.y, {
-    tint: boss.hitFlash > 0 ? "#ffd5bf" : null,
-    tintAlpha: 0.82,
-  });
+  const frame = Math.floor(boss.animTime) % 4;
+  const facing = resolveFacing(boss.facing);
+  if (
+    !drawBossAtlasSprite(ctx, point.x, point.y, boss.id, facing, frame, boss.pose, {
+      tint: boss.hitFlash > 0 ? "#ffd5bf" : null,
+      tintAlpha: 0.82,
+    })
+  ) {
+    drawPixelSprite(ctx, getBossSprite(frame, boss.pose), point.x, point.y, {
+      tint: boss.hitFlash > 0 ? "#ffd5bf" : null,
+      tintAlpha: 0.82,
+    });
+  }
   if (boss.hitFlash > 0) {
     drawActorHitSpark(ctx, point.x, point.y, boss.radius, getDamageReadColor(boss.identity?.damageType));
   }

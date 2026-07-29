@@ -1419,6 +1419,33 @@ beskonacnu kupovinu talent poena.
 - Segment ne menja tekst questova, quest gating, counters, navigation targete,
   NPC pozicije, input hotkeye ili combat/progression brojeve.
 
+### Faza 8AG
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: zameniti genericki proceduralni boss izgled novim boss sprite sheetom
+  koji pripada istom modernizovanom jeziku kao novi enemy sprite-evi.
+- Dodat je `scripts/generate-boss-sprites.mjs`, deterministicki generator za
+  128x128 down/right/left/up boss atlas.
+- Dodat je `assets/bosses/boss-v1-directional-game-sheet.png` sa sedam boss
+  redova: Rootwarden, Bog Matron, Cinder Warden, Veil Seraph, Elder Hollow,
+  Rootbound Custodian i Starwoken Sentinel.
+- Dodat je `assets/bosses/boss-v1-directional-metadata.json` da row/column
+  ugovor ostane jasan za buduce recut/AI sprite passove.
+- `rendering/atlasAssets.js` sada ucitava boss v1 sheet i eksportuje
+  `drawBossAtlasSprite`, a `rendering/renderer.js` koristi bitmap boss sprite
+  sa proceduralnim `getBossSprite` fallbackom.
+- `docs/ENEMY_ART_DIRECTION.md` sada belezi boss roster art direction i atlas
+  ugovor.
+- Dodata je regresija `tests/boss-sprites.test.mjs` za PNG dimenzije i
+  metadata row/facing kontrakt.
+- QA: generator/syntax check za `scripts/generate-boss-sprites.mjs`,
+  `rendering/atlasAssets.js` i `rendering/renderer.js`, targeted boss sprite
+  test, puna regresija `node --test tests\*.test.mjs` sa `83/83` prolaza i
+  browser screenshots svih sedam bossova u njihovim scenama.
+- Segment ne menja boss AI, HP, damage, attack timing, faze, hitbox/collision
+  radius, loot, quest progression ili boss arena layout.
+
 ## Van trenutnog scopea
 
 - Durability i repair.
