@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+import { QUEST_TARGET_SCENES } from "../data/navigationData.js";
 import { SCENES } from "../data/sceneNetwork.js";
+import { QUEST_DEFS } from "../data/storyData.js";
 import { collidesWithObstacle, getSolidRects } from "../systems/collision.js";
 import { getHoveredInteractionTarget } from "../systems/story.js";
 import { createArena } from "../world/arena.js";
@@ -88,6 +90,28 @@ const DYNAMIC_SCENE_VARIANTS = [
     questStates: { starfall_sanctum: "done" },
   },
 ];
+const ALL_QUESTS_ACTIVE = Object.fromEntries(
+  Object.keys(QUEST_DEFS).map((questId) => [questId, "active"])
+);
+const ALL_UNLOCK_FLAGS = {
+  hearthroot_awake: true,
+  heartwood_restored: true,
+  ruins_listening_post: true,
+  sunken_reliquary_open: true,
+  marsh_route_lit: true,
+  chapel_of_tides_open: true,
+  ember_pass_reopened: true,
+  cinder_warden_released: true,
+  ridge_signal_recovered: true,
+  veil_seraph_released: true,
+  court_approach_secured: true,
+  scarroot_restored: true,
+  starfall_sanctum_open: true,
+  starfall_truth_recovered: true,
+  starfall_sanctum_cleansed: true,
+  epilogue_ready: true,
+  second_spring_started: true,
+};
 
 function hasReachableInteractionPoint(arena, target) {
   const interactionRadius = target.interactionRadius || 54;
@@ -351,6 +375,51 @@ test("dynamic quest interactables stay reachable across scene states", () => {
     for (const interactable of arena.interactables) {
       if (!hasPathReachableInteractionPoint(arena, interactable)) {
         failures.push(`${variant.sceneId}:${variant.label}:${interactable.id}`);
+      }
+    }
+  }
+
+  assert.deepEqual(failures, []);
+});
+
+test("quest target data covers scenes that contain collectable objectives", () => {
+  const collectScenes = new Map();
+  const failures = [];
+
+  for (const scene of Object.values(SCENES)) {
+    const arena = createArena({
+      ...scene,
+      worldFlags: ALL_UNLOCK_FLAGS,
+      questStates: ALL_QUESTS_ACTIVE,
+      questCounters: { homesteadRenewalSupplies: 3 },
+    });
+
+    for (const interactable of arena.interactables) {
+      if (!interactable.collectKey) continue;
+      if (!collectScenes.has(interactable.collectKey)) {
+        collectScenes.set(interactable.collectKey, new Set());
+      }
+      collectScenes.get(interactable.collectKey).add(scene.id);
+    }
+  }
+
+  for (const quest of Object.values(QUEST_DEFS)) {
+    const targetScenes = new Set(
+      QUEST_TARGET_SCENES[quest.id] ||
+        (quest.sceneId
+          ? [quest.sceneId]
+          : quest.autoActivateSceneId
+            ? [quest.autoActivateSceneId]
+            : [])
+    );
+
+    for (const objective of quest.objectives || []) {
+      const scenes = collectScenes.get(objective.key);
+      if (!scenes) continue;
+      for (const sceneId of scenes) {
+        if (!targetScenes.has(sceneId)) {
+          failures.push(`${quest.id}:${objective.key}:${sceneId}`);
+        }
       }
     }
   }

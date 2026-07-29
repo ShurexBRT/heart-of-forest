@@ -198,6 +198,32 @@ export function getCampaignNavigation(
   });
 }
 
+export function getQuestNavigation(
+  progression,
+  sceneProgress = {},
+  currentSceneId = null,
+  questId = null
+) {
+  const quest = QUEST_DEFS[questId];
+  const status = quest ? progression.questStates?.[quest.id] : null;
+  if (!quest || !status || status === "inactive") return null;
+
+  const targetSceneIds = resolveQuestTargets(
+    quest,
+    status,
+    progression,
+    sceneProgress
+  );
+  return buildNavigationView({
+    chapterId: quest.chapter || progression.campaign?.activeChapter || "heartwood",
+    quest,
+    status,
+    targetSceneIds,
+    currentSceneId,
+    hint: getNavigationHint(quest.id, status, targetSceneIds, progression),
+  });
+}
+
 export function getRegionJournalView(
   progression,
   sceneProgress = {},
@@ -260,6 +286,31 @@ function resolveQuestTargets(quest, status, progression, sceneProgress) {
     return quest.sceneId ? [quest.sceneId] : [];
   }
 
+  if (quest.id === "apothecarys_route") {
+    const targets = [];
+    if (getQuestCounter(progression, "moonleafBundles") < 2) {
+      targets.push("whispering_woods");
+    }
+    if (getQuestCounter(progression, "marshLanternsLit") < 2) {
+      targets.push("mossroot_marsh");
+    }
+    return targets.length > 0 ? targets : ["whispering_woods"];
+  }
+
+  if (quest.id === "sealed_reliquary") {
+    if (getQuestCounter(progression, "waystoneSealsRecovered") >= 2) {
+      return quest.sceneId ? [quest.sceneId] : ["mossy_ruins"];
+    }
+    const seals = [
+      { sceneId: "whispering_woods", objectId: "waystone-seal-1" },
+      { sceneId: "mossroot_marsh", objectId: "waystone-seal-2" },
+    ];
+    const targets = seals
+      .filter(({ sceneId, objectId }) => !isSceneObjectCollected(sceneProgress, sceneId, objectId))
+      .map(({ sceneId }) => sceneId);
+    return targets.length > 0 ? targets : ["whispering_woods", "mossroot_marsh"];
+  }
+
   if (quest.id === "tidebound_threshold") {
     const marshSeal = Boolean(
       sceneProgress?.mossroot_marsh?.objectStates?.["tide-seal-1"]
@@ -277,6 +328,9 @@ function resolveQuestTargets(quest, status, progression, sceneProgress) {
     return getQuestCounter(progression, "tideMemoryRecovered") > 0
       ? ["mossroot_marsh"]
       : ["chapel_of_tides"];
+  }
+  if (quest.id === "depths_of_memory") {
+    return ["sunken_reliquary"];
   }
   if (quest.id === "ember_homecoming") {
     return ["emberpine_grove"];
@@ -299,6 +353,10 @@ function resolveQuestTargets(quest, status, progression, sceneProgress) {
   }
 
   return [...(QUEST_TARGET_SCENES[quest.id] || (quest.sceneId ? [quest.sceneId] : []))];
+}
+
+function isSceneObjectCollected(sceneProgress, sceneId, objectId) {
+  return Boolean(sceneProgress?.[sceneId]?.objectStates?.[objectId]);
 }
 
 function buildNavigationView({
@@ -382,6 +440,17 @@ function getNavigationHint(questId, status, targetSceneIds, progression) {
   if (questId === "first_rootwarden") {
     return "Enter Mossy Ruins with Barkskin prepared and step through the open lane in Root Crown.";
   }
+  if (questId === "whispering_call") {
+    return "Gather Spirit Flowers in Whispering Woods and clear the patrol route threats.";
+  }
+  if (questId === "apothecarys_route") {
+    if (targetSceneIds.length > 1) {
+      return "Moonleaf bundles are in Whispering Woods; the marsh lanterns are in Moonlit Marsh.";
+    }
+    return targetSceneIds.includes("mossroot_marsh")
+      ? "Relight the two lanterns along the Moonlit Marsh plank road."
+      : "Gather the remaining Moonleaf bundles in Whispering Woods.";
+  }
   if (questId === "bogbound_rot") {
     return "Cleanse the black roots after the marsh encounter is settled.";
   }
@@ -389,6 +458,20 @@ function getNavigationHint(questId, status, targetSceneIds, progression) {
     return targetSceneIds.length > 1
       ? "One Tide Seal lies in the marsh; the other remains in Mossy Ruins."
       : "Recover the remaining Tide Seal.";
+  }
+  if (questId === "ruins_of_memory") {
+    return "Recover both relic caches in Mossy Ruins after the encounter is settled.";
+  }
+  if (questId === "sealed_reliquary") {
+    if (targetSceneIds.length > 1) {
+      return "One Waystone Seal is in Whispering Woods near the east road; the other is in Moonlit Marsh near the northern planks.";
+    }
+    return targetSceneIds.includes("mossroot_marsh")
+      ? "Recover the remaining Waystone Seal in Moonlit Marsh near the northern planks."
+      : "Recover the remaining Waystone Seal in Whispering Woods near the east road.";
+  }
+  if (questId === "depths_of_memory") {
+    return "Enter Sunken Reliquary from the north vault in Mossy Ruins, relight both ward braziers, and defeat the Custodian.";
   }
   if (questId === "chapel_of_tides") {
     return "Relight both braziers, defeat Bog Matron, then read the memory she guarded.";

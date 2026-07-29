@@ -1199,6 +1199,26 @@ function drawQuestLogOverlay(ctx, state) {
     cursorY += 15;
   }
 
+  const selectedNavigation = state.selectedQuestNavigation;
+  if (selectedNavigation?.questId === selectedQuest.id && selectedQuest.status !== "done") {
+    cursorY += 8;
+    ctx.fillStyle = "#f1d786";
+    ctx.font = "700 11px Segoe UI, Arial";
+    ctx.fillText(selectedNavigation.leadLabel || "FIELD LEAD", bodyX, cursorY);
+    cursorY += 15;
+    ctx.fillStyle = "#d8e6d4";
+    ctx.font = "11px Segoe UI, Arial";
+    toWrappedLines(
+      ctx,
+      selectedNavigation.routeNote || selectedNavigation.hint,
+      bodyWidth,
+      2
+    ).forEach((line) => {
+      ctx.fillText(line, bodyX, cursorY);
+      cursorY += 14;
+    });
+  }
+
   const rewardText = getQuestRewardSummary(selectedQuest.rewards);
   if (rewardText) {
     cursorY += 5;

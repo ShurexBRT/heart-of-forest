@@ -20,6 +20,7 @@ import {
 } from "../systems/training.js";
 import {
   getCampaignNavigation,
+  getQuestNavigation,
   getRegionJournalView,
 } from "../systems/navigation.js";
 
@@ -236,6 +237,63 @@ test("Stillwater navigation points to the remaining seal and then the Matron's m
   );
   assert.equal(journal.name, "Stillwater");
   assert.equal(journal.navigation.targetLabel, "Moonlit Marsh");
+});
+
+test("optional quest navigation points to remaining cross-zone objectives", () => {
+  const progression = createProgression({
+    worldFlags: { heartwood_restored: true },
+    questStates: {
+      apothecarys_route: "active",
+      sealed_reliquary: "active",
+      depths_of_memory: "active",
+    },
+  });
+
+  let navigation = getQuestNavigation(
+    progression,
+    {},
+    "mossy_ruins",
+    "sealed_reliquary"
+  );
+  assert.deepEqual(navigation.targetSceneIds, ["whispering_woods", "mossroot_marsh"]);
+  assert.match(navigation.hint, /Whispering Woods.*Moonlit Marsh/i);
+
+  progression.questCounters.waystoneSealsRecovered = 1;
+  navigation = getQuestNavigation(
+    progression,
+    { whispering_woods: { objectStates: { "waystone-seal-1": true } } },
+    "mossy_ruins",
+    "sealed_reliquary"
+  );
+  assert.deepEqual(navigation.targetSceneIds, ["mossroot_marsh"]);
+  assert.match(navigation.routeNote, /Moonlit Marsh/i);
+
+  navigation = getQuestNavigation(
+    progression,
+    {},
+    "whispering_woods",
+    "apothecarys_route"
+  );
+  assert.deepEqual(navigation.targetSceneIds, ["whispering_woods", "mossroot_marsh"]);
+
+  progression.questCounters.moonleafBundles = 2;
+  navigation = getQuestNavigation(
+    progression,
+    {},
+    "whispering_woods",
+    "apothecarys_route"
+  );
+  assert.deepEqual(navigation.targetSceneIds, ["mossroot_marsh"]);
+  assert.match(navigation.hint, /lanterns.*Moonlit Marsh/i);
+
+  navigation = getQuestNavigation(
+    progression,
+    {},
+    "mossy_ruins",
+    "depths_of_memory"
+  );
+  assert.deepEqual(navigation.targetSceneIds, ["sunken_reliquary"]);
+  assert.match(navigation.hint, /Sunken Reliquary/i);
 });
 
 test("Stillwater Bestiary reveals enemy roles before full counter advice", () => {

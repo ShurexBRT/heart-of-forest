@@ -1150,6 +1150,29 @@ beskonacnu kupovinu talent poena.
 - Segment ne menja player collision radius, movement, damage, cooldown-e, quest
   uslove, enemy art, NPC profile ili item pickup logiku.
 
+### Faza 8U
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: auditovati quest guidance za collectable objective-e, posebno drugi
+  Waystone Seal u `The Sealed Reliquary`.
+- Drugi Waystone Seal je u `Moonlit Marsh`, kod severnih dasaka; quest log sada
+  izabrani `The Sealed Reliquary` vodi na `Whispering Woods` i `Moonlit Marsh`,
+  a posle prvog pokupljenog seal-a ostaje samo `Moonlit Marsh`.
+- Quest log sada za izabrani quest prikazuje `FIELD LEAD`/route note i za
+  optional questove, ne samo za globalni main tracker.
+- `Apothecary's Route`, `Depths of Memory` i `Stillwater Homecoming` target data
+  dopunjeni su da pokriju stvarne collectable scene.
+- Dodat je `getQuestNavigation` helper za bilo koji izabrani quest i regresioni
+  test za cross-zone optional questove.
+- Layout test sada proverava da static quest target data pokriva scene u kojima
+  postoje collectable objective-i.
+- QA: puna regresija `node --test tests\*.test.mjs` sa `81/81` prolaza i
+  browser smoke koji selektuje `The Sealed Reliquary` posle prvog seal-a i
+  potvrdjuje runtime target `Moonlit Marsh`.
+- Segment ne menja quest nagrade, required countere, scene placement, collision,
+  combat, item dropove ili unlock uslove.
+
 ## Van trenutnog scopea
 
 - Durability i repair.

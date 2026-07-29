@@ -108,6 +108,7 @@ import {
 } from "./systems/training.js";
 import {
   getCampaignNavigation,
+  getQuestNavigation,
   getRegionJournalView,
 } from "./systems/navigation.js";
 import { getSecondSpringBoardView } from "./systems/postgame.js";
@@ -2981,6 +2982,14 @@ function render() {
       selectedJournalQuest?.chapter ||
       state.progression.campaign?.activeChapter ||
       "heartwood";
+    state.selectedQuestNavigation = selectedJournalQuest
+      ? getQuestNavigation(
+          state.progression,
+          state.sceneProgress,
+          state.currentSceneId,
+          selectedJournalQuest.id
+        )
+      : null;
     state.bestiaryEntries = getBestiaryEntries(
       state.progression,
       journalChapter
