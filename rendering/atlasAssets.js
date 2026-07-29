@@ -1,5 +1,6 @@
 const ATLAS_PATHS = {
   ayla: "./assets/atlases/ayla-sprite.png",
+  aylaV2: "./assets/characters/ayla-v2-game-sheet.png",
   "blighted-woods": "./assets/atlases/blighted-woods.png",
   "ember-hollow": "./assets/atlases/ember-hollow.png",
   "frostpine-tundra": "./assets/atlases/frostpine-tundra.png",
@@ -13,7 +14,7 @@ const ATLAS_PATHS = {
 const ATLAS_WORLD_ART_ENABLED = true;
 const ATLAS_TILE_PATTERNS_ENABLED = false;
 const ATLAS_FLOOR_TEXTURES_ENABLED = true;
-const ATLAS_PLAYER_ENABLED = false;
+const ATLAS_PLAYER_ENABLED = true;
 
 const SCENE_ATLAS_KEYS = {
   whisperingWoods: "mossy-ruins",
@@ -290,6 +291,17 @@ const AYLA_FRAME_RECTS = {
   ],
   portrait: { x: 1068, y: 18, w: 370, h: 406 },
 };
+const AYLA_V2_FRAME_SIZE = 128;
+const AYLA_V2_FRAME_RECTS = {
+  walkDown: buildAylaV2Row(0, 4),
+  walkRight: buildAylaV2Row(1, 4),
+  walkLeft: buildAylaV2Row(2, 4),
+  walkUp: buildAylaV2Row(3, 4),
+  cast: [buildAylaV2Cell(4, 0), buildAylaV2Cell(4, 1)],
+  dash: [buildAylaV2Cell(4, 2)],
+  hurt: [buildAylaV2Cell(4, 3)],
+  death: [buildAylaV2Cell(4, 4)],
+};
 
 if (typeof window !== "undefined" && typeof Image !== "undefined") {
   loadAtlases();
@@ -437,7 +449,7 @@ function loadAtlases() {
   Promise.all(entries.map(([key, path]) => loadImage(key, path)))
     .then((loaded) => {
       atlasState.images = Object.fromEntries(loaded.map((entry) => [entry.key, entry.image]));
-      atlasState.aylaFrames = buildAylaFrames(atlasState.images.ayla);
+      atlasState.aylaFrames = buildAylaV2Frames(atlasState.images.aylaV2) || buildAylaFrames(atlasState.images.ayla);
       atlasState.aylaPortrait = extractSprite(atlasState.images.ayla, AYLA_FRAME_RECTS.portrait, {
         trim: true,
         component: "cluster",
@@ -525,6 +537,37 @@ function buildAylaFrames(image) {
     death: AYLA_FRAME_RECTS.death.map((rect) =>
       extractSprite(image, rect, { trim: true, component: "largest", padding: 4 })
     ),
+  };
+}
+
+function buildAylaV2Cell(row, column) {
+  return {
+    x: column * AYLA_V2_FRAME_SIZE,
+    y: row * AYLA_V2_FRAME_SIZE,
+    w: AYLA_V2_FRAME_SIZE,
+    h: AYLA_V2_FRAME_SIZE,
+  };
+}
+
+function buildAylaV2Row(row, count) {
+  return Array.from({ length: count }, (_, column) => buildAylaV2Cell(row, column));
+}
+
+function extractFixedAylaV2Frame(image, rect) {
+  return extractSprite(image, rect, { trim: false, padding: 0 });
+}
+
+function buildAylaV2Frames(image) {
+  if (!image) return null;
+  return {
+    walkDown: AYLA_V2_FRAME_RECTS.walkDown.map((rect) => extractFixedAylaV2Frame(image, rect)),
+    walkLeft: AYLA_V2_FRAME_RECTS.walkLeft.map((rect) => extractFixedAylaV2Frame(image, rect)),
+    walkRight: AYLA_V2_FRAME_RECTS.walkRight.map((rect) => extractFixedAylaV2Frame(image, rect)),
+    walkUp: AYLA_V2_FRAME_RECTS.walkUp.map((rect) => extractFixedAylaV2Frame(image, rect)),
+    cast: AYLA_V2_FRAME_RECTS.cast.map((rect) => extractFixedAylaV2Frame(image, rect)),
+    dash: AYLA_V2_FRAME_RECTS.dash.map((rect) => extractFixedAylaV2Frame(image, rect)),
+    hurt: AYLA_V2_FRAME_RECTS.hurt.map((rect) => extractFixedAylaV2Frame(image, rect)),
+    death: AYLA_V2_FRAME_RECTS.death.map((rect) => extractFixedAylaV2Frame(image, rect)),
   };
 }
 
@@ -1047,6 +1090,10 @@ function pickAylaFrame(facing, frame, pose) {
 
   if (facing === "right") {
     return atlasState.aylaFrames.walkRight[frame % atlasState.aylaFrames.walkRight.length];
+  }
+
+  if (facing === "up" && atlasState.aylaFrames.walkUp) {
+    return atlasState.aylaFrames.walkUp[frame % atlasState.aylaFrames.walkUp.length];
   }
 
   return atlasState.aylaFrames.walkDown[frame % atlasState.aylaFrames.walkDown.length];

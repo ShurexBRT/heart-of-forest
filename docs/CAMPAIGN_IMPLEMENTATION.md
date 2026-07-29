@@ -1123,6 +1123,33 @@ beskonacnu kupovinu talent poena.
 - Segment ne menja player collision radius, movement, damage, cooldown-e, NPC
   sprite profile, quest uslove, enemy art ili item pickup logiku.
 
+### Faza 8T
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: generisati Aylin pravi bitmap sprite sheet na osnovu originalnog
+  idejnog `ayla-sprite.png` sheet-a i ubaciti ga u igru bez gubljenja fallbacka.
+- Novi AI-generisani source je sacuvan kao
+  `assets/characters/ayla-v2-generated-source.png`, a ociscena transparentna
+  verzija kao `assets/characters/ayla-v2-generated-transparent.png`.
+- Iz transparentnog source-a je napravljen normalizovani engine sheet
+  `assets/characters/ayla-v2-game-sheet.png` sa 128x128 frameovima i stabilnim
+  bottom-center anchorom.
+- `rendering/atlasAssets.js` sada ucitava `aylaV2`, gradi fixed-frame Ayla
+  animacione bucket-e za down, right, left, up, cast, dash, hurt i death, dok
+  stari Ayla atlas ostaje za portrait/reference.
+- `rendering/renderer.js` ponovo koristi `drawAylaAtlasSprite` za igraca i dash
+  afterimage, ali i dalje pada na proceduralni Ayla sprite ako bitmap atlas jos
+  nije spreman.
+- Vizuelni pravac sada mnogo vernije prati idejni sprite: veliki ivory hood,
+  tamna okrugla face rupa, chibi proporcija, drveni staff sa ring glavom i mali
+  zeleni spirit glow.
+- QA: syntax check za `atlasAssets`, `renderer`, `pixelAssets`, `hud` i
+  `startScreen`, puna regresija `node --test tests\*.test.mjs` sa `79/79`
+  prolaza i browser smoke u Homestead sceni bez fatalnih runtime gresaka.
+- Segment ne menja player collision radius, movement, damage, cooldown-e, quest
+  uslove, enemy art, NPC profile ili item pickup logiku.
+
 ## Van trenutnog scopea
 
 - Durability i repair.

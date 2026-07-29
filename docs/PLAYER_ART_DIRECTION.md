@@ -16,13 +16,16 @@ becoming so noisy that combat telegraphs disappear around her.
 
 ## Current Implementation
 
-- The production Ayla pass is procedural in `rendering/pixelAssets.js`.
-- `buildAylaSprite` is intentionally separate from the NPC actor builder, so
-  future player animation work can improve Ayla without changing NPC silhouettes.
-- The old Ayla atlas remains disabled as a reference because it still carries
-  concept-sheet artifacts and would make the player look less consistent in
-  motion.
-- Renderer now treats the procedural Ayla sprite as the source of truth.
+- The production Ayla pass uses a generated bitmap sheet at
+  `assets/characters/ayla-v2-game-sheet.png`.
+- `assets/characters/ayla-v2-generated-source.png` keeps the generated chroma
+  key source, while `assets/characters/ayla-v2-generated-transparent.png` keeps
+  the cleaned transparent source sheet for future recuts.
+- The old `assets/atlases/ayla-sprite.png` remains useful as the original
+  concept/portrait reference, but its labeled concept-sheet layout should not be
+  re-enabled directly for player animation.
+- `rendering/pixelAssets.js` still has a procedural Ayla fallback for the first
+  frames before the bitmap atlas is loaded or if loading fails.
 
 ## Pose Requirements
 
@@ -34,11 +37,13 @@ becoming so noisy that combat telegraphs disappear around her.
 | Attack | Staff side commits forward without hiding Ayla's head read. |
 | Dash | Cloak hem lifts and teal streaks support the movement effect. |
 
-## Future Bitmap Pass
+## Future Animation Pass
 
-- Start from the accepted procedural frame rather than the old atlas.
-- Generate one clean strip for each facing and pose family.
-- Normalize every frame to the current bottom-center anchor before swapping the
-  renderer to bitmap.
+- Start from `assets/characters/ayla-v2-generated-transparent.png` or the
+  normalized v2 game sheet, not from the old labeled concept atlas.
+- Generate one cleaner strip for each facing and pose family if we need more
+  authored walk/cast animation.
+- Normalize every frame to fixed 128x128 cells with the current bottom-center
+  anchor before swapping renderer indices.
 - Preview Ayla next to Thornling, Wisp Archer and one brute before accepting the
   sheet, because player/enemy contrast matters more than isolated prettiness.
