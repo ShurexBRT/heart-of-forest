@@ -23,6 +23,11 @@ import {
 import { DAMAGE_TYPES } from "../data/regionData.js";
 import { getRegionStatus } from "../systems/regions.js";
 import { getAylaPortrait } from "../rendering/atlasAssets.js";
+import {
+  drawHudAbilityIcon,
+  drawHudItemIcon,
+  getHudAbilityIconId,
+} from "../rendering/hudIconAssets.js";
 import { drawTalentIcon } from "../rendering/talentIconAssets.js";
 import { getActiveService, getServiceEntries, getStashUiEntries } from "../systems/services.js";
 import { NPC_DEFS } from "../data/storyData.js";
@@ -240,11 +245,8 @@ function drawBottomHud(ctx, state, abilityInfo) {
   const healthPotions = state.progression.inventory.health_potion || 0;
   const spiritTonics = state.progression.inventory.spirit_tonic || 0;
 
-  drawHudBackdrop(ctx, x, y, panelW, panelH, "#7f9a74", 0.86);
-  ctx.fillStyle = "rgba(142, 211, 126, 0.08)";
-  ctx.fillRect(x + 12, y + 10, panelW - 24, 33);
-  ctx.fillStyle = "rgba(255, 238, 179, 0.08)";
-  ctx.fillRect(x + 156, y + 9, panelW - 312, 2);
+  drawHudBackdrop(ctx, x, y, panelW, panelH, "#9aca78", 0.9);
+  drawHudCenterRail(ctx, x + 118, y + 9, panelW - 236, panelH - 24, state.time);
 
   drawXpBar(ctx, x + 116, y + panelH - 9, panelW - 232, xp.ratio, `LEVEL ${xp.level}`);
   drawOrb(
@@ -349,33 +351,61 @@ function drawCombatVignette(ctx, state) {
 }
 
 function drawHudBackdrop(ctx, x, y, width, height, accent, alpha = 0.88) {
-  ctx.fillStyle = `rgba(2, 5, 8, ${alpha})`;
+  ctx.save();
+  ctx.fillStyle = "rgba(0, 0, 0, 0.38)";
+  ctx.fillRect(x + 3, y + 4, width, height);
+  ctx.fillStyle = `rgba(5, 10, 10, ${alpha})`;
   ctx.fillRect(x, y, width, height);
-  ctx.fillStyle = "rgba(12, 18, 24, 0.95)";
+  ctx.fillStyle = "rgba(12, 24, 20, 0.96)";
   ctx.fillRect(x + 4, y + 4, width - 8, height - 8);
-  ctx.fillStyle = "rgba(255, 255, 255, 0.035)";
-  ctx.fillRect(x + 6, y + 6, width - 12, Math.min(34, height - 12));
+  ctx.fillStyle = "rgba(22, 38, 29, 0.78)";
+  ctx.fillRect(x + 8, y + 8, width - 16, Math.min(34, height - 16));
+  ctx.fillStyle = "rgba(5, 8, 7, 0.42)";
+  ctx.fillRect(x + 8, y + height - 20, width - 16, 12);
+  ctx.fillStyle = "rgba(156, 202, 120, 0.06)";
+  for (let stripeX = x + 18; stripeX < x + width - 18; stripeX += 34) {
+    ctx.fillRect(stripeX, y + 7, 10, height - 14);
+  }
+  ctx.fillStyle = "rgba(255, 239, 178, 0.1)";
+  ctx.fillRect(x + 16, y + 9, width - 32, 1);
   ctx.fillStyle = "rgba(0, 0, 0, 0.22)";
-  ctx.fillRect(x + 8, y + height - 18, width - 16, 10);
+  ctx.fillRect(x + 16, y + height - 10, width - 32, 2);
   drawPanelChrome(ctx, x, y, width, height, accent);
+  pixelRect(ctx, x + 28, y + 10, width - 56, 1, "rgba(236, 216, 142, 0.18)");
+  pixelRect(ctx, x + 28, y + height - 12, width - 56, 1, "rgba(55, 91, 47, 0.36)");
+  drawHudLeafCorner(ctx, x + 13, y + 12, accent, 1);
+  drawHudLeafCorner(ctx, x + width - 13, y + 12, accent, -1);
+  ctx.restore();
 }
 
 function drawOrb(ctx, cx, cy, radius, ratio, dark, light, label, value, maximum) {
-  ctx.fillStyle = "#05070a";
+  const clamped = Math.max(0, Math.min(1, ratio));
+  ctx.save();
+  ctx.fillStyle = "rgba(0, 0, 0, 0.44)";
+  ctx.beginPath();
+  ctx.arc(cx + 2, cy + 3, radius + 10, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#07100d";
   ctx.beginPath();
   ctx.arc(cx, cy, radius + 9, 0, Math.PI * 2);
   ctx.fill();
-
-  ctx.strokeStyle = "#1d2731";
-  ctx.lineWidth = 5;
+  ctx.strokeStyle = "rgba(114, 143, 91, 0.68)";
+  ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.arc(cx, cy, radius + 5, 0, Math.PI * 2);
+  ctx.arc(cx, cy, radius + 6, 0, Math.PI * 2);
   ctx.stroke();
-  ctx.strokeStyle = "rgba(177, 202, 164, 0.42)";
+  ctx.strokeStyle = "rgba(237, 211, 132, 0.56)";
   ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.arc(cx, cy, radius + 8, 0, Math.PI * 2);
-  ctx.stroke();
+  for (let index = 0; index < 8; index += 1) {
+    const angle = (Math.PI * 2 * index) / 8;
+    const inner = radius + 6;
+    const outer = radius + 10;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(angle) * inner, cy + Math.sin(angle) * inner);
+    ctx.lineTo(cx + Math.cos(angle) * outer, cy + Math.sin(angle) * outer);
+    ctx.stroke();
+  }
 
   ctx.save();
   ctx.beginPath();
@@ -383,12 +413,31 @@ function drawOrb(ctx, cx, cy, radius, ratio, dark, light, label, value, maximum)
   ctx.closePath();
   ctx.clip();
 
-  ctx.fillStyle = dark;
+  const baseGradient = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.35, 2, cx, cy, radius);
+  baseGradient.addColorStop(0, "rgba(255, 255, 255, 0.08)");
+  baseGradient.addColorStop(0.48, dark);
+  baseGradient.addColorStop(1, "#050806");
+  ctx.fillStyle = baseGradient;
   ctx.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
-  ctx.fillStyle = light;
-  const fillHeight = Math.round(radius * 2 * Math.max(0, Math.min(1, ratio)));
+  const fillGradient = ctx.createLinearGradient(cx, cy + radius, cx, cy - radius);
+  fillGradient.addColorStop(0, dark);
+  fillGradient.addColorStop(0.62, light);
+  fillGradient.addColorStop(1, "#fff2bd");
+  ctx.fillStyle = fillGradient;
+  const fillHeight = Math.round(radius * 2 * clamped);
   ctx.fillRect(cx - radius, cy + radius - fillHeight, radius * 2, fillHeight);
-  ctx.fillStyle = "rgba(255,255,255,0.16)";
+  ctx.strokeStyle = "rgba(255,255,255,0.18)";
+  ctx.lineWidth = 1;
+  const waveY = cy + radius - fillHeight + 3;
+  ctx.beginPath();
+  for (let offset = -radius; offset <= radius; offset += 6) {
+    const nextX = cx + offset;
+    const nextY = waveY + Math.sin(offset * 0.45) * 1.5;
+    if (offset === -radius) ctx.moveTo(nextX, nextY);
+    else ctx.lineTo(nextX, nextY);
+  }
+  ctx.stroke();
+  ctx.fillStyle = "rgba(255,255,255,0.18)";
   ctx.beginPath();
   ctx.ellipse(cx - radius * 0.24, cy - radius * 0.34, radius * 0.44, radius * 0.24, -0.5, 0, Math.PI * 2);
   ctx.fill();
@@ -405,88 +454,120 @@ function drawOrb(ctx, cx, cy, radius, ratio, dark, light, label, value, maximum)
   ctx.font = "700 8px Segoe UI, Arial";
   ctx.fillText(label, cx, cy + radius + 17);
   ctx.textAlign = "left";
+  ctx.restore();
 }
 
-function drawAbilityGlyph(ctx, name, cx, cy, size, color, signatureAbility = null) {
-  const scale = size / 24;
+function drawHudCenterRail(ctx, x, y, width, height, time = 0) {
   ctx.save();
-  ctx.translate(cx, cy);
-  ctx.scale(scale, scale);
-  ctx.strokeStyle = color;
-  ctx.fillStyle = color;
-  ctx.lineWidth = 2;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-
-  if (name === "staff") {
-    ctx.beginPath();
-    ctx.moveTo(-7, 8);
-    ctx.lineTo(5, -8);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(7, -9, 4, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(-9, 6);
-    ctx.lineTo(-5, 10);
-    ctx.stroke();
-  } else if (name === "bolt") {
-    ctx.beginPath();
-    ctx.moveTo(0, -11);
-    ctx.lineTo(8, -1);
-    ctx.lineTo(1, 1);
-    ctx.lineTo(4, 11);
-    ctx.lineTo(-8, 1);
-    ctx.lineTo(-1, -1);
-    ctx.closePath();
-    ctx.fill();
-  } else if (name === "dash") {
-    ctx.beginPath();
-    ctx.moveTo(-10, -7);
-    ctx.lineTo(-2, 0);
-    ctx.lineTo(-10, 7);
-    ctx.moveTo(-1, -7);
-    ctx.lineTo(7, 0);
-    ctx.lineTo(-1, 7);
-    ctx.stroke();
-  } else if (name === "root") {
-    ctx.beginPath();
-    ctx.moveTo(0, -10);
-    ctx.lineTo(0, 2);
-    ctx.moveTo(0, -1);
-    ctx.quadraticCurveTo(-7, 1, -9, 8);
-    ctx.moveTo(0, 1);
-    ctx.quadraticCurveTo(7, 3, 9, 9);
-    ctx.moveTo(-1, -5);
-    ctx.quadraticCurveTo(-7, -8, -9, -3);
-    ctx.moveTo(1, -7);
-    ctx.quadraticCurveTo(7, -10, 9, -5);
-    ctx.stroke();
-  } else {
-    const glyphColor =
-      signatureAbility === "heartwood_tempest"
-        ? "#efcb6d"
-        : signatureAbility === "verdant_nova"
-          ? "#70ddf6"
-          : signatureAbility === "awaken_the_grove"
-            ? "#8fe176"
-            : color;
-    ctx.strokeStyle = glyphColor;
-    ctx.fillStyle = glyphColor;
-    ctx.beginPath();
-    ctx.arc(0, 0, 9, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(0, 0, 4, 0, Math.PI * 2);
-    ctx.fill();
-    for (let index = 0; index < 6; index += 1) {
-      const angle = index * Math.PI / 3;
-      ctx.beginPath();
-      ctx.moveTo(Math.cos(angle) * 11, Math.sin(angle) * 11);
-      ctx.lineTo(Math.cos(angle) * 14, Math.sin(angle) * 14);
-      ctx.stroke();
-    }
+  ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
+  ctx.fillRect(x + 2, y + 3, width, height);
+  ctx.fillStyle = "rgba(10, 18, 15, 0.72)";
+  ctx.fillRect(x, y, width, height);
+  ctx.fillStyle = "rgba(33, 51, 37, 0.52)";
+  ctx.fillRect(x + 4, y + 4, width - 8, 31);
+  ctx.fillStyle = "rgba(102, 139, 78, 0.16)";
+  ctx.fillRect(x + 8, y + 36, width - 16, 24);
+  ctx.fillStyle = "rgba(255, 239, 178, 0.08)";
+  ctx.fillRect(x + 12, y + 7, width - 24, 1);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.24)";
+  ctx.fillRect(x + 12, y + height - 8, width - 24, 2);
+  const sparkleAlpha = 0.08 + Math.sin(time * 2.2) * 0.02;
+  ctx.fillStyle = `rgba(185, 244, 138, ${sparkleAlpha})`;
+  for (let index = 0; index < 7; index += 1) {
+    const px = x + 18 + index * Math.max(18, Math.floor((width - 36) / 6));
+    const py = y + 11 + (index % 3) * 11;
+    ctx.fillRect(px, py, 2, 2);
   }
+  ctx.strokeStyle = "rgba(154, 202, 120, 0.32)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, width - 1, height - 1);
+  ctx.restore();
+}
+
+function drawHudSkillSlotFrame(ctx, x, y, width, height, accent, state = {}) {
+  ctx.save();
+  const ready = Boolean(state.ready);
+  const locked = Boolean(state.locked);
+  const needsSpirit = Boolean(state.spirit);
+  const baseAccent = ready ? "#fff0a0" : accent;
+  ctx.fillStyle = ready ? "rgba(79, 75, 28, 0.9)" : "rgba(0, 0, 0, 0.62)";
+  ctx.fillRect(x, y, width, height);
+  ctx.fillStyle = locked ? "#0b1013" : needsSpirit ? "#211616" : "#101a16";
+  ctx.fillRect(x + 3, y + 3, width - 6, height - 6);
+  ctx.fillStyle = ready ? "rgba(255, 240, 160, 0.18)" : "rgba(255, 255, 255, 0.04)";
+  ctx.fillRect(x + 5, y + 5, width - 10, 12);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.32)";
+  ctx.fillRect(x + 5, y + height - 15, width - 10, 10);
+  ctx.strokeStyle = baseAccent;
+  ctx.lineWidth = ready ? 3 : 2;
+  ctx.strokeRect(x + 3, y + 3, width - 6, height - 6);
+  ctx.strokeStyle = "rgba(236, 216, 142, 0.22)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 6.5, y + 6.5, width - 13, height - 13);
+  pixelRect(ctx, x + 6, y + 6, 8, 1, baseAccent);
+  pixelRect(ctx, x + 6, y + 6, 1, 8, baseAccent);
+  pixelRect(ctx, x + width - 14, y + 6, 8, 1, baseAccent);
+  pixelRect(ctx, x + width - 7, y + 6, 1, 8, baseAccent);
+  if (state.signature) {
+    ctx.fillStyle = ready ? "rgba(255, 240, 160, 0.14)" : "rgba(185, 244, 138, 0.08)";
+    ctx.fillRect(x + 9, y + 9, width - 18, height - 18);
+  }
+  ctx.restore();
+}
+
+function drawHudSmallSlotFrame(ctx, x, y, width, height, accent, filled) {
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,0.48)";
+  ctx.fillRect(x, y, width, height);
+  ctx.fillStyle = filled ? "#101914" : "#0d1310";
+  ctx.fillRect(x + 2, y + 2, width - 4, height - 4);
+  ctx.fillStyle = filled ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.025)";
+  ctx.fillRect(x + 4, y + 4, width - 8, 5);
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = filled ? 2 : 1;
+  ctx.strokeRect(x + 2, y + 2, width - 4, height - 4);
+  ctx.strokeStyle = "rgba(236, 216, 142, 0.18)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 5.5, y + 5.5, width - 11, height - 11);
+  ctx.restore();
+}
+
+function drawHudKeyBadge(ctx, x, y, width, height, accent, enabled = true) {
+  ctx.fillStyle = enabled ? "rgba(4, 9, 8, 0.82)" : "rgba(5, 9, 13, 0.58)";
+  ctx.fillRect(x, y, width, height);
+  ctx.fillStyle = enabled ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.02)";
+  ctx.fillRect(x + 1, y + 1, width - 2, 3);
+  ctx.strokeStyle = enabled ? "rgba(236, 216, 142, 0.46)" : "rgba(122, 137, 141, 0.34)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, width - 1, height - 1);
+  pixelRect(ctx, x + 1, y + height - 2, width - 2, 1, enabled ? accent : "rgba(122, 137, 141, 0.34)");
+}
+
+function drawHudChipFrame(ctx, x, y, width, height, accent) {
+  ctx.fillStyle = "rgba(0,0,0,0.46)";
+  ctx.fillRect(x, y, width, height);
+  ctx.fillStyle = "#101812";
+  ctx.fillRect(x + 2, y + 2, width - 4, height - 4);
+  ctx.fillStyle = "rgba(255,255,255,0.04)";
+  ctx.fillRect(x + 4, y + 4, width - 8, 3);
+  ctx.strokeStyle = "rgba(111, 145, 86, 0.48)";
+  ctx.strokeRect(x + 1.5, y + 1.5, width - 3, height - 3);
+  pixelRect(ctx, x + 3, y + height - 3, width - 6, 1, accent);
+}
+
+function drawHudLeafCorner(ctx, x, y, accent, direction = 1) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(direction, 1);
+  ctx.fillStyle = "rgba(41, 78, 37, 0.82)";
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 5, 2.5, -0.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = accent;
+  ctx.globalAlpha *= 0.5;
+  ctx.beginPath();
+  ctx.ellipse(6, 4, 4, 2, 0.35, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
 }
 
@@ -508,15 +589,12 @@ function drawAbilitySlots(ctx, startX, y, player, abilityInfo, slotSize = 58, ga
     const heartCharge = Math.max(0, Math.min(100, player.heartCharge || 0));
     const ready = isSignature && readiness.state === "ready";
 
-    ctx.fillStyle = ready ? "rgba(92, 98, 38, 0.86)" : "rgba(0, 0, 0, 0.62)";
-    ctx.fillRect(x, y, slotW, slotH);
-    ctx.fillStyle = ready ? "#192414" : "#10161d";
-    ctx.fillRect(x + 3, y + 3, slotW - 6, slotH - 6);
-    ctx.fillStyle = ready ? "rgba(255, 240, 160, 0.16)" : "rgba(255, 255, 255, 0.035)";
-    ctx.fillRect(x + 5, y + 5, slotW - 10, 12);
-    ctx.strokeStyle = ready ? "#fff0a0" : color;
-    ctx.lineWidth = ready ? 3 : 2;
-    ctx.strokeRect(x + 3, y + 3, slotW - 6, slotH - 6);
+    drawHudSkillSlotFrame(ctx, x, y, slotW, slotH, color, {
+      ready,
+      locked: !unlocked,
+      spirit: readiness.state === "spirit",
+      signature: isSignature,
+    });
 
     const innerX = x + 3;
     const innerY = y + 3;
@@ -531,14 +609,13 @@ function drawAbilitySlots(ctx, startX, y, player, abilityInfo, slotSize = 58, ga
       ctx.fillRect(innerX, innerY, innerW, innerH);
     }
 
-    drawAbilityGlyph(
+    drawHudAbilityIcon(
       ctx,
-      name,
+      getHudAbilityIconId(name, info),
       x + slotW / 2,
       y + slotH / 2 - 3,
-      Math.max(18, slotSize * 0.36),
-      unlocked ? color : "#68737d",
-      info.signatureAbility
+      Math.max(30, slotSize * 0.66),
+      { disabled: !unlocked, charged: ready }
     );
 
     drawAbilityReadinessStrip(ctx, x, y, slotW, slotH, readiness);
@@ -547,15 +624,14 @@ function drawAbilitySlots(ctx, startX, y, player, abilityInfo, slotSize = 58, ga
     }
     ctx.textAlign = "left";
 
-    ctx.fillStyle = unlocked ? "rgba(5, 9, 13, 0.72)" : "rgba(5, 9, 13, 0.58)";
-    ctx.fillRect(x + 5, y + 5, 18, 13);
+    drawHudKeyBadge(ctx, x + 5, y + 5, 20, 14, color, unlocked);
     ctx.fillStyle = unlocked ? "#f7fff1" : "#88939f";
     ctx.font = `700 ${slotSize < 54 ? 9 : 10}px Segoe UI, Arial`;
     ctx.fillText(info.key, x + 9, y + 15);
     if (info.cost > 0 && unlocked) {
       ctx.textAlign = "right";
       ctx.fillStyle = player.spirit >= info.cost ? "#74ddff" : "#d87979";
-      ctx.fillText(String(info.cost), x + slotW - 7, y + 15);
+      ctx.fillText(String(info.cost), x + slotW - 6, y + 15);
       ctx.textAlign = "left";
     }
     ctx.textAlign = "center";
@@ -650,27 +726,22 @@ function drawActionSlots(ctx, x, y, progression) {
   for (let index = 0; index < slots.length; index += 1) {
     const slot = slots[index];
     const slotX = x + index * (slotW + gap);
-    const border = slot.item?.color || "#475261";
+    const border = slot.item?.color || "#526252";
 
-    ctx.fillStyle = "rgba(0,0,0,0.48)";
-    ctx.fillRect(slotX, y, slotW, slotH);
-    ctx.fillStyle = slot.item ? "#121922" : "#0d131a";
-    ctx.fillRect(slotX + 2, y + 2, slotW - 4, slotH - 4);
-    ctx.fillStyle = "rgba(255,255,255,0.035)";
-    ctx.fillRect(slotX + 4, y + 4, slotW - 8, 6);
-    ctx.strokeStyle = border;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(slotX + 2, y + 2, slotW - 4, slotH - 4);
+    drawHudSmallSlotFrame(ctx, slotX, y, slotW, slotH, border, Boolean(slot.item));
 
     if (slot.item) {
-      ctx.fillStyle = slot.item.color || "#d8e2ec";
-      ctx.fillRect(slotX + 7, y + 7, 10, 14);
+      drawHudItemIcon(ctx, slot.itemId, slotX + 16, y + 14, 22, {
+        disabled: slot.count <= 0,
+        color: slot.item.color,
+      });
+      drawHudKeyBadge(ctx, slotX + 3, y + 3, 15, 11, border, slot.count > 0);
       ctx.fillStyle = "#f6ead0";
-      ctx.font = "700 12px Segoe UI, Arial";
-      ctx.fillText(slot.key, slotX + 22, y + 11);
+      ctx.font = "700 9px Segoe UI, Arial";
+      ctx.fillText(slot.key, slotX + 7, y + 12);
       ctx.fillStyle = slot.count > 0 ? "#eef6dd" : "#9098a5";
-      ctx.font = "11px Segoe UI, Arial";
-      ctx.fillText(shorten(slot.item.name, 8), slotX + 22, y + 22);
+      ctx.font = "10px Segoe UI, Arial";
+      ctx.fillText(shorten(slot.item.name, 8), slotX + 31, y + 13);
       ctx.textAlign = "right";
       ctx.fillStyle = slot.count > 0 ? "#fff4d8" : "#9aa4b1";
       ctx.fillText(`x${slot.count}`, slotX + slotW - 6, y + 22);
@@ -683,35 +754,32 @@ function drawActionSlots(ctx, x, y, progression) {
     }
 
     ctx.fillStyle = "#f6ead0";
-    ctx.font = "700 12px Segoe UI, Arial";
-    ctx.fillText(slot.key, slotX + 10, y + 13);
+    ctx.font = "700 11px Segoe UI, Arial";
+    ctx.fillText(slot.key, slotX + 10, y + 12);
     ctx.fillStyle = "#aab6c3";
-    ctx.font = "11px Segoe UI, Arial";
-    ctx.fillText("Empty", slotX + 10, y + 25);
+    ctx.font = "10px Segoe UI, Arial";
+    ctx.fillText("Empty", slotX + 10, y + 23);
   }
 }
 
 function drawQuickCounters(ctx, x, y, healthPotions, spiritTonics, panelW) {
   const chips = [
-    { key: "5", label: "HP", count: healthPotions, color: "#df6a67", x },
-    { key: "6", label: "SP", count: spiritTonics, color: "#6ecff7", x: x + panelW - 86 },
+    { key: "5", label: "HP", count: healthPotions, color: "#df6a67", itemId: "health_potion", x },
+    { key: "6", label: "SP", count: spiritTonics, color: "#6ecff7", itemId: "spirit_tonic", x: x + panelW - 86 },
   ];
 
   for (const chip of chips) {
-    ctx.fillStyle = "rgba(0,0,0,0.46)";
-    ctx.fillRect(chip.x, y, 74, 18);
-    ctx.fillStyle = "#10161d";
-    ctx.fillRect(chip.x + 2, y + 2, 70, 14);
-    ctx.fillStyle = chip.color;
-    ctx.fillRect(chip.x + 4, y + 4, 9, 10);
-    ctx.fillStyle = "rgba(255,255,255,0.22)";
-    ctx.fillRect(chip.x + 5, y + 5, 7, 2);
+    drawHudChipFrame(ctx, chip.x, y, 74, 18, chip.color);
+    drawHudItemIcon(ctx, chip.itemId, chip.x + 11, y + 9, 14, {
+      disabled: chip.count <= 0,
+      color: chip.color,
+    });
     ctx.fillStyle = "#f6ead0";
     ctx.font = "700 11px Segoe UI, Arial";
-    ctx.fillText(chip.key, chip.x + 16, y + 10);
+    ctx.fillText(chip.key, chip.x + 22, y + 10);
     ctx.fillStyle = "#dce6d6";
     ctx.font = "10px Segoe UI, Arial";
-    ctx.fillText(`${chip.label} x${chip.count}`, chip.x + 30, y + 12);
+    ctx.fillText(`${chip.label} x${chip.count}`, chip.x + 37, y + 12);
   }
 }
 
@@ -767,12 +835,13 @@ function drawBuffChips(ctx, x, y, player, progression) {
 
 function drawCurrencyChip(ctx, x, y, progression) {
   const silver = getCurrency(progression);
-  ctx.fillStyle = "rgba(0,0,0,0.46)";
-  ctx.fillRect(x, y, 142, 18);
-  ctx.fillStyle = "#10161d";
-  ctx.fillRect(x + 2, y + 2, 138, 14);
+  drawHudChipFrame(ctx, x, y, 142, 18, "#e4c776");
   ctx.fillStyle = "#e4c776";
-  ctx.fillRect(x + 6, y + 4, 8, 8);
+  ctx.beginPath();
+  ctx.arc(x + 10, y + 9, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+  ctx.fillRect(x + 8, y + 6, 4, 1);
   ctx.fillStyle = "#f6ead0";
   ctx.font = "700 11px Segoe UI, Arial";
   ctx.fillText("Silver", x + 20, y + 10);
@@ -783,15 +852,24 @@ function drawCurrencyChip(ctx, x, y, progression) {
 }
 
 function drawXpBar(ctx, x, y, width, ratio, label) {
-  ctx.fillStyle = "#090d12";
-  ctx.fillRect(x, y, width, 8);
-  ctx.fillStyle = "#53346b";
-  ctx.fillRect(x + 1, y + 1, (width - 2) * Math.max(0, Math.min(1, ratio)), 6);
+  const clamped = Math.max(0, Math.min(1, ratio));
+  ctx.fillStyle = "rgba(0, 0, 0, 0.64)";
+  ctx.fillRect(x - 2, y - 2, width + 4, 10);
+  ctx.fillStyle = "#0b120f";
+  ctx.fillRect(x, y, width, 6);
+  const gradient = ctx.createLinearGradient(x, y, x + width, y);
+  gradient.addColorStop(0, "#5c3a78");
+  gradient.addColorStop(0.52, "#8b5fc0");
+  gradient.addColorStop(1, "#c8a7f3");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(x + 1, y + 1, (width - 2) * clamped, 4);
+  ctx.fillStyle = "rgba(255,255,255,0.2)";
+  ctx.fillRect(x + 1, y + 1, Math.max(0, (width - 2) * clamped * 0.4), 1);
   if (label) {
-    ctx.fillStyle = "#dcd0f1";
+    ctx.fillStyle = "#eadcff";
     ctx.font = "10px Segoe UI, Arial";
     ctx.textAlign = "center";
-    ctx.fillText(label, x + width / 2, y - 4);
+    ctx.fillText(label, x + width / 2, y - 5);
     ctx.textAlign = "left";
   }
 }

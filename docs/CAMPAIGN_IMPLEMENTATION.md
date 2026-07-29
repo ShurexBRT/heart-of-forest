@@ -1270,6 +1270,26 @@ beskonacnu kupovinu talent poena.
 - Segment ne menja water tile placement, collision rects, bridge behavior,
   scene progression, quest placement, enemy spawnove ili combat.
 
+### Faza 8Z
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: stilizovati donji HUD tako da bude blizi novom forest ARPG identitetu
+  i zameniti ravne skill glyphove citljivim tematskim ikonicama.
+- Dodat je `rendering/hudIconAssets.js`, mali runtime icon renderer za HUD
+  skillove, ultimate varijante i quick-use consumable iteme.
+- Skill bar sada ima rezbareni forest frame, mahovinski centralni rail,
+  tematske key badge-eve, bolje cooldown/locked/spirit state layer-e i
+  icon pass za `Staff Strike`, `Spirit Bolt`, `Quick Dash`, `Root Snare`,
+  `Verdant Pulse`, `Heartwood Tempest`, `Verdant Nova` i `Awaken the Grove`.
+- Action slotovi i quick counters sada crtaju potion/tonic/elixir ikonice
+  umesto obicnih obojenih kvadrata; pokriveni su osnovni potion/tonic itemi,
+  regional preparation eliksiri i buff phial-i.
+- Health/Spirit orbovi, XP bar, silver chip i donji status chipovi su
+  vizuelno ujednaceni sa novim HUD materijalom, bez promene layout dimenzija.
+- Segment ne menja combat brojeve, input mapiranje, cooldown-e, inventory
+  logiku, quick-slot podatke, talent unlock uslove ili velicinu HUD panela.
+
 ## Van trenutnog scopea
 
 - Durability i repair.
