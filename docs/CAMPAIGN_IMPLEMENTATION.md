@@ -891,6 +891,40 @@ beskonacnu kupovinu talent poena.
 - Automatizovana provera: syntax check za renderer/atlas/world material module i
   puna regresija `node --test tests\*.test.mjs` sa `75/75` prolaza.
 
+### Faza 8J
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: poboljsati siluete neprijatelja, NPC presence i citljivost borbe bez
+  menjanja AI-ja, statova, collisiona, spawnova ili quest toka.
+- Enemy sprite pipeline vise ne koristi samo cetiri genericka archetype-a kroz
+  `enemy.config.sprite`; renderer sada prosledjuje stvarni `enemy.type`, a
+  pixel asset layer mapira svaki biome enemy na odgovarajuci archetype i profil.
+- Dodati su posebni vizuelni profili za barkling, blight hound, bog lurker,
+  ash brute, icebound guardian, relic sentinel, mire spitter, cinder imp,
+  frost wisp, starbound archer, root stalker i rot weaver.
+- NPC sprite dobija mali palette accent/trim i grounding halo, da likovi u
+  obnovljenim hubovima izgledaju namernije i manje kao placeholder-i.
+- Combat renderer dobija damage/role readability sloj: enemy grounding,
+  role/damage pipove pored healthbara, elite ring, hit spark, boss aura i
+  windup marker po ulozi.
+- Windup signal sada razlikuje melee/ranged/support nameru: melee i ranged
+  dobijaju pravac napada, support dobija manji aura/cross marker.
+- Projektili dobijaju kratak pixel trail obojen po damage tipu, pa igrac lakse
+  vidi kretanje neprijateljskih i Ayla spirit bolt projektila.
+- Ovaj pass je namerno renderer-only u gameplay smislu: nema novih hitboxova,
+  damage promena, loot promena ili quest uslova.
+- Runtime QA je proverio Mossy Ruins, Chapel of Tides, Ember Hollow,
+  Frostpine Tundra, Hollowheart Ruins i Starfall Sanctum screenshotove preko
+  headless Chrome debug fixture-a na `1280x720`.
+- Dodatni DevTools combat-lab screenshot u Ember Hollow proverio je enemy role
+  pips, damage pips, windup marker po ulozi, hit spark i projectile trail u
+  gustoj borbenoj situaciji.
+- Automatizovana provera: syntax check za `main.js`, `world/arena.js`,
+  `rendering/renderer.js`, `rendering/atlasAssets.js` i
+  `rendering/pixelAssets.js`; puna regresija `node --test tests\*.test.mjs`
+  prolazi sa `75/75`.
+
 ## Van trenutnog scopea
 
 - Durability i repair.

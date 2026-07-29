@@ -354,6 +354,16 @@ function buildActorSprite(palette, facing, frame, style, pose) {
     px(ctx, 30 + leanX, 46 - hemLift, 2, 2, vine);
   }
 
+  if (style === "npc") {
+    px(ctx, 16 + leanX, 37, 24, 3, leatherDark);
+    px(ctx, 19 + leanX, 25, 3, 22 - hemLift, trimDark);
+    px(ctx, 34 + leanX, 26, 3, 20 - hemLift, trimDark);
+    px(ctx, 14 + leanX, 43, 9, 5, leather);
+    px(ctx, 33 + leanX, 43, 9, 5, leather);
+    px(ctx, 26 + leanX, 35, 4, 4, accent);
+    px(ctx, 27 + leanX, 36, 2, 2, "#fff1bb");
+  }
+
   if (facing === "down") {
     px(ctx, 16 + leanX, 5 + hoodLift, 12, 4, hoodShadow);
     px(ctx, 14 + leanX, 8 + hoodLift, 8, 4, hoodLight);
@@ -368,111 +378,373 @@ function buildActorSprite(palette, facing, frame, style, pose) {
   return { canvas, anchorX: 28, anchorY: 58 };
 }
 
-function buildEnemySprite(type, facing, frame, pose) {
-  if (type === "mire_brute") return buildMireBruteSprite(facing, frame, pose);
-  if (type === "wisp_archer") return buildWispArcherSprite(facing, frame, pose);
-  if (type === "thorn_weaver") return buildThornWeaverSprite(facing, frame, pose);
-  return buildThornlingSprite(facing, frame, pose);
+const ENEMY_ARCHETYPES = {
+  thornling: "thornling",
+  barkling: "thornling",
+  blight_hound: "thornling",
+  mire_brute: "mire_brute",
+  bog_lurker: "mire_brute",
+  ash_brute: "mire_brute",
+  icebound_guardian: "mire_brute",
+  relic_sentinel: "mire_brute",
+  wisp_archer: "wisp_archer",
+  mire_spitter: "wisp_archer",
+  cinder_imp: "wisp_archer",
+  frost_wisp: "wisp_archer",
+  starbound_archer: "wisp_archer",
+  thorn_weaver: "thorn_weaver",
+  root_stalker: "thorn_weaver",
+  rot_weaver: "thorn_weaver",
+};
+
+const ENEMY_VISUALS = {
+  thornling: {
+    outline: "#231517",
+    body: "#5a2130",
+    core: "#8f3646",
+    dark: "#793544",
+    light: "#d86a71",
+    accent: "#88b34f",
+    limb: "#6f9d3f",
+  },
+  barkling: {
+    shape: "bark",
+    outline: "#1d2017",
+    body: "#594129",
+    core: "#7c623a",
+    dark: "#3a2b20",
+    light: "#c09957",
+    accent: "#99c469",
+    limb: "#6f8a45",
+    plate: "#a47c4f",
+    plateDark: "#463322",
+  },
+  blight_hound: {
+    shape: "hound",
+    outline: "#1c1018",
+    body: "#4a1f32",
+    core: "#8c334f",
+    dark: "#2a1421",
+    light: "#d36f8a",
+    accent: "#c78bff",
+    limb: "#71304a",
+  },
+  mire_brute: {
+    outline: "#261513",
+    head: "#553126",
+    body: "#6f4130",
+    core: "#8d6b48",
+    plate: "#88a05a",
+    dark: "#5c712f",
+    arm: "#4c2c23",
+    hand: "#76563a",
+    foot: "#6c4b34",
+    eye: "#efc97e",
+    accent: "#8de0c8",
+  },
+  bog_lurker: {
+    outline: "#17251f",
+    head: "#365140",
+    body: "#456d57",
+    core: "#74a878",
+    plate: "#6d8f60",
+    dark: "#304b3b",
+    arm: "#293e33",
+    hand: "#517053",
+    foot: "#354d39",
+    eye: "#c7efd0",
+    accent: "#8de0c8",
+  },
+  ash_brute: {
+    shape: "ember",
+    outline: "#24120f",
+    head: "#5c2c23",
+    body: "#8a3f2d",
+    core: "#b75f39",
+    plate: "#9d4c33",
+    dark: "#55261d",
+    arm: "#3d1d18",
+    hand: "#a65b37",
+    foot: "#603020",
+    eye: "#ffd07d",
+    accent: "#ff9a5f",
+  },
+  icebound_guardian: {
+    shape: "guardian",
+    outline: "#142030",
+    head: "#48667d",
+    body: "#6e92ad",
+    core: "#9cbfd9",
+    plate: "#b7d7e8",
+    dark: "#486276",
+    arm: "#2c4056",
+    hand: "#8fb8d8",
+    foot: "#4e6f89",
+    eye: "#f5fdff",
+    accent: "#cfefff",
+    light: "#f3fbff",
+  },
+  relic_sentinel: {
+    shape: "sentinel",
+    outline: "#201b14",
+    head: "#5f543e",
+    body: "#776543",
+    core: "#998552",
+    plate: "#c2a260",
+    dark: "#4c402c",
+    arm: "#3d3427",
+    hand: "#b69356",
+    foot: "#564733",
+    eye: "#fff0bf",
+    accent: "#d8c07e",
+    light: "#f4dfa1",
+  },
+  wisp_archer: {
+    outline: "#182433",
+    hood: "#50627f",
+    face: "#dff5ff",
+    cloak: "#7da8d6",
+    core: "#cce5ff",
+    bow: "#c5dfff",
+    string: "#89a7cf",
+    projectile: "#dff5ff",
+  },
+  mire_spitter: {
+    outline: "#14322f",
+    hood: "#34736a",
+    face: "#e8fff8",
+    cloak: "#4d8d7a",
+    core: "#92e7d4",
+    bow: "#9ce8db",
+    string: "#4d8d7a",
+    projectile: "#8de3d4",
+  },
+  cinder_imp: {
+    shape: "imp",
+    outline: "#261714",
+    hood: "#8e422c",
+    face: "#ffe0ad",
+    cloak: "#b75f39",
+    core: "#ff9a5f",
+    bow: "#ffc078",
+    string: "#8e422c",
+    projectile: "#ffb16c",
+  },
+  frost_wisp: {
+    shape: "frost",
+    outline: "#17314b",
+    hood: "#6f9fc0",
+    face: "#f5fdff",
+    cloak: "#92c5e5",
+    core: "#dff6ff",
+    bow: "#c7edff",
+    string: "#79aad6",
+    projectile: "#dff6ff",
+  },
+  starbound_archer: {
+    shape: "star",
+    outline: "#211a33",
+    hood: "#6b5aa5",
+    face: "#f7f4ff",
+    cloak: "#9b8be3",
+    core: "#d8ceff",
+    bow: "#f3e1a4",
+    string: "#8a6ca7",
+    projectile: "#f3e1a4",
+  },
+  thorn_weaver: {
+    outline: "#17151f",
+    hood: "#4f395d",
+    face: "#e9e8ef",
+    cloak: "#7d5d92",
+    core: "#c1a3d5",
+    staff: "#705139",
+    accent: "#82d174",
+    orb: "#d8f1a0",
+  },
+  root_stalker: {
+    shape: "root",
+    outline: "#141b14",
+    hood: "#385234",
+    face: "#e8f6da",
+    cloak: "#658c52",
+    core: "#9bc976",
+    staff: "#6c4f34",
+    accent: "#a7e27c",
+    orb: "#e3f2a0",
+  },
+  rot_weaver: {
+    shape: "rot",
+    outline: "#191020",
+    hood: "#5a2b67",
+    face: "#f3e8ff",
+    cloak: "#8d4aa7",
+    core: "#c48ce6",
+    staff: "#5b3d32",
+    accent: "#de9cff",
+    orb: "#f0b35e",
+  },
+};
+
+function getEnemyArchetype(type) {
+  return ENEMY_ARCHETYPES[type] || ENEMY_ARCHETYPES.thornling;
 }
 
-function buildThornlingSprite(facing, frame, pose) {
+function getEnemyVisual(type) {
+  return ENEMY_VISUALS[type] || ENEMY_VISUALS[getEnemyArchetype(type)] || ENEMY_VISUALS.thornling;
+}
+
+function buildEnemySprite(type, facing, frame, pose) {
+  const visual = getEnemyVisual(type);
+  const archetype = getEnemyArchetype(type);
+  if (archetype === "mire_brute") return buildMireBruteSprite(facing, frame, pose, visual);
+  if (archetype === "wisp_archer") return buildWispArcherSprite(facing, frame, pose, visual);
+  if (archetype === "thorn_weaver") return buildThornWeaverSprite(facing, frame, pose, visual);
+  return buildThornlingSprite(facing, frame, pose, visual);
+}
+
+function buildThornlingSprite(facing, frame, pose, visual = ENEMY_VISUALS.thornling) {
   const canvas = createCanvas(42, 34);
   const ctx = canvas.getContext("2d");
   const bob = [0, 1, 0, -1][frame % 4];
-  const outline = "#231517";
+  const outline = visual.outline || "#231517";
   const lean = facing === "left" ? -1 : facing === "right" ? 1 : 0;
   const crouch = pose === "windup" ? 2 : pose === "stun" ? 1 : 0;
-  const flare = pose === "rooted" ? "#b8ef87" : "#88b34f";
+  const flare = pose === "rooted" ? "#b8ef87" : visual.accent || "#88b34f";
+  const hound = visual.shape === "hound";
+  const bark = visual.shape === "bark";
 
   px(ctx, 10 + lean, 9 + crouch + bob, 22, 16, outline);
-  px(ctx, 12 + lean, 11 + crouch + bob, 18, 12, "#5a2130");
-  px(ctx, 15 + lean, 13 + crouch + bob, 12, 8, pose === "windup" ? "#b44b5d" : "#8f3646");
-  px(ctx, 18 + lean, 15 + crouch + bob, 6, 4, "#d86a71");
+  px(ctx, 12 + lean, 11 + crouch + bob, 18, 12, visual.body || "#5a2130");
+  px(ctx, 15 + lean, 13 + crouch + bob, 12, 8, pose === "windup" ? visual.windup || "#b44b5d" : visual.core || "#8f3646");
+  px(ctx, 18 + lean, 15 + crouch + bob, 6, 4, visual.light || "#d86a71");
   px(ctx, facing === "left" ? 17 : 22, 15 + crouch + bob, 2, 2, "#fff0c7");
   px(ctx, facing === "left" ? 21 : 26, 15 + crouch + bob, 2, 2, "#fff0c7");
-  px(ctx, 8 + lean, 15 + crouch + bob, 4, 2, "#793544");
-  px(ctx, 30 + lean, 15 + crouch + bob, 4, 2, "#793544");
+  px(ctx, 8 + lean, 15 + crouch + bob, 4, 2, visual.dark || "#793544");
+  px(ctx, 30 + lean, 15 + crouch + bob, 4, 2, visual.dark || "#793544");
   px(ctx, 9 + lean, 7 + crouch + bob, 4, 4, flare);
   px(ctx, 28 + lean, 7 + crouch + bob, 5, 4, flare);
-  px(ctx, 6 + lean, 12 + crouch + bob, 4, 5, "#6f9d3f");
-  px(ctx, 31 + lean, 12 + crouch + bob, 4, 5, "#6f9d3f");
-  px(ctx, 11 + lean, 25 + Math.max(0, -bob), 4, 4, "#6f9d3f");
-  px(ctx, 27 + lean, 25 + Math.max(0, bob), 4, 4, "#6f9d3f");
+  px(ctx, 6 + lean, 12 + crouch + bob, 4, 5, visual.limb || "#6f9d3f");
+  px(ctx, 31 + lean, 12 + crouch + bob, 4, 5, visual.limb || "#6f9d3f");
+  px(ctx, 11 + lean, 25 + Math.max(0, -bob), 4, hound ? 3 : 4, visual.limb || "#6f9d3f");
+  px(ctx, 27 + lean, 25 + Math.max(0, bob), 4, hound ? 3 : 4, visual.limb || "#6f9d3f");
+  if (hound) {
+    px(ctx, 6 + lean, 19 + crouch + bob, 5, 3, outline);
+    px(ctx, 31 + lean, 19 + crouch + bob, 5, 3, visual.light || "#d86a71");
+    px(ctx, 12 + lean, 8 + crouch + bob, 4, 2, visual.accent || "#88b34f");
+    px(ctx, 26 + lean, 8 + crouch + bob, 4, 2, visual.accent || "#88b34f");
+  } else if (bark) {
+    px(ctx, 14 + lean, 10 + crouch + bob, 4, 12, visual.plate || "#9a754c");
+    px(ctx, 24 + lean, 10 + crouch + bob, 4, 11, visual.plateDark || "#4d3929");
+  } else {
+    px(ctx, 20 + lean, 6 + crouch + bob, 3, 3, visual.light || "#d86a71");
+  }
   return { canvas, anchorX: 21, anchorY: 30 };
 }
 
-function buildMireBruteSprite(facing, frame, pose) {
+function buildMireBruteSprite(facing, frame, pose, visual = ENEMY_VISUALS.mire_brute) {
   const canvas = createCanvas(56, 52);
   const ctx = canvas.getContext("2d");
   const bob = [0, 1, 0, -1][frame % 4];
-  const outline = "#261513";
+  const outline = visual.outline || "#261513";
   const lean = pose === "windup" ? (facing === "left" ? -2 : 2) : facing === "left" ? -1 : facing === "right" ? 1 : 0;
   const crouch = pose === "windup" ? 3 : pose === "stun" ? 1 : 0;
 
   px(ctx, 12 + lean, 8 + bob + crouch, 32, 14, outline);
   px(ctx, 8 + lean, 20 + bob + crouch, 40, 18, outline);
-  px(ctx, 14 + lean, 10 + bob + crouch, 28, 12, "#553126");
-  px(ctx, 10 + lean, 22 + bob + crouch, 36, 14, "#6f4130");
-  px(ctx, 16 + lean, 16 + bob + crouch, 24, 10, pose === "rooted" ? "#9abb62" : "#8d6b48");
-  px(ctx, 18 + lean, 24 + bob + crouch, 20, 12, "#88a05a");
-  px(ctx, 20 + lean, 28 + bob + crouch, 16, 6, "#5c712f");
-  px(ctx, facing === "left" ? 22 + lean : 26 + lean, 14 + bob + crouch, 4, 4, "#efc97e");
-  px(ctx, facing === "left" ? 30 + lean : 34 + lean, 14 + bob + crouch, 4, 4, "#efc97e");
-  px(ctx, 2 + lean, 23 + crouch, 12, 10, "#4c2c23");
-  px(ctx, 42 + lean, 23 + crouch, 12, 10, "#4c2c23");
-  px(ctx, 6 + lean, 26 + crouch + Math.max(0, -bob), 8, 8, "#76563a");
-  px(ctx, 42 + lean, 26 + crouch + Math.max(0, bob), 8, 8, "#76563a");
-  px(ctx, 18 + lean, 38 + crouch + Math.max(0, -bob), 8, 8, "#6c4b34");
-  px(ctx, 30 + lean, 38 + crouch + Math.max(0, bob), 8, 8, "#6c4b34");
+  px(ctx, 14 + lean, 10 + bob + crouch, 28, 12, visual.head || "#553126");
+  px(ctx, 10 + lean, 22 + bob + crouch, 36, 14, visual.body || "#6f4130");
+  px(ctx, 16 + lean, 16 + bob + crouch, 24, 10, pose === "rooted" ? "#9abb62" : visual.core || "#8d6b48");
+  px(ctx, 18 + lean, 24 + bob + crouch, 20, 12, visual.plate || "#88a05a");
+  px(ctx, 20 + lean, 28 + bob + crouch, 16, 6, visual.dark || "#5c712f");
+  px(ctx, facing === "left" ? 22 + lean : 26 + lean, 14 + bob + crouch, 4, 4, visual.eye || "#efc97e");
+  px(ctx, facing === "left" ? 30 + lean : 34 + lean, 14 + bob + crouch, 4, 4, visual.eye || "#efc97e");
+  px(ctx, 2 + lean, 23 + crouch, 12, 10, visual.arm || "#4c2c23");
+  px(ctx, 42 + lean, 23 + crouch, 12, 10, visual.arm || "#4c2c23");
+  px(ctx, 6 + lean, 26 + crouch + Math.max(0, -bob), 8, 8, visual.hand || "#76563a");
+  px(ctx, 42 + lean, 26 + crouch + Math.max(0, bob), 8, 8, visual.hand || "#76563a");
+  px(ctx, 18 + lean, 38 + crouch + Math.max(0, -bob), 8, 8, visual.foot || "#6c4b34");
+  px(ctx, 30 + lean, 38 + crouch + Math.max(0, bob), 8, 8, visual.foot || "#6c4b34");
+  px(ctx, 13 + lean, 7 + bob + crouch, 8, 3, visual.accent || visual.eye || "#efc97e");
+  px(ctx, 35 + lean, 7 + bob + crouch, 8, 3, visual.accent || visual.eye || "#efc97e");
+  if (visual.shape === "guardian") {
+    px(ctx, 21 + lean, 5 + bob + crouch, 14, 4, visual.light || "#e8f8ff");
+    px(ctx, 25 + lean, 1 + bob + crouch, 6, 5, visual.accent || "#bfe9ff");
+  } else if (visual.shape === "sentinel") {
+    px(ctx, 23 + lean, 11 + bob + crouch, 10, 2, visual.light || "#f5e3a7");
+    px(ctx, 27 + lean, 5 + bob + crouch, 2, 8, visual.light || "#f5e3a7");
+  } else if (visual.shape === "ember") {
+    px(ctx, 25 + lean, 25 + bob + crouch, 6, 5, "#ffb16c");
+    px(ctx, 27 + lean, 22 + bob + crouch, 2, 10, "#fff0b5");
+  }
   return { canvas, anchorX: 28, anchorY: 48 };
 }
 
-function buildWispArcherSprite(facing, frame, pose) {
+function buildWispArcherSprite(facing, frame, pose, visual = ENEMY_VISUALS.wisp_archer) {
   const canvas = createCanvas(48, 44);
   const ctx = canvas.getContext("2d");
   const bob = [0, 1, 0, -1][frame % 4];
-  const outline = "#182433";
+  const outline = visual.outline || "#182433";
   const lean = pose === "windup" ? (facing === "left" ? -3 : 3) : facing === "left" ? -1 : facing === "right" ? 1 : 0;
   const hoodLift = pose === "windup" ? -1 : 0;
   const bowLift = pose === "windup" ? -3 : pose === "release" ? 2 : 0;
 
   px(ctx, 15 + lean, 8 + bob + hoodLift, 18, 10, outline);
   px(ctx, 13 + lean, 18 + bob, 22, 14, outline);
-  px(ctx, 17 + lean, 10 + bob + hoodLift, 14, 8, "#50627f");
-  px(ctx, 19 + lean, 11 + bob + hoodLift, 10, 6, "#dff5ff");
+  px(ctx, 17 + lean, 10 + bob + hoodLift, 14, 8, visual.hood || "#50627f");
+  px(ctx, 19 + lean, 11 + bob + hoodLift, 10, 6, visual.face || "#dff5ff");
   px(ctx, facing === "left" ? 18 + lean : 24 + lean, 14 + bob, 4, 3, "#161b22");
-  px(ctx, 14 + lean, 19 + bob, 20, 11, pose === "rooted" ? "#a9d8ee" : "#7da8d6");
-  px(ctx, 18 + lean, 20 + bob, 12, 10, "#cce5ff");
-  px(ctx, 20 + lean, 30 + Math.max(0, bob), 8, 5, "#dff5ff");
-  px(ctx, 34 + lean, 18 + bob + bowLift, 2, 16, "#c5dfff");
-  px(ctx, 36 + lean, 17 + bob + bowLift, 5, 2, "#c5dfff");
-  px(ctx, 36 + lean, 31 + bob + bowLift, 5, 2, "#c5dfff");
-  px(ctx, 38 + lean, 20 + bob + bowLift, 2, 10, "#89a7cf");
+  px(ctx, 14 + lean, 19 + bob, 20, 11, pose === "rooted" ? "#a9d8ee" : visual.cloak || "#7da8d6");
+  px(ctx, 18 + lean, 20 + bob, 12, 10, visual.core || "#cce5ff");
+  px(ctx, 20 + lean, 30 + Math.max(0, bob), 8, 5, visual.face || "#dff5ff");
+  px(ctx, 34 + lean, 18 + bob + bowLift, 2, 16, visual.bow || "#c5dfff");
+  px(ctx, 36 + lean, 17 + bob + bowLift, 5, 2, visual.bow || "#c5dfff");
+  px(ctx, 36 + lean, 31 + bob + bowLift, 5, 2, visual.bow || "#c5dfff");
+  px(ctx, 38 + lean, 20 + bob + bowLift, 2, 10, visual.string || "#89a7cf");
+  px(ctx, 40 + lean, 24 + bob + bowLift, 4, 4, visual.projectile || visual.core || "#cce5ff");
+  if (visual.shape === "imp") {
+    px(ctx, 14 + lean, 7 + bob + hoodLift, 5, 3, "#ff9a5f");
+    px(ctx, 29 + lean, 7 + bob + hoodLift, 5, 3, "#ff9a5f");
+  } else if (visual.shape === "frost") {
+    px(ctx, 16 + lean, 6 + bob + hoodLift, 16, 3, "#f5fdff");
+    px(ctx, 22 + lean, 3 + bob + hoodLift, 5, 4, "#bfe9ff");
+  } else if (visual.shape === "star") {
+    px(ctx, 16 + lean, 7 + bob + hoodLift, 16, 2, "#f3e1a4");
+    px(ctx, 23 + lean, 3 + bob + hoodLift, 3, 7, "#f3e1a4");
+  }
   return { canvas, anchorX: 24, anchorY: 39 };
 }
 
-function buildThornWeaverSprite(facing, frame, pose) {
+function buildThornWeaverSprite(facing, frame, pose, visual = ENEMY_VISUALS.thorn_weaver) {
   const canvas = createCanvas(48, 46);
   const ctx = canvas.getContext("2d");
   const bob = [0, 1, 0, -1][frame % 4];
   const lean = facing === "left" ? -1 : facing === "right" ? 1 : 0;
-  const outline = "#17151f";
+  const outline = visual.outline || "#17151f";
   const castLift = pose === "windup" ? -2 : 0;
 
   px(ctx, 14 + lean, 8 + bob, 20, 10, outline);
   px(ctx, 12 + lean, 18 + bob, 24, 14, outline);
-  px(ctx, 16 + lean, 10 + bob, 16, 8, "#4f395d");
-  px(ctx, 18 + lean, 11 + bob, 12, 6, "#e9e8ef");
+  px(ctx, 16 + lean, 10 + bob, 16, 8, visual.hood || "#4f395d");
+  px(ctx, 18 + lean, 11 + bob, 12, 6, visual.face || "#e9e8ef");
   px(ctx, facing === "left" ? 18 + lean : 24 + lean, 14 + bob, 4, 3, "#13131a");
-  px(ctx, 14 + lean, 19 + bob, 20, 12, pose === "rooted" ? "#a7dd84" : "#7d5d92");
-  px(ctx, 18 + lean, 21 + bob, 12, 10, "#c1a3d5");
-  px(ctx, 22 + lean, 31 + Math.max(0, bob), 4, 6, "#f0e8ff");
-  px(ctx, 34 + lean, 16 + bob + castLift, 3, 18, "#705139");
-  px(ctx, 36 + lean, 14 + bob + castLift, 6, 4, "#705139");
-  px(ctx, 38 + lean, 12 + bob + castLift, 4, 2, "#82d174");
-  px(ctx, 39 + lean, 20 + bob + castLift, 3, 3, "#82d174");
-  px(ctx, 8 + lean, 21 + bob + castLift, 4, 12, "#e9e8ef");
-  px(ctx, 10 + lean, 23 + bob + castLift, 2, 10, "#c1a3d5");
+  px(ctx, 14 + lean, 19 + bob, 20, 12, pose === "rooted" ? "#a7dd84" : visual.cloak || "#7d5d92");
+  px(ctx, 18 + lean, 21 + bob, 12, 10, visual.core || "#c1a3d5");
+  px(ctx, 22 + lean, 31 + Math.max(0, bob), 4, 6, visual.face || "#f0e8ff");
+  px(ctx, 34 + lean, 16 + bob + castLift, 3, 18, visual.staff || "#705139");
+  px(ctx, 36 + lean, 14 + bob + castLift, 6, 4, visual.staff || "#705139");
+  px(ctx, 38 + lean, 12 + bob + castLift, 4, 2, visual.accent || "#82d174");
+  px(ctx, 39 + lean, 20 + bob + castLift, 3, 3, visual.accent || "#82d174");
+  px(ctx, 8 + lean, 21 + bob + castLift, 4, 12, visual.face || "#e9e8ef");
+  px(ctx, 10 + lean, 23 + bob + castLift, 2, 10, visual.core || "#c1a3d5");
+  px(ctx, 36 + lean, 10 + bob + castLift, 8, 3, visual.orb || visual.accent || "#82d174");
+  if (visual.shape === "rot") {
+    px(ctx, 12 + lean, 18 + bob, 4, 14, "#4d2238");
+    px(ctx, 32 + lean, 18 + bob, 4, 13, "#4d2238");
+  } else if (visual.shape === "root") {
+    px(ctx, 12 + lean, 18 + bob, 4, 14, "#6f8d4d");
+    px(ctx, 32 + lean, 18 + bob, 4, 13, "#6f8d4d");
+  }
   return { canvas, anchorX: 24, anchorY: 41 };
 }
 

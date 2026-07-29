@@ -451,6 +451,7 @@ function drawBossTelegraphs(ctx, state, origin) {
 function drawProjectiles(ctx, state, origin) {
   for (const projectile of state.projectiles) {
     const point = toScreen(origin, projectile.x, projectile.y, 18);
+    drawProjectileTrail(ctx, origin, projectile, "spirit", false);
     drawSpiritBolt(ctx, point.x, point.y);
   }
 }
@@ -462,6 +463,7 @@ function drawSpiritBolt(ctx, x, y) {
 function drawHostileProjectiles(ctx, state, origin) {
   for (const projectile of state.hostileProjectiles) {
     const point = toScreen(origin, projectile.x, projectile.y, 18);
+    drawProjectileTrail(ctx, origin, projectile, projectile.type || "spirit", true);
     drawPixelSprite(ctx, getProjectileSprite(projectile.type || "spirit"), point.x, point.y);
   }
 }
@@ -484,6 +486,23 @@ function getHazardActiveColor(type = "thorn", harmless = false) {
   if (type === "blight") return "#c587ff";
   if (type === "ancient") return "#ddc489";
   return "#9bef75";
+}
+
+function getDamageReadColor(type = "thorn") {
+  if (type === "fire" || type === "ember") return "#ff9a5f";
+  if (type === "mire" || type === "poison") return "#86dfd8";
+  if (type === "frost") return "#dff6ff";
+  if (type === "corruption" || type === "blight") return "#d891ff";
+  if (type === "astral" || type === "ancient") return "#f3e1a4";
+  if (type === "spirit" || type === "wisp") return "#9beeff";
+  if (type === "physical") return "#fff0a8";
+  return "#b7ef7b";
+}
+
+function getRoleReadColor(role = "melee") {
+  if (role === "ranged") return "#9bd8ff";
+  if (role === "support") return "#a8ee87";
+  return "#ffb56d";
 }
 
 function drawSortedWorld(ctx, state, origin) {
@@ -1704,6 +1723,7 @@ function drawFarmCrop(ctx, item, origin) {
 function drawNpc(ctx, npc, origin) {
   const point = toScreen(origin, npc.anchorX, npc.anchorY);
   const palette = NPC_DEFS[npc.id]?.palette || npc.palette;
+  drawNpcSilhouetteBase(ctx, point.x, point.y, palette);
   drawPixelSprite(ctx, getActorSprite(palette, "down", 0, "npc"), point.x, point.y);
 }
 
@@ -1771,10 +1791,14 @@ function drawEnemy(ctx, enemy, state, origin) {
   }
 
   const frame = Math.floor(enemy.animTime) % 4;
-  drawPixelSprite(ctx, getEnemySprite(enemy.config.sprite || enemy.type, resolveFacing(enemy.facing), frame, enemy.pose), point.x, point.y, {
+  drawEnemyGrounding(ctx, enemy, state, origin, point);
+  drawPixelSprite(ctx, getEnemySprite(enemy.type, resolveFacing(enemy.facing), frame, enemy.pose), point.x, point.y, {
     tint: enemy.hitFlash > 0 ? "#ffe0c9" : enemy.config.spriteTint || null,
     tintAlpha: enemy.hitFlash > 0 ? 0.82 : enemy.config.spriteTintAlpha || 0.22,
   });
+  if (enemy.hitFlash > 0) {
+    drawActorHitSpark(ctx, point.x, point.y, enemy.radius, getDamageReadColor(enemy.config.damageType));
+  }
 
   drawEnemyStatus(ctx, enemy, state, origin);
   drawEnemyHealth(ctx, enemy, point.x, point.y);
@@ -1794,11 +1818,14 @@ function drawTrainingDummy(ctx, x, y, item, hit = false) {
 
 function drawBoss(ctx, boss, state, origin) {
   const point = toScreen(origin, boss.x, boss.y, 26);
-  drawIsoShadow(ctx, point.x, point.y + 4, 28, 10);
+  drawBossAura(ctx, boss, state, origin, point);
   drawPixelSprite(ctx, getBossSprite(Math.floor(boss.animTime) % 4, boss.pose), point.x, point.y, {
     tint: boss.hitFlash > 0 ? "#ffd5bf" : null,
     tintAlpha: 0.82,
   });
+  if (boss.hitFlash > 0) {
+    drawActorHitSpark(ctx, point.x, point.y, boss.radius, getDamageReadColor(boss.identity?.damageType));
+  }
   drawBossStatus(ctx, boss, state, origin);
 }
 
@@ -1826,18 +1853,7 @@ function drawEnemyStatus(ctx, enemy, state, origin) {
   }
 
   if (enemy.state === "windup") {
-    ctx.save();
-    ctx.globalAlpha = 0.72;
-    drawIsoRing(
-      ctx,
-      origin,
-      enemy.x,
-      enemy.y,
-      enemy.radius + 12,
-      8,
-      enemy.config.windupColor || "#ffd27a"
-    );
-    ctx.restore();
+    drawEnemyWindupMarker(ctx, enemy, origin);
   }
 }
 
@@ -1857,10 +1873,159 @@ function drawBossStatus(ctx, boss, state, origin) {
   }
 }
 
+function drawNpcSilhouetteBase(ctx, x, y, palette = {}) {
+  const accent = palette.accent || "#d8f0a0";
+  drawIsoShadow(ctx, x, y + 3, 14, 5);
+  ctx.save();
+  ctx.globalAlpha = 0.22;
+  fillPixelEllipse(ctx, x, y + 2, 15, 4, accent);
+  ctx.restore();
+  pixelRect(ctx, x - 8, y - 38, 16, 2, accent);
+}
+
+function drawEnemyGrounding(ctx, enemy, state, origin, point) {
+  const roleColor = getRoleReadColor(enemy.config.role);
+  const damageColor = getDamageReadColor(enemy.config.damageType || enemy.config.hazardType || enemy.config.projectileType);
+  const time = state.time ?? performance.now() / 1000;
+  const pulse = 0.5 + Math.sin(time * 6 + enemy.x * 0.03 + enemy.y * 0.02) * 0.5;
+  const baseHalfW = Math.max(15, enemy.radius * 0.95);
+  const baseHalfH = Math.max(5, enemy.radius * 0.28);
+
+  drawIsoShadow(ctx, point.x, point.y + 5, baseHalfW, baseHalfH);
+  ctx.save();
+  ctx.globalAlpha = enemy.state === "windup" ? 0.28 + pulse * 0.1 : enemy.elite ? 0.22 : 0.12;
+  fillPixelEllipse(
+    ctx,
+    point.x,
+    point.y + 4,
+    Math.max(18, enemy.radius * 1.18),
+    Math.max(4, enemy.radius * 0.22),
+    enemy.state === "windup" ? damageColor : roleColor
+  );
+  ctx.restore();
+
+  if (enemy.elite) {
+    ctx.save();
+    ctx.globalAlpha = 0.28;
+    drawIsoRing(ctx, origin, enemy.x, enemy.y, enemy.radius + 16, 6, enemy.eliteColor || damageColor);
+    ctx.restore();
+  }
+}
+
+function drawEnemyWindupMarker(ctx, enemy, origin) {
+  const color = enemy.config.windupColor || getDamageReadColor(enemy.config.damageType || enemy.config.projectileType);
+  const role = enemy.config.role || "melee";
+  const angle = Number.isFinite(enemy.attackAngle) ? enemy.attackAngle : enemy.facing || 0;
+  const range = enemy.config.attackRange || (role === "ranged" ? 180 : 70);
+  const startDistance = Math.max(18, enemy.radius + 8);
+  const endDistance = role === "ranged" ? Math.min(220, Math.max(130, range)) : Math.min(105, Math.max(54, range + 20));
+  const startX = enemy.x + Math.cos(angle) * startDistance;
+  const startY = enemy.y + Math.sin(angle) * startDistance;
+  const endX = enemy.x + Math.cos(angle) * endDistance;
+  const endY = enemy.y + Math.sin(angle) * endDistance;
+  const sideAngle = angle + Math.PI / 2;
+  const prongSize = role === "ranged" ? 12 : 8;
+
+  ctx.save();
+  ctx.globalAlpha = 0.76;
+  drawIsoRing(ctx, origin, enemy.x, enemy.y, enemy.radius + 12, 8, color);
+
+  if (role === "support") {
+    drawIsoRing(ctx, origin, enemy.x, enemy.y, Math.min(92, Math.max(58, (enemy.config.supportRadius || 140) * 0.48)), 6, color);
+    drawIsoLine(ctx, origin, enemy.x - 18, enemy.y, enemy.x + 18, enemy.y, 4, color);
+    drawIsoLine(ctx, origin, enemy.x, enemy.y - 18, enemy.x, enemy.y + 18, 4, color);
+    ctx.restore();
+    return;
+  }
+
+  drawIsoLine(ctx, origin, startX, startY, endX, endY, role === "ranged" ? 4 : 5, color);
+  drawIsoLine(
+    ctx,
+    origin,
+    endX,
+    endY,
+    endX - Math.cos(angle) * 14 + Math.cos(sideAngle) * prongSize,
+    endY - Math.sin(angle) * 14 + Math.sin(sideAngle) * prongSize,
+    4,
+    color
+  );
+  drawIsoLine(
+    ctx,
+    origin,
+    endX,
+    endY,
+    endX - Math.cos(angle) * 14 - Math.cos(sideAngle) * prongSize,
+    endY - Math.sin(angle) * 14 - Math.sin(sideAngle) * prongSize,
+    4,
+    color
+  );
+  ctx.restore();
+}
+
+function drawActorHitSpark(ctx, x, y, radius, color) {
+  const points = [
+    [-0.82, -0.45],
+    [-0.26, -0.78],
+    [0.38, -0.7],
+    [0.88, -0.22],
+    [0.58, 0.35],
+    [-0.52, 0.28],
+  ];
+  ctx.save();
+  ctx.globalAlpha = 0.74;
+  for (const [dx, dy] of points) {
+    pixelRect(ctx, x + dx * radius * 0.78 - 2, y - 18 + dy * radius * 0.72 - 2, 4, 4, color);
+  }
+  ctx.restore();
+}
+
+function drawBossAura(ctx, boss, state, origin, point) {
+  const damageColor = getDamageReadColor(boss.identity?.damageType);
+  const time = state.time ?? performance.now() / 1000;
+  const pulse = 0.5 + Math.sin(time * 4.2 + boss.phase) * 0.5;
+  const attackColor =
+    boss.currentAttack?.type === "volley"
+      ? boss.identity?.volleyTelegraphColor || damageColor
+      : boss.identity?.slamTelegraphColor || damageColor;
+
+  drawIsoShadow(ctx, point.x, point.y + 4, 30, 10);
+  ctx.save();
+  ctx.globalAlpha = boss.currentAttack ? 0.2 + pulse * 0.08 : 0.13;
+  fillPixelEllipse(ctx, point.x, point.y + 5, 38 + boss.phase * 3, 11 + boss.phase, boss.currentAttack ? attackColor : damageColor);
+  ctx.restore();
+
+  if (boss.phase >= 2 || boss.currentAttack) {
+    ctx.save();
+    ctx.globalAlpha = boss.currentAttack ? 0.54 : 0.28;
+    drawIsoRing(ctx, origin, boss.x, boss.y, boss.radius + (boss.currentAttack ? 20 : 10), 8, boss.currentAttack ? attackColor : damageColor);
+    ctx.restore();
+  }
+}
+
+function drawProjectileTrail(ctx, origin, projectile, type, hostile = false) {
+  const speed = Math.hypot(projectile.vx || 0, projectile.vy || 0);
+  if (speed <= 1) return;
+
+  const directionX = (projectile.vx || 0) / speed;
+  const directionY = (projectile.vy || 0) / speed;
+  const length = hostile ? 24 : 18;
+  const color = hostile ? getDamageReadColor(type) : getDamageReadColor("spirit");
+  const head = toScreen(origin, projectile.x, projectile.y, 18);
+  const tail = toScreen(origin, projectile.x - directionX * length, projectile.y - directionY * length, 18);
+
+  ctx.save();
+  ctx.globalAlpha = hostile ? 0.58 : 0.48;
+  drawThickPixelLine(ctx, tail, head, hostile ? 3 : 2, color);
+  drawPixelLine(ctx, tail.x, tail.y + 2, head.x, head.y + 2, hostile ? "#fff1c2" : "#efffff", 0.72);
+  ctx.restore();
+}
+
 function drawEnemyHealth(ctx, enemy, x, y) {
   const width = Math.max(36, enemy.radius >= 22 ? 44 : Math.round(enemy.radius * 1.9));
   const ratio = Math.max(0, enemy.hp / enemy.maxHp);
   pixelRect(ctx, x - width / 2, y - 42, width, 6, "#1b1412");
+  pixelRect(ctx, x - width / 2 - 5, y - 42, 3, 6, getRoleReadColor(enemy.config.role));
+  pixelRect(ctx, x + width / 2 + 2, y - 42, 3, 6, getDamageReadColor(enemy.config.damageType || enemy.config.projectileType));
   pixelRect(
     ctx,
     x - width / 2 + 1,
