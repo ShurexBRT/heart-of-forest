@@ -1055,6 +1055,31 @@ beskonacnu kupovinu talent poena.
 - Segment ne menja player radius, combat dodge, projectile collision pravila,
   NPC pozicije, quest objective pozicije ili interakcione radiuse.
 
+### Faza 8Q
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: dati svim postojecim neprijateljima jasniju siluetu i biome identitet,
+  tako da igrac brze prepozna melee, brute, ranged i support pretnje.
+- `rendering/pixelAssets.js` enemy sprite pipeline sada koristi dodatne shape
+  markere za thorn, bark, hound, lurker, spitter, wisp, imp, frost, star, root,
+  rot, guardian, sentinel i ember varijante.
+- Small melee grupa vise ne izgleda kao ista grudva: Thornling dobija izrazenije
+  bodlje, Barkling bark-plate trup i root feet, Blight Hound nisku cetvoronoznu
+  siluetu sa corrupted spike akcentima.
+- Brute grupa dobija jaci regionalni read: Bog Lurker je nizi i mocvarniji,
+  Ash Brute ima lava cracks/flame shoulders, Icebound Guardian crystal crown i
+  ice plates, a Relic Sentinel stone/gold rune tretman.
+- Ranged grupa je razdvojena: Mire Spitter vise cita kao spitter/blowpipe sa
+  poison sac detaljem, dok Wisp/Cinder/Frost/Star varijante imaju jasnije
+  elemental projectile i crown/trail signale.
+- Support casteri dobijaju staff/orb/root/rot/thorn detalje koji govore da su
+  pozadinska pretnja, a ne obican melee.
+- Dodat je `docs/ENEMY_ART_DIRECTION.md` kao dogovoreni art direction za buduci
+  bitmap sheet i animacione pass-ove.
+- Segment ne menja enemy HP, damage, radius, AI, spawn table, quest uslove,
+  projectile brzine, cooldown-e ili loot.
+
 ## Van trenutnog scopea
 
 - Durability i repair.
