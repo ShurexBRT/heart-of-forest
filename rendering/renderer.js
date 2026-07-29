@@ -1747,7 +1747,7 @@ function drawPlayer(ctx, player, origin) {
   const point = toScreen(origin, player.x, player.y, 18);
   const speed = Math.hypot(player.vx, player.vy);
   const frame = speed > 20 ? Math.floor(player.animTime) % 4 : Math.floor(player.animTime) % 2;
-  const facing = resolveFacing(player.aimAngle);
+  const facing = getPlayerRenderFacing(player, speed);
   drawPlayerGrounding(ctx, player, point, speed);
   if (
     drawAylaAtlasSprite(ctx, point.x, point.y, facing, frame, player.pose, {
@@ -1780,6 +1780,18 @@ function drawPlayer(ctx, player, origin) {
       tintAlpha: 0.76,
     }
   );
+}
+
+function getPlayerRenderFacing(player, speed) {
+  if (player.pose === "attack" || player.pose === "cast" || player.pose === "dash") {
+    return resolveFacing(player.aimAngle);
+  }
+
+  if (speed > 20) {
+    return resolveFacing(Math.atan2(player.vy, player.vx));
+  }
+
+  return resolveFacing(player.aimAngle);
 }
 
 function drawEnemy(ctx, enemy, state, origin) {

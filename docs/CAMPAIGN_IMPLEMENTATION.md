@@ -1194,6 +1194,32 @@ beskonacnu kupovinu talent poena.
 - Segment ne menja quest countere, nagrade, interaction radius, combat, enemy
   spawnove, bridge/water collision ili Tide Seal staging.
 
+### Faza 8W
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: zameniti Aylin prethodni single-read bitmap pass pravim cetvorosmernim
+  sprite sheetom pre nego sto isti pipeline prenesemo na neprijatelje.
+- Novi AI-generisani source je sacuvan kao
+  `assets/characters/ayla-v3-directional-source.png`, a normalizovani engine
+  sheet kao `assets/characters/ayla-v3-directional-game-sheet.png`.
+- Sheet koristi 128x128 fixed cells: row 0 down, row 1 right, row 2 left, row 3
+  up, row 4 action frames, sa stabilnim bottom-center anchorom za postojece
+  senke i world sort.
+- `rendering/atlasAssets.js` sada preferira `aylaV3`, zatim pada na v2 bitmap
+  sheet, pa tek onda na stari concept atlas/procedural fallback.
+- `rendering/renderer.js` sada tokom hodanja bira facing iz player velocity
+  vektora, dok attack, cast i dash i dalje koriste aim angle.
+- Ovo resava problem gde Ayla izgleda kao da je okrenuta u isti smer dok trci
+  gore, dole, levo ili desno.
+- QA: syntax check za `rendering/atlasAssets.js`, `rendering/renderer.js` i
+  `rendering/pixelAssets.js`, puna regresija `node --test tests\*.test.mjs`
+  sa `82/82` prolaza i browser smoke screenshot
+  `ayla-v3-directional-runtime.png` u `PLAYING` modu sa WASD movement facing
+  proverom.
+- Segment ne menja player radius, brzinu, damage, cooldown-e, enemy art,
+  collision, quest uslove ili item pickup logiku.
+
 ## Van trenutnog scopea
 
 - Durability i repair.

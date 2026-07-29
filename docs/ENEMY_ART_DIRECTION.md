@@ -37,6 +37,10 @@ Heart of Forest enemies should read by gameplay role first and biome identity se
   each roster enemy drawn from its own accepted concept profile.
 - No combat numbers, AI, radius, damage, spawn rules, or quest progression are changed.
 - A later bitmap pass should start from the accepted in-game procedural frame, generate one full strip per archetype, normalize to fixed anchors, then preview in-engine before replacing procedural sprites.
+- Directional enemy sheets should follow the Ayla v3 lesson: prove distinct
+  down/right/left/up reads in a sheet preview first, then wire them into runtime
+  facing. Mirroring can be used only when it does not break weapon, bow, staff or
+  body-plan readability.
 
 ## Accepted Concept Translation
 

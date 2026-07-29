@@ -1,5 +1,6 @@
 const ATLAS_PATHS = {
   ayla: "./assets/atlases/ayla-sprite.png",
+  aylaV3: "./assets/characters/ayla-v3-directional-game-sheet.png",
   aylaV2: "./assets/characters/ayla-v2-game-sheet.png",
   "blighted-woods": "./assets/atlases/blighted-woods.png",
   "ember-hollow": "./assets/atlases/ember-hollow.png",
@@ -291,16 +292,16 @@ const AYLA_FRAME_RECTS = {
   ],
   portrait: { x: 1068, y: 18, w: 370, h: 406 },
 };
-const AYLA_V2_FRAME_SIZE = 128;
-const AYLA_V2_FRAME_RECTS = {
-  walkDown: buildAylaV2Row(0, 4),
-  walkRight: buildAylaV2Row(1, 4),
-  walkLeft: buildAylaV2Row(2, 4),
-  walkUp: buildAylaV2Row(3, 4),
-  cast: [buildAylaV2Cell(4, 0), buildAylaV2Cell(4, 1)],
-  dash: [buildAylaV2Cell(4, 2)],
-  hurt: [buildAylaV2Cell(4, 3)],
-  death: [buildAylaV2Cell(4, 4)],
+const AYLA_FIXED_FRAME_SIZE = 128;
+const AYLA_FIXED_FRAME_RECTS = {
+  walkDown: buildAylaFixedRow(0, 4),
+  walkRight: buildAylaFixedRow(1, 4),
+  walkLeft: buildAylaFixedRow(2, 4),
+  walkUp: buildAylaFixedRow(3, 4),
+  cast: [buildAylaFixedCell(4, 0), buildAylaFixedCell(4, 1)],
+  dash: [buildAylaFixedCell(4, 2)],
+  hurt: [buildAylaFixedCell(4, 3)],
+  death: [buildAylaFixedCell(4, 4)],
 };
 
 if (typeof window !== "undefined" && typeof Image !== "undefined") {
@@ -449,7 +450,10 @@ function loadAtlases() {
   Promise.all(entries.map(([key, path]) => loadImage(key, path)))
     .then((loaded) => {
       atlasState.images = Object.fromEntries(loaded.map((entry) => [entry.key, entry.image]));
-      atlasState.aylaFrames = buildAylaV2Frames(atlasState.images.aylaV2) || buildAylaFrames(atlasState.images.ayla);
+      atlasState.aylaFrames =
+        buildFixedAylaFrames(atlasState.images.aylaV3) ||
+        buildFixedAylaFrames(atlasState.images.aylaV2) ||
+        buildAylaFrames(atlasState.images.ayla);
       atlasState.aylaPortrait = extractSprite(atlasState.images.ayla, AYLA_FRAME_RECTS.portrait, {
         trim: true,
         component: "cluster",
@@ -540,34 +544,34 @@ function buildAylaFrames(image) {
   };
 }
 
-function buildAylaV2Cell(row, column) {
+function buildAylaFixedCell(row, column) {
   return {
-    x: column * AYLA_V2_FRAME_SIZE,
-    y: row * AYLA_V2_FRAME_SIZE,
-    w: AYLA_V2_FRAME_SIZE,
-    h: AYLA_V2_FRAME_SIZE,
+    x: column * AYLA_FIXED_FRAME_SIZE,
+    y: row * AYLA_FIXED_FRAME_SIZE,
+    w: AYLA_FIXED_FRAME_SIZE,
+    h: AYLA_FIXED_FRAME_SIZE,
   };
 }
 
-function buildAylaV2Row(row, count) {
-  return Array.from({ length: count }, (_, column) => buildAylaV2Cell(row, column));
+function buildAylaFixedRow(row, count) {
+  return Array.from({ length: count }, (_, column) => buildAylaFixedCell(row, column));
 }
 
-function extractFixedAylaV2Frame(image, rect) {
+function extractFixedAylaFrame(image, rect) {
   return extractSprite(image, rect, { trim: false, padding: 0 });
 }
 
-function buildAylaV2Frames(image) {
+function buildFixedAylaFrames(image) {
   if (!image) return null;
   return {
-    walkDown: AYLA_V2_FRAME_RECTS.walkDown.map((rect) => extractFixedAylaV2Frame(image, rect)),
-    walkLeft: AYLA_V2_FRAME_RECTS.walkLeft.map((rect) => extractFixedAylaV2Frame(image, rect)),
-    walkRight: AYLA_V2_FRAME_RECTS.walkRight.map((rect) => extractFixedAylaV2Frame(image, rect)),
-    walkUp: AYLA_V2_FRAME_RECTS.walkUp.map((rect) => extractFixedAylaV2Frame(image, rect)),
-    cast: AYLA_V2_FRAME_RECTS.cast.map((rect) => extractFixedAylaV2Frame(image, rect)),
-    dash: AYLA_V2_FRAME_RECTS.dash.map((rect) => extractFixedAylaV2Frame(image, rect)),
-    hurt: AYLA_V2_FRAME_RECTS.hurt.map((rect) => extractFixedAylaV2Frame(image, rect)),
-    death: AYLA_V2_FRAME_RECTS.death.map((rect) => extractFixedAylaV2Frame(image, rect)),
+    walkDown: AYLA_FIXED_FRAME_RECTS.walkDown.map((rect) => extractFixedAylaFrame(image, rect)),
+    walkLeft: AYLA_FIXED_FRAME_RECTS.walkLeft.map((rect) => extractFixedAylaFrame(image, rect)),
+    walkRight: AYLA_FIXED_FRAME_RECTS.walkRight.map((rect) => extractFixedAylaFrame(image, rect)),
+    walkUp: AYLA_FIXED_FRAME_RECTS.walkUp.map((rect) => extractFixedAylaFrame(image, rect)),
+    cast: AYLA_FIXED_FRAME_RECTS.cast.map((rect) => extractFixedAylaFrame(image, rect)),
+    dash: AYLA_FIXED_FRAME_RECTS.dash.map((rect) => extractFixedAylaFrame(image, rect)),
+    hurt: AYLA_FIXED_FRAME_RECTS.hurt.map((rect) => extractFixedAylaFrame(image, rect)),
+    death: AYLA_FIXED_FRAME_RECTS.death.map((rect) => extractFixedAylaFrame(image, rect)),
   };
 }
 
