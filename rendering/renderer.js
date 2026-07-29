@@ -1673,10 +1673,14 @@ function drawFarmCrop(ctx, item, origin) {
 
 function drawNpc(ctx, npc, state, origin) {
   const point = toScreen(origin, npc.anchorX, npc.anchorY);
-  const palette = NPC_DEFS[npc.id]?.palette || npc.palette;
+  const npcDef = NPC_DEFS[npc.id] || {};
+  const palette = npcDef.palette || npc.palette;
+  const facing = getNpcRenderFacing(npc, state);
+  const frame = getNpcIdleFrame(npc, state);
   drawNpcFocusMarker(ctx, npc, state, origin, palette);
   drawNpcSilhouetteBase(ctx, point.x, point.y, palette);
-  drawPixelSprite(ctx, getActorSprite(palette, "down", 0, `npc:${npc.id}`), point.x, point.y);
+  drawPixelSprite(ctx, getActorSprite(palette, facing, frame, `npc:${npc.id}`), point.x, point.y);
+  drawNpcPresenceDetails(ctx, npc, state, point, palette, npcDef);
 }
 
 function drawAfterImage(ctx, image, origin) {
@@ -1712,37 +1716,36 @@ function drawPlayer(ctx, player, origin) {
   const frame = speed > 20 ? Math.floor(player.animTime) % 4 : Math.floor(player.animTime) % 2;
   const facing = getPlayerRenderFacing(player, speed);
   drawPlayerGrounding(ctx, player, point, speed);
-  if (
-    drawAylaAtlasSprite(ctx, point.x, point.y, facing, frame, player.pose, {
-      alpha: player.invulnerable > 0 && Math.floor(performance.now() / 60) % 2 === 0 ? 0.84 : 1,
-      tint: player.hurtFlash > 0 ? "#ffd7ca" : null,
-      tintAlpha: 0.58,
-      scale: 0.5,
-    })
-  ) {
-    return;
-  }
-  drawPixelSprite(
-    ctx,
-    getActorSprite(
+  const drewAylaAtlas = drawAylaAtlasSprite(ctx, point.x, point.y, facing, frame, player.pose, {
+    alpha: player.invulnerable > 0 && Math.floor(performance.now() / 60) % 2 === 0 ? 0.84 : 1,
+    tint: player.hurtFlash > 0 ? "#ffd7ca" : null,
+    tintAlpha: 0.58,
+    scale: 0.5,
+  });
+  if (!drewAylaAtlas) {
+    drawPixelSprite(
+      ctx,
+      getActorSprite(
+        {
+          hood: "#f6f4ef",
+          cloak: player.dashTime > 0 ? "#8fd6ba" : "#7aa466",
+          accent: "#86d4a7",
+        },
+        facing,
+        frame,
+        "ayla",
+        player.pose
+      ),
+      point.x,
+      point.y,
       {
-        hood: "#f6f4ef",
-        cloak: player.dashTime > 0 ? "#8fd6ba" : "#7aa466",
-        accent: "#86d4a7",
-      },
-      facing,
-      frame,
-      "ayla",
-      player.pose
-    ),
-    point.x,
-    point.y,
-    {
-      alpha: player.invulnerable > 0 && Math.floor(performance.now() / 60) % 2 === 0 ? 0.72 : 1,
-      tint: player.hurtFlash > 0 ? "#ffd7ca" : null,
-      tintAlpha: 0.76,
-    }
-  );
+        alpha: player.invulnerable > 0 && Math.floor(performance.now() / 60) % 2 === 0 ? 0.72 : 1,
+        tint: player.hurtFlash > 0 ? "#ffd7ca" : null,
+        tintAlpha: 0.76,
+      }
+    );
+  }
+  drawPlayerIdentityOverlays(ctx, player, point, facing, speed);
 }
 
 function getPlayerRenderFacing(player, speed) {
@@ -1755,6 +1758,24 @@ function getPlayerRenderFacing(player, speed) {
   }
 
   return resolveFacing(player.aimAngle);
+}
+
+function getNpcRenderFacing(npc, state) {
+  const npcX = npc.anchorX ?? npc.x ?? 0;
+  const npcY = npc.anchorY ?? npc.y ?? 0;
+  const player = state.player;
+  if (!player) return "down";
+
+  const focused = state.story.focus?.kind === "npc" && state.story.focus?.data?.id === npc.id;
+  const dx = player.x - npcX;
+  const dy = player.y - npcY;
+  if (!focused && Math.hypot(dx, dy) > 180) return "down";
+  return resolveFacing(Math.atan2(dy, dx));
+}
+
+function getNpcIdleFrame(npc, state) {
+  const time = state.time ?? performance.now() / 1000;
+  return Math.floor(time * 1.35 + getPropVariant(npc, 4)) % 4;
 }
 
 function drawEnemy(ctx, enemy, state, origin) {
@@ -1919,6 +1940,27 @@ function drawNpcSilhouetteBase(ctx, x, y, palette = {}) {
   pixelRect(ctx, x - 8, y - 38, 16, 2, accent);
 }
 
+function drawNpcPresenceDetails(ctx, npc, state, point, palette = {}, npcDef = {}) {
+  const focused = state.story.focus?.kind === "npc" && state.story.focus?.data?.id === npc.id;
+  const serviceNpc = Boolean(npcDef.serviceId);
+  if (!focused && !serviceNpc) return;
+
+  const accent = palette.accent || "#d8f0a0";
+  const glow = palette.hood || "#fff1bd";
+  const time = state.time ?? performance.now() / 1000;
+  const pulse = 0.5 + Math.sin(time * 4.2 + getPropVariant(npc, 7)) * 0.5;
+
+  ctx.save();
+  ctx.globalAlpha = focused ? 0.62 : 0.32 + pulse * 0.18;
+  pixelRect(ctx, point.x + 10, point.y - 46 - pulse * 2, 3, 3, accent);
+  pixelRect(ctx, point.x + 11, point.y - 50 - pulse * 2, 1, 4, glow);
+  if (focused) {
+    pixelRect(ctx, point.x - 14, point.y - 52, 28, 2, "rgba(255, 246, 190, 0.62)");
+    pixelRect(ctx, point.x - 9, point.y - 55, 18, 1, accent);
+  }
+  ctx.restore();
+}
+
 function drawPlayerGrounding(ctx, player, point, speed) {
   const moving = speed > 20;
   const lowHealth = player.hp / Math.max(1, player.maxHp) <= 0.35;
@@ -1938,6 +1980,51 @@ function drawPlayerGrounding(ctx, player, point, speed) {
     pixelRect(ctx, point.x + 8, point.y - 43, 4, 4, "#ff9a8b");
     ctx.restore();
   }
+}
+
+function drawPlayerIdentityOverlays(ctx, player, point, facing, speed) {
+  const time = performance.now() / 1000;
+  const moving = speed > 34;
+  const dashing = player.dashTime > 0 || player.pose === "dash";
+  const casting = player.pose === "cast";
+  const attacking = player.pose === "attack";
+  const side = facing === "left" ? -1 : 1;
+  const staffX = point.x + side * (facing === "up" ? 12 : 19);
+  const staffTopY = point.y - (casting ? 54 : 47);
+
+  ctx.save();
+  if (moving && !dashing) {
+    const leafAlpha = 0.2 + Math.min(0.18, speed / 800);
+    ctx.globalAlpha = leafAlpha;
+    pixelRect(ctx, point.x - side * 15, point.y + 6, 5, 2, "#9fe28c");
+    pixelRect(ctx, point.x - side * 21, point.y + 9, 3, 2, "#e1e99c");
+  }
+
+  if (dashing) {
+    ctx.globalAlpha = 0.58;
+    pixelRect(ctx, point.x - side * 29, point.y - 14, 22, 3, "#bff7ed");
+    pixelRect(ctx, point.x - side * 24, point.y - 7, 15, 2, "#8fe5ca");
+    pixelRect(ctx, point.x - side * 16, point.y + 2, 9, 2, "#f4ffe1");
+  }
+
+  if (casting) {
+    ctx.globalAlpha = 0.68;
+    pixelRect(ctx, staffX - side * 4, staffTopY - 4, 8, 2, "#ffffff");
+    pixelRect(ctx, staffX - side * 2, staffTopY - 1, 5, 2, "#bff7ed");
+    for (let index = 0; index < 3; index += 1) {
+      const wobble = Math.sin(time * 5.6 + index * 1.7) * 3;
+      pixelRect(ctx, staffX + wobble + index * side * 3, staffTopY + index * 7, 4, 4, index === 1 ? "#ffffff" : "#bff7ed");
+    }
+    ctx.globalAlpha = 0.24;
+    fillPixelEllipse(ctx, point.x, point.y - 30, 22, 6, "#bff7ed");
+  }
+
+  if (attacking) {
+    ctx.globalAlpha = 0.46;
+    pixelRect(ctx, staffX - side * 12, point.y - 36, 22, 2, "#fff1a6");
+    pixelRect(ctx, staffX - side * 8, point.y - 31, 15, 2, "#9fe28c");
+  }
+  ctx.restore();
 }
 
 function drawEnemyGrounding(ctx, enemy, state, origin, point) {

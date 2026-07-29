@@ -199,6 +199,7 @@ beskonacnu kupovinu talent poena.
 | 7F | Biome floor and building texture pass | Zavrseno |
 | 8AB | Enemy hit-flash mask bugfix | Zavrseno |
 | 8AC | Terrain water, ice, path and floor relief polish | Zavrseno |
+| 8AD | Ayla and NPC runtime presence polish | Zavrseno |
 
 ## Dnevnik implementacije
 
@@ -1350,6 +1351,28 @@ beskonacnu kupovinu talent poena.
   `mossroot_marsh`, `chapel_of_tides`, `frostveil_tundra` i `mossy_ruins`.
 - Segment ne menja tile placement, collision, bridge ignore, water obstacle
   podatke, scene progression, prop asete, enemy spawnove ili HUD layout.
+
+### Faza 8AD
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: podici prisustvo Ayle i NPC-jeva u sceni bez rizicnog recut-a
+  postojeceg v3 bitmap sheet-a.
+- `rendering/renderer.js` sada crta Ayla action overlay posle atlas/fallback
+  sprite-a: movement leaf flecks, jasnije dash streaks, cast staff glint/motes
+  i mali staff attack glint.
+- NPC-jevi sada biraju facing prema Ayla-i kada je blizu ili kada su fokusirani,
+  uz spori idle frame offset po NPC-u, pa vise ne deluju kao staticni cutout-i.
+- Service/focused NPC-jevi dobijaju diskretan palette glint i focus line iznad
+  glave, bez novog panela ili dodatnog quest state-a.
+- `docs/PLAYER_ART_DIRECTION.md` belezi da su ovi efekti renderer-side dodatak
+  preko v3 sheet-a, ne zamena sheet pipeline-a.
+- QA: syntax check za `rendering/renderer.js`, targeted
+  `layout/heartwood-phase-one/homestead` testovi, puna regresija
+  `node --test tests\*.test.mjs` sa `82/82` prolaza i browser screenshots za
+  Homestead NPC focus, Ayla cast i Ayla dash state.
+- Segment ne menja player movement, collision, attack/cast timing, hitboxe,
+  NPC pozicije, NPC interakcione radiuse, quest flow ili save format.
 
 ## Van trenutnog scopea
 

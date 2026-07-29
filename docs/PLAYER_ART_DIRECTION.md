@@ -31,6 +31,9 @@ becoming so noisy that combat telegraphs disappear around her.
   frames before the bitmap atlas is loaded or if loading fails.
 - Runtime facing follows movement while Ayla is walking, then follows aim during
   attack, cast and dash so combat intent stays readable.
+- Renderer-side polish adds small staff glints, cast motes, dash streaks and
+  movement leaves after the sprite is drawn. These effects should support pose
+  readability without changing the bitmap sheet, anchor, collision or movement.
 
 ## Pose Requirements
 
