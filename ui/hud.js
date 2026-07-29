@@ -92,6 +92,89 @@ function getHudAbilitySpecs() {
   ];
 }
 
+export function getHudAbilityReadiness(player, abilityName, info = {}) {
+  const cooldown = Math.max(0, player?.cooldowns?.[abilityName] || 0);
+  const cost = Math.max(0, Math.floor(info.cost || 0));
+  const spirit = Math.max(0, Math.floor(player?.spirit || 0));
+  const heartCharge = Math.max(0, Math.min(100, player?.heartCharge || 0));
+  const signature = abilityName === "pulse" && info.signatureAbility;
+
+  if (info.unlocked === false) {
+    return {
+      state: "locked",
+      label: "Locked",
+      shortLabel: "LOCK",
+      tone: "#7d8791",
+      detail: "Unlock this magic in the Talents tab.",
+      cooldown,
+      cost,
+      spirit,
+      heartCharge,
+      progress: 0,
+    };
+  }
+
+  if (cooldown > 0) {
+    const cooldownMax = Math.max(cooldown, info.cooldown || cooldown);
+    return {
+      state: "cooldown",
+      label: "Recharging",
+      shortLabel: `${cooldown.toFixed(1)}s`,
+      tone: "#89a9bd",
+      detail: `Ready in ${cooldown.toFixed(1)}s.`,
+      cooldown,
+      cost,
+      spirit,
+      heartCharge,
+      progress: 1 - Math.min(1, cooldown / cooldownMax),
+    };
+  }
+
+  if (signature && heartCharge < 100) {
+    return {
+      state: "charging",
+      label: "Charging",
+      shortLabel: `${Math.round(heartCharge)}%`,
+      tone: "#b8c8ba",
+      detail: `Heart Charge ${Math.round(heartCharge)} / 100. Build it through combat.`,
+      cooldown,
+      cost,
+      spirit,
+      heartCharge,
+      progress: heartCharge / 100,
+    };
+  }
+
+  if (cost > 0 && spirit < cost) {
+    const missingSpirit = cost - spirit;
+    return {
+      state: "spirit",
+      label: "Need Spirit",
+      shortLabel: "NO SP",
+      tone: "#d87979",
+      detail: `Need ${missingSpirit} more Spirit.`,
+      cooldown,
+      cost,
+      spirit,
+      heartCharge,
+      progress: spirit / cost,
+    };
+  }
+
+  return {
+    state: "ready",
+    label: signature ? "Ultimate Ready" : "Ready",
+    shortLabel: signature ? "ULT" : "READY",
+    tone: signature ? "#fff0a0" : "#9ce1a3",
+    detail: "Ready to use.",
+    cooldown,
+    cost,
+    spirit,
+    heartCharge,
+    progress: 1,
+  };
+}
+
 export function drawHud(ctx, state, abilityInfo) {
   const majorOverlayOpen = Boolean(
     state.story.questPanel || state.ui.questLogOpen || state.ui.menuOpen || state.ui.worldMapOpen
@@ -416,13 +499,14 @@ function drawAbilitySlots(ctx, startX, y, player, abilityInfo, slotSize = 58, ga
     const [name, color] = abilities[i];
     const info = abilityInfo[name];
     const x = startX + i * (slotW + gap);
-    const cooldown = player.cooldowns[name];
+    const cooldown = Math.max(0, player.cooldowns[name] || 0);
     const ratio = info.cooldown > 0 ? Math.min(1, cooldown / info.cooldown) : 0;
     const unlocked = info.unlocked !== false;
+    const readiness = getHudAbilityReadiness(player, name, info);
 
     const isSignature = name === "pulse" && info.signatureAbility;
     const heartCharge = Math.max(0, Math.min(100, player.heartCharge || 0));
-    const ready = isSignature && heartCharge >= 100 && cooldown <= 0;
+    const ready = isSignature && readiness.state === "ready";
 
     ctx.fillStyle = ready ? "rgba(92, 98, 38, 0.86)" : "rgba(0, 0, 0, 0.62)";
     ctx.fillRect(x, y, slotW, slotH);
@@ -442,8 +526,8 @@ function drawAbilitySlots(ctx, startX, y, player, abilityInfo, slotSize = 58, ga
     if (!unlocked) {
       ctx.fillStyle = "rgba(9, 12, 18, 0.72)";
       ctx.fillRect(innerX, innerY, innerW, innerH);
-    } else if (info.cost > 0 && player.spirit < info.cost) {
-      ctx.fillStyle = "rgba(27, 51, 68, 0.46)";
+    } else if (readiness.state === "spirit") {
+      ctx.fillStyle = "rgba(68, 34, 40, 0.52)";
       ctx.fillRect(innerX, innerY, innerW, innerH);
     }
 
@@ -456,6 +540,12 @@ function drawAbilitySlots(ctx, startX, y, player, abilityInfo, slotSize = 58, ga
       unlocked ? color : "#68737d",
       info.signatureAbility
     );
+
+    drawAbilityReadinessStrip(ctx, x, y, slotW, slotH, readiness);
+    if (readiness.state === "spirit" || readiness.state === "locked") {
+      drawAbilityStatusBadge(ctx, x, y, slotW, slotH, readiness, slotSize);
+    }
+    ctx.textAlign = "left";
 
     ctx.fillStyle = unlocked ? "rgba(5, 9, 13, 0.72)" : "rgba(5, 9, 13, 0.58)";
     ctx.fillRect(x + 5, y + 5, 18, 13);
@@ -516,6 +606,39 @@ function drawAbilitySlots(ctx, startX, y, player, abilityInfo, slotSize = 58, ga
     }
     ctx.textAlign = "left";
   }
+}
+
+function drawAbilityReadinessStrip(ctx, x, y, slotW, slotH, readiness) {
+  const stripX = x + 7;
+  const stripY = y + slotH - 17;
+  const stripW = slotW - 14;
+  const progress = Math.max(0, Math.min(1, readiness.progress ?? 0));
+
+  ctx.fillStyle = "rgba(0, 0, 0, 0.48)";
+  ctx.fillRect(stripX, stripY, stripW, 3);
+  if (readiness.state !== "locked") {
+    ctx.fillStyle = readiness.state === "spirit" ? "rgba(116, 221, 255, 0.72)" : readiness.tone;
+    ctx.fillRect(stripX, stripY, Math.max(2, Math.round(stripW * progress)), 3);
+  }
+}
+
+function drawAbilityStatusBadge(ctx, x, y, slotW, slotH, readiness, slotSize) {
+  const badgeW = slotSize < 54 ? 32 : 36;
+  const badgeH = 13;
+  const badgeX = Math.round(x + slotW / 2 - badgeW / 2);
+  const badgeY = Math.round(y + slotH / 2 - 4);
+
+  ctx.fillStyle = "rgba(3, 5, 7, 0.84)";
+  ctx.fillRect(badgeX - 2, badgeY - 2, badgeW + 4, badgeH + 4);
+  ctx.fillStyle = readiness.state === "spirit" ? "rgba(47, 21, 25, 0.96)" : "rgba(20, 24, 29, 0.96)";
+  ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
+  ctx.strokeStyle = readiness.tone;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(badgeX, badgeY, badgeW, badgeH);
+  ctx.fillStyle = readiness.tone;
+  ctx.font = `800 ${slotSize < 54 ? 8 : 9}px Segoe UI, Arial`;
+  ctx.textAlign = "center";
+  ctx.fillText(readiness.shortLabel, badgeX + badgeW / 2, badgeY + 10);
 }
 
 function drawActionSlots(ctx, x, y, progression) {
@@ -3750,16 +3873,20 @@ function getHudHoverOnlyTarget(state, mouseX, mouseY) {
   for (const slot of hud.abilitySlots) {
     if (pointInRect(mouseX, mouseY, slot.rect)) {
       const locked = slot.info.unlocked === false;
+      const readiness = getHudAbilityReadiness(state.player, slot.name, slot.info);
       return {
         rect: slot.rect,
         tooltip: {
           title: slot.info.label,
           lines: locked
-            ? ["Unlock this magic in the Talents tab.", "Spirit tree"]
+            ? [readiness.detail, "Spirit tree"]
             : [
+                `Status: ${readiness.label}`,
+                readiness.detail,
                 slot.info.cost > 0 ? `Cost ${slot.info.cost} Spirit` : "No Spirit cost",
                 `Cooldown ${slot.info.cooldown.toFixed(2)}s`,
-              ],
+                slot.info.signatureAbility ? "Uses Heart Charge as its ultimate resource." : "",
+              ].filter(Boolean),
           accent: slot.color,
         },
       };

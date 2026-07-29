@@ -976,6 +976,26 @@ beskonacnu kupovinu talent poena.
   `node --test tests\*.test.mjs`; reward label se cita bez zaklanjanja HUD-a ili
   centralne borbe.
 
+### Faza 8M
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: poboljsati citljivost action bara tako da igrac odmah razume da li je
+  skill spreman, na cooldownu, zakljucan, puni ultimate ili nema dovoljno
+  Spirit-a.
+- `ui/hud.js` dobija `getHudAbilityReadiness`, zajednicki helper za stanja
+  `ready`, `cooldown`, `spirit`, `charging` i `locked`.
+- Bottom HUD ability slotovi sada imaju mali readiness strip. Blocked stanja
+  dobijaju kratak badge (`NO SP`, `LOCK`), cooldown ostaje centralni broj, a
+  signature ultimate i dalje pokazuje Heart Charge procenat.
+- Hover tooltip za ability slot koristi isti readiness helper i prikazuje
+  `Status`, kratak razlog, cenu i cooldown, pa vizuelni signal i tekst ne mogu
+  da se razidju.
+- Segment ne menja damage, cooldown vrednosti, resource matematiku, input
+  pravila ili talent unlock uslove.
+- QA: dodat `tests/hud.test.mjs`, screenshotovan Homestead HUD sa low-Spirit,
+  cooldown i charging ultimate stanjem; nema fatal browser errora.
+
 ## Van trenutnog scopea
 
 - Durability i repair.
