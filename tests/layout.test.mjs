@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { SCENES } from "../data/sceneNetwork.js";
-import { collidesWithObstacle } from "../systems/collision.js";
+import { collidesWithObstacle, getSolidRects } from "../systems/collision.js";
 import { getHoveredInteractionTarget } from "../systems/story.js";
 import { createArena } from "../world/arena.js";
 
@@ -221,6 +221,13 @@ function hasPathReachableInteractionPoint(arena, target) {
   return false;
 }
 
+function arenaWithOnlyObstacle(arena, obstacle) {
+  return {
+    ...arena,
+    obstacles: [obstacle],
+  };
+}
+
 test("scene interactables always expose at least one reachable interaction point", () => {
   const failures = [];
 
@@ -235,6 +242,82 @@ test("scene interactables always expose at least one reachable interaction point
   }
 
   assert.deepEqual(failures, []);
+});
+
+test("large prop collision footprints leave readable empty corners open", () => {
+  const homestead = createArena({
+    ...SCENES.ayla_homestead,
+    worldFlags: { heartwood_restored: true },
+  });
+  const cottage = homestead.obstacles.find((obstacle) => obstacle.type === "cottage");
+  const well = homestead.obstacles.find((obstacle) => obstacle.type === "well");
+  const rock = homestead.obstacles.find((obstacle) => obstacle.type === "rock");
+  const chapel = createArena({
+    ...SCENES.chapel_of_tides,
+    worldFlags: { chapel_of_tides_open: true },
+  });
+  const ruin = chapel.obstacles.find((obstacle) => obstacle.type === "ruin");
+
+  assert.ok(cottage);
+  assert.ok(well);
+  assert.ok(rock);
+  assert.ok(ruin);
+
+  for (const obstacle of [cottage, well, rock, ruin]) {
+    assert.equal(getSolidRects(obstacle).length > 1, true);
+  }
+
+  const cottageOnly = arenaWithOnlyObstacle(homestead, cottage);
+  assert.equal(
+    collidesWithObstacle(cottage.anchorX, cottage.anchorY - 22, PLAYER_RADIUS, cottageOnly),
+    true
+  );
+  assert.equal(
+    collidesWithObstacle(cottage.x + 16, cottage.anchorY - 22, PLAYER_RADIUS, cottageOnly),
+    false
+  );
+  assert.equal(
+    collidesWithObstacle(cottage.x + cottage.w - 16, cottage.anchorY - 22, PLAYER_RADIUS, cottageOnly),
+    false
+  );
+
+  const wellOnly = arenaWithOnlyObstacle(homestead, well);
+  assert.equal(
+    collidesWithObstacle(well.anchorX, well.anchorY - 14, PLAYER_RADIUS, wellOnly),
+    true
+  );
+  assert.equal(collidesWithObstacle(well.x + 10, well.y + 10, PLAYER_RADIUS, wellOnly), false);
+  assert.equal(
+    collidesWithObstacle(well.x + well.w - 10, well.y + 10, PLAYER_RADIUS, wellOnly),
+    false
+  );
+
+  const ruinOnly = arenaWithOnlyObstacle(chapel, ruin);
+  assert.equal(
+    collidesWithObstacle(ruin.anchorX, ruin.anchorY - 36, PLAYER_RADIUS, ruinOnly),
+    true
+  );
+  assert.equal(collidesWithObstacle(ruin.x + 10, ruin.y + 18, PLAYER_RADIUS, ruinOnly), false);
+  assert.equal(
+    collidesWithObstacle(ruin.x + ruin.w - 10, ruin.y + 18, PLAYER_RADIUS, ruinOnly),
+    false
+  );
+  assert.equal(
+    collidesWithObstacle(ruin.x + 10, ruin.anchorY - 18, PLAYER_RADIUS, ruinOnly),
+    false
+  );
+  assert.equal(
+    collidesWithObstacle(ruin.x + ruin.w - 10, ruin.anchorY - 18, PLAYER_RADIUS, ruinOnly),
+    false
+  );
+
+  const rockOnly = arenaWithOnlyObstacle(homestead, rock);
+  assert.equal(
+    collidesWithObstacle(rock.anchorX, rock.anchorY - 18, PLAYER_RADIUS, rockOnly),
+    true
+  );
+  assert.equal(collidesWithObstacle(rock.x + 6, rock.y + 6, 8, rockOnly), false);
+  assert.equal(collidesWithObstacle(rock.x + rock.w - 6, rock.y + 6, 8, rockOnly), false);
 });
 
 test("scene interactables can be path reached from a scene entry", () => {

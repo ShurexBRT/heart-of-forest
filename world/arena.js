@@ -85,17 +85,9 @@ function clearOverlayRect(tiles, x, y, w, h) {
 }
 
 function createObstacle(type, x, y, w, h, solid, extra = {}) {
-  const fallbackSolid =
-    solid && solid !== false
-      ? solid
-      : {
-          x,
-          y,
-          w,
-          h,
-        };
-  const anchorX = extra.anchorX ?? fallbackSolid.x + fallbackSolid.w / 2;
-  const anchorY = extra.anchorY ?? fallbackSolid.y + fallbackSolid.h;
+  const anchorSolid = getSolidBounds(solid) || { x, y, w, h };
+  const anchorX = extra.anchorX ?? anchorSolid.x + anchorSolid.w / 2;
+  const anchorY = extra.anchorY ?? anchorSolid.y + anchorSolid.h;
 
   return {
     type,
@@ -109,6 +101,48 @@ function createObstacle(type, x, y, w, h, solid, extra = {}) {
     sortY: extra.sortY ?? anchorY,
     ...extra,
   };
+}
+
+function getSolidBounds(solid) {
+  if (!solid || solid === false) return null;
+  if (!Array.isArray(solid)) return solid;
+  if (solid.length === 0) return null;
+
+  const minX = Math.min(...solid.map((rect) => rect.x));
+  const minY = Math.min(...solid.map((rect) => rect.y));
+  const maxX = Math.max(...solid.map((rect) => rect.x + rect.w));
+  const maxY = Math.max(...solid.map((rect) => rect.y + rect.h));
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+}
+
+function rockFootprint(x, y, w, h) {
+  return [
+    { x: x + w * 0.34, y: y + h * 0.22, w: w * 0.32, h: h * 0.22 },
+    { x: x + w * 0.24, y: y + h * 0.42, w: w * 0.52, h: h * 0.26 },
+    { x: x + w * 0.33, y: y + h * 0.62, w: w * 0.34, h: h * 0.16 },
+  ];
+}
+
+function ruinFootprint(x, y, w, h) {
+  return [
+    { x: x + w * 0.32, y: y + h * 0.22, w: w * 0.36, h: h * 0.2 },
+    { x: x + w * 0.18, y: y + h * 0.38, w: w * 0.64, h: h * 0.26 },
+    { x: x + w * 0.12, y: y + h * 0.62, w: w * 0.76, h: h * 0.18 },
+  ];
+}
+
+function cottageFootprint(x, y) {
+  return [
+    { x: x + 50, y: y + 112, w: 150, h: 42 },
+    { x: x + 84, y: y + 150, w: 80, h: 20 },
+  ];
+}
+
+function wellFootprint(x, y) {
+  return [
+    { x: x + 25, y: y + 30, w: 32, h: 16 },
+    { x: x + 19, y: y + 42, w: 44, h: 22 },
+  ];
 }
 
 function tree(x, y, size, style = "forest") {
@@ -135,12 +169,7 @@ function rock(x, y, w, h, style = "stone") {
     y,
     w,
     h,
-    {
-      x: x + 6,
-      y: y + 8,
-      w: w - 12,
-      h: h - 12,
-    },
+    rockFootprint(x, y, w, h),
     { style }
   );
 }
@@ -181,12 +210,7 @@ function ruin(x, y, w, h, style = "ruin") {
     y,
     w,
     h,
-    {
-      x: x + 10,
-      y: y + 18,
-      w: w - 20,
-      h: h - 24,
-    },
+    ruinFootprint(x, y, w, h),
     { style }
   );
 }
@@ -198,12 +222,7 @@ function cottage(x, y) {
     y,
     250,
     200,
-    {
-      x: x + 30,
-      y: y + 110,
-      w: 188,
-      h: 58,
-    },
+    cottageFootprint(x, y),
     { anchorX: x + 124, anchorY: y + 170 }
   );
 }
@@ -215,12 +234,7 @@ function well(x, y) {
     y,
     82,
     86,
-    {
-      x: x + 12,
-      y: y + 26,
-      w: 56,
-      h: 38,
-    },
+    wellFootprint(x, y),
     { anchorX: x + 41, anchorY: y + 64 }
   );
 }

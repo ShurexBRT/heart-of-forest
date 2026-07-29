@@ -1038,6 +1038,23 @@ beskonacnu kupovinu talent poena.
 - Segment ne menja koliziju, AI, quest state, NPC pozicije, hitboxe, combat
   vrednosti ili item pickup logiku.
 
+### Faza 8P
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: smanjiti frustraciju oko objekata koji blokiraju prazan prostor i ne
+  dozvoljavaju Ayla-i da im pridje sa strana koje vizuelno deluju otvoreno.
+- Collision sistem sada podrzava vise solid rect-ova po jednom objektu kroz
+  `getSolidRects`, umesto da svaki prop mora da ima jedan veliki box.
+- Kamenje, ruine, cottage i well dobijaju kompozitne footprint-e koji cuvaju
+  solidnu bazu objekta, ali oslobadjaju prazne uglove i bocne pristupne lane-ove.
+- Collision debug overlay sada crta sve rect-ove iz kompozitnog footprint-a, pa
+  audit vise ne sakriva problem iza jednog laznog debug pravougaonika.
+- Dodat je layout regression test koji proverava da veliki propovi imaju vise
+  footprint delova, da centar ostaje solid, a prazni uglovi ostaju prohodni.
+- Segment ne menja player radius, combat dodge, projectile collision pravila,
+  NPC pozicije, quest objective pozicije ili interakcione radiuse.
+
 ## Van trenutnog scopea
 
 - Durability i repair.

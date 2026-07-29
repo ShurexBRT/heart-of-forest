@@ -22,6 +22,7 @@ import {
 import { drawTerrainTile } from "./terrainAssets.js";
 import { drawWorldMaterialRect } from "./worldMaterialAssets.js";
 import { drawHud } from "../ui/hud.js";
+import { getSolidRects } from "../systems/collision.js";
 
 let backgroundCache = null;
 let backgroundCacheKey = "";
@@ -1637,8 +1638,8 @@ function drawEchoBoard(ctx, x, y, item, state) {
 
 function drawCollisionDebug(ctx, state, origin) {
   const solids = [
-    ...(state.arena.obstacles || []).map((entry) => entry.solid).filter(Boolean),
-    ...(state.arena.npcs || []).map((entry) => entry.solid).filter(Boolean),
+    ...(state.arena.obstacles || []).flatMap((entry) => getSolidRects(entry)),
+    ...(state.arena.npcs || []).flatMap((entry) => getSolidRects(entry)),
   ];
 
   ctx.save();

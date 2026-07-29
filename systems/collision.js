@@ -4,7 +4,14 @@ const COLLISION_EPSILON = 0.01;
 
 export function getSolidRect(obstacle) {
   if (obstacle.solid === false) return null;
+  if (Array.isArray(obstacle.solid)) return getRectBounds(obstacle.solid);
   return obstacle.solid || obstacle;
+}
+
+export function getSolidRects(obstacle) {
+  if (!obstacle || obstacle.solid === false) return [];
+  if (Array.isArray(obstacle.solid)) return obstacle.solid;
+  return [obstacle.solid || obstacle];
 }
 
 export function moveCircleWithCollisions(entity, dx, dy, arena) {
@@ -33,8 +40,7 @@ export function moveCircleWithCollisions(entity, dx, dy, arena) {
 export function collidesWithObstacle(x, y, radius, arena) {
   return arena.obstacles.some((obstacle) => {
     if (shouldIgnoreObstacleAt(x, y, obstacle, arena)) return false;
-    const solid = getSolidRect(obstacle);
-    return solid ? circleRectOverlap(x, y, radius, solid) : false;
+    return getSolidRects(obstacle).some((solid) => circleRectOverlap(x, y, radius, solid));
   });
 }
 
@@ -44,8 +50,9 @@ function resolveObstacleOverlaps(entity, arena) {
 
     for (const obstacle of arena.obstacles) {
       if (shouldIgnoreObstacleAt(entity.x, entity.y, obstacle, arena)) continue;
-      const solid = getSolidRect(obstacle);
-      adjusted = (solid ? resolveCircleRectOverlap(entity, solid) : false) || adjusted;
+      for (const solid of getSolidRects(obstacle)) {
+        adjusted = resolveCircleRectOverlap(entity, solid) || adjusted;
+      }
     }
 
     if (!adjusted) break;
@@ -95,6 +102,15 @@ function resolveCircleRectOverlap(entity, rect) {
 
   entity.y = rect.y + rect.h + entity.radius + COLLISION_EPSILON;
   return true;
+}
+
+function getRectBounds(rects) {
+  if (!Array.isArray(rects) || rects.length === 0) return null;
+  const minX = Math.min(...rects.map((rect) => rect.x));
+  const minY = Math.min(...rects.map((rect) => rect.y));
+  const maxX = Math.max(...rects.map((rect) => rect.x + rect.w));
+  const maxY = Math.max(...rects.map((rect) => rect.y + rect.h));
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
 }
 
 function clampToBounds(entity, arena) {
