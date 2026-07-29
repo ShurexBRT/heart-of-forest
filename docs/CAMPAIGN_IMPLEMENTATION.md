@@ -1290,6 +1290,27 @@ beskonacnu kupovinu talent poena.
 - Segment ne menja combat brojeve, input mapiranje, cooldown-e, inventory
   logiku, quick-slot podatke, talent unlock uslove ili velicinu HUD panela.
 
+### Faza 8AA
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: pribliziti sve glavne prozore i prikaze istom carved forest UI jeziku
+  koji je uveden na donjem HUD-u.
+- Dodat je `ui/forestChrome.js` kao zajednicki canvas UI chrome modul za
+  forest panel, subpanel, dugme, close button, pill i frame tretman.
+- `ui/hud.js` sada koristi zajednicki forest chrome za Field Journal, Ayla
+  character/inventory/talents/services overlay, World Map, dialogue box,
+  tooltipove, interaction/exit promptove, Training Grove panel i postojece
+  manje HUD backdrop-e.
+- `ui/questPanel.js` je prebacen na isti outer frame, topic listu, content
+  panel, status pill i action button stil, bez promene quest logike.
+- `ui/startScreen.js` sada koristi isti forest chrome za title, options,
+  pause i game-over frame, panel blokove, guide kartice, dugmad, option row
+  elemente i state pill kontrole.
+- Segment ne menja hotkeye, hover targete, quest acceptance/turn-in flow,
+  save/load ponasanje, menu selekcije, input routing, world map node podatke
+  ili gameplay brojeve.
+
 ## Van trenutnog scopea
 
 - Durability i repair.

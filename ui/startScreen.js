@@ -5,6 +5,13 @@ import {
   getActorSprite,
   getEnemySprite,
 } from "../rendering/pixelAssets.js";
+import {
+  drawForestButton,
+  drawForestFrame,
+  drawForestPanel,
+  drawForestPill,
+  drawForestSubpanel,
+} from "./forestChrome.js";
 
 const TEXT_MEASURE_CANVAS =
   typeof document !== "undefined" ? document.createElement("canvas") : null;
@@ -792,13 +799,10 @@ function drawGuidePanel(ctx, x, y, w, h, theme) {
     const cardH = 30 + lines.length * 14;
     if (cursorY + cardH > y + h - 10) break;
 
-    ctx.fillStyle = "rgba(0, 0, 0, 0.42)";
-    ctx.fillRect(x + 12, cursorY, cardW, cardH);
-    ctx.fillStyle = "#131b22";
-    ctx.fillRect(x + 14, cursorY + 2, cardW - 4, cardH - 4);
-    ctx.strokeStyle = theme.buttonBorder;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x + 14, cursorY + 2, cardW - 4, cardH - 4);
+    drawForestSubpanel(ctx, x + 12, cursorY, cardW, cardH, {
+      accent: theme.buttonBorder,
+      fill: "#131b22",
+    });
 
     ctx.fillStyle = theme.accentSoft;
     ctx.font = "700 12px Segoe UI, Arial";
@@ -816,18 +820,13 @@ function drawGuidePanel(ctx, x, y, w, h, theme) {
 function drawButton(ctx, bounds, label, options) {
   const theme = options.theme;
   const fill = options.disabled ? "rgba(12, 16, 20, 0.74)" : theme.button;
-  const inner = options.selected ? theme.buttonSelected : theme.innerTint;
-  const border = options.selected ? options.accent : theme.buttonBorder;
-
-  ctx.fillStyle = "rgba(0, 0, 0, 0.42)";
-  ctx.fillRect(bounds.x, bounds.y, bounds.w, bounds.h);
-  ctx.fillStyle = fill;
-  ctx.fillRect(bounds.x + 2, bounds.y + 2, bounds.w - 4, bounds.h - 4);
-  ctx.fillStyle = inner;
-  ctx.fillRect(bounds.x + 6, bounds.y + 6, bounds.w - 12, bounds.h - 12);
-  ctx.strokeStyle = border;
-  ctx.lineWidth = options.selected ? 2 : 1;
-  ctx.strokeRect(bounds.x + 6, bounds.y + 6, bounds.w - 12, bounds.h - 12);
+  drawForestButton(ctx, bounds, {
+    selected: options.selected,
+    disabled: options.disabled,
+    accent: options.selected ? options.accent : theme.buttonBorder,
+    fill,
+    selectedFill: theme.buttonSelected,
+  });
 
   ctx.fillStyle = options.disabled ? "#6e797e" : "#f6ead0";
   ctx.font = "700 22px Segoe UI, Arial";
@@ -864,13 +863,12 @@ function drawOptionRow(ctx, entry, settings, frontend = null, theme) {
   const descriptionY = bounds.y + 44;
   const controlX = bounds.x + bounds.w - metrics.controlWidth - 18;
   const controlY = metrics.stacked ? bounds.y + bounds.h - 32 : Math.round(bounds.y + bounds.h / 2 - 12);
-  ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-  ctx.fillRect(bounds.x, bounds.y, bounds.w, bounds.h);
-  ctx.fillStyle = entry.selected ? "rgba(34, 50, 58, 0.92)" : "#111820";
-  ctx.fillRect(bounds.x + 3, bounds.y + 3, bounds.w - 6, bounds.h - 6);
-  ctx.strokeStyle = entry.selected ? theme.accent : "#4b5966";
-  ctx.lineWidth = entry.selected ? 2 : 1;
-  ctx.strokeRect(bounds.x + 3, bounds.y + 3, bounds.w - 6, bounds.h - 6);
+  drawForestButton(ctx, bounds, {
+    selected: entry.selected,
+    accent: entry.selected ? theme.accent : "#4b5966",
+    fill: entry.selected ? "rgba(34, 50, 58, 0.92)" : "#111820",
+    selectedFill: "rgba(31, 48, 38, 0.92)",
+  });
 
   ctx.fillStyle = "#f3ead2";
   ctx.font = bounds.w < 460 ? "700 15px Segoe UI, Arial" : "700 17px Segoe UI, Arial";
@@ -950,18 +948,9 @@ function drawSlider(ctx, x, y, width, value, selected, theme) {
 }
 
 function drawStatePill(ctx, x, y, w, h, label, color) {
-  ctx.fillStyle = "rgba(0, 0, 0, 0.58)";
-  ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = "#131a20";
-  ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
-  ctx.fillStyle = "#f6ead0";
-  ctx.font = "700 11px Segoe UI, Arial";
-  ctx.textAlign = "center";
-  ctx.fillText(label, x + w / 2, y + 16);
-  ctx.textAlign = "left";
+  drawForestPill(ctx, x, y, w, h, label, color, {
+    font: "700 11px Segoe UI, Arial",
+  });
 }
 
 function getOptionsSplitLayout(layout) {
@@ -1064,28 +1053,18 @@ function drawRootSwirls(ctx, x, y, color, alpha) {
 
 function drawMenuFrame(ctx, layout, theme) {
   const { panelX: x, panelY: y, panelW: w, panelH: h } = layout;
-  ctx.fillStyle = theme.panelTint;
-  ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = theme.innerTint;
-  ctx.fillRect(x + 6, y + 6, w - 12, h - 12);
+  drawForestPanel(ctx, x, y, w, h, {
+    accent: theme.accentSoft,
+    alpha: 0.9,
+    inner: theme.innerTint,
+  });
 
   const topGradient = ctx.createLinearGradient(x, y, x, y + h);
   topGradient.addColorStop(0, "rgba(255,255,255,0.04)");
   topGradient.addColorStop(1, "rgba(255,255,255,0)");
   ctx.fillStyle = topGradient;
   ctx.fillRect(x + 10, y + 10, w - 20, Math.min(120, h * 0.28));
-
-  ctx.strokeStyle = theme.accentSoft;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
-  ctx.strokeStyle = "#33443c";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x + 14, y + 14, w - 28, h - 28);
-
-  drawCornerBracket(ctx, x + 14, y + 14, theme.accentSoft, "tl");
-  drawCornerBracket(ctx, x + w - 14, y + 14, theme.accentSoft, "tr");
-  drawCornerBracket(ctx, x + 14, y + h - 14, theme.accentSoft, "bl");
-  drawCornerBracket(ctx, x + w - 14, y + h - 14, theme.accentSoft, "br");
+  drawForestFrame(ctx, x, y, w, h, theme.accentSoft, { lineWidth: 2 });
 }
 
 function drawCornerBracket(ctx, x, y, color, corner) {
@@ -1116,13 +1095,10 @@ function drawCornerBracket(ctx, x, y, color, corner) {
 }
 
 function drawPanelBlock(ctx, x, y, w, h, theme, title = "") {
-  ctx.fillStyle = "rgba(0, 0, 0, 0.38)";
-  ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = "#111820";
-  ctx.fillRect(x + 3, y + 3, w - 6, h - 6);
-  ctx.strokeStyle = theme.buttonBorder;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
+  drawForestSubpanel(ctx, x, y, w, h, {
+    accent: theme.buttonBorder,
+    fill: "#111820",
+  });
 
   if (title) {
     ctx.fillStyle = theme.accentSoft;

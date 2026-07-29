@@ -1,5 +1,12 @@
 import { ITEM_DEFS } from "../data/gameData.js";
 import { getQuestPanelView } from "../systems/story.js";
+import {
+  drawForestButton,
+  drawForestCloseButton,
+  drawForestPanel,
+  drawForestPill,
+  drawForestSubpanel,
+} from "./forestChrome.js";
 
 const TEXT_MEASURE_CANVAS =
   typeof document !== "undefined" ? document.createElement("canvas") : null;
@@ -14,17 +21,10 @@ export function renderQuestPanel(ctx, state) {
   ctx.fillStyle = "rgba(4, 6, 8, 0.72)";
   ctx.fillRect(0, 0, state.viewport.width, state.viewport.height);
 
-  ctx.fillStyle = "rgba(12, 17, 21, 0.96)";
-  ctx.fillRect(panel.x, panel.y, panel.w, panel.h);
-  ctx.fillStyle = "#10161d";
-  ctx.fillRect(panel.x + 6, panel.y + 6, panel.w - 12, panel.h - 12);
-
-  ctx.strokeStyle = "#d7c28b";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(panel.x + 2, panel.y + 2, panel.w - 4, panel.h - 4);
-  ctx.strokeStyle = "#33443c";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(panel.x + 14, panel.y + 14, panel.w - 28, panel.h - 28);
+  drawForestPanel(ctx, panel.x, panel.y, panel.w, panel.h, {
+    accent: "#d7c28b",
+    alpha: 0.94,
+  });
 
   ctx.fillStyle = "#f5ead4";
   ctx.font = "700 16px Georgia, serif";
@@ -166,12 +166,10 @@ function getQuestPanelGeometry(state) {
 
 function drawSidebar(ctx, geometry) {
   const { layout, view, topics } = geometry;
-  ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
-  ctx.fillRect(layout.sidebarX, layout.sidebarY, layout.sidebarW, layout.sidebarH);
-  ctx.fillStyle = "#111820";
-  ctx.fillRect(layout.sidebarX + 4, layout.sidebarY + 4, layout.sidebarW - 8, layout.sidebarH - 8);
-  ctx.strokeStyle = "#384855";
-  ctx.strokeRect(layout.sidebarX + 2, layout.sidebarY + 2, layout.sidebarW - 4, layout.sidebarH - 4);
+  drawForestSubpanel(ctx, layout.sidebarX, layout.sidebarY, layout.sidebarW, layout.sidebarH, {
+    accent: "#536b55",
+    fill: "rgba(8, 16, 13, 0.72)",
+  });
 
   ctx.fillStyle = "#d8e7c8";
   ctx.font = "700 13px Segoe UI, Arial";
@@ -180,11 +178,11 @@ function drawSidebar(ctx, geometry) {
   topics.forEach((topic) => {
     const selected = topic.index === view.selectedTopicIndex;
     const focused = selected && view.focus === "topics";
-    ctx.fillStyle = selected ? "rgba(123, 185, 255, 0.18)" : "rgba(0, 0, 0, 0.26)";
-    ctx.fillRect(topic.rect.x, topic.rect.y, topic.rect.w, topic.rect.h);
-    ctx.strokeStyle = focused ? "#bfe5ff" : selected ? "#79b8ff" : "#263142";
-    ctx.lineWidth = focused ? 2 : 1;
-    ctx.strokeRect(topic.rect.x, topic.rect.y, topic.rect.w, topic.rect.h);
+    drawForestSubpanel(ctx, topic.rect.x, topic.rect.y, topic.rect.w, topic.rect.h, {
+      selected: focused || selected,
+      accent: focused ? "#f1d786" : selected ? "#8fdc8b" : "#42584b",
+      fill: selected ? "rgba(48, 72, 46, 0.54)" : "rgba(0, 0, 0, 0.26)",
+    });
     ctx.fillStyle = getTopicStatusColor(topic.status);
     ctx.fillRect(topic.rect.x + 10, topic.rect.y + 14, 9, 9);
     ctx.fillStyle = "#fff6d8";
@@ -203,12 +201,10 @@ function drawSidebar(ctx, geometry) {
 function drawContent(ctx, geometry) {
   const { panel, layout, view, buttons } = geometry;
   const contentLimitY = buttons.length > 0 ? buttons[0].rect.y - 18 : panel.y + panel.h - 26;
-  ctx.fillStyle = "rgba(0, 0, 0, 0.26)";
-  ctx.fillRect(layout.contentX, layout.contentY, layout.contentW, layout.contentH);
-  ctx.fillStyle = "#10171e";
-  ctx.fillRect(layout.contentX + 4, layout.contentY + 4, layout.contentW - 8, layout.contentH - 8);
-  ctx.strokeStyle = "#384855";
-  ctx.strokeRect(layout.contentX + 2, layout.contentY + 2, layout.contentW - 4, layout.contentH - 4);
+  drawForestSubpanel(ctx, layout.contentX, layout.contentY, layout.contentW, layout.contentH, {
+    accent: "#536b55",
+    fill: "rgba(8, 16, 13, 0.64)",
+  });
 
   drawStatusTag(ctx, layout.contentX + 18, layout.contentY + 18, view.statusLabel, getModeColor(view.mode));
 
@@ -292,13 +288,11 @@ function drawContent(ctx, geometry) {
   buttons.forEach((button) => {
     const selected = button.index === view.selectedActionIndex;
     const focused = selected && view.focus === "actions";
-    ctx.fillStyle = "rgba(0, 0, 0, 0.42)";
-    ctx.fillRect(button.rect.x, button.rect.y, button.rect.w, button.rect.h);
-    ctx.fillStyle = focused ? "#22342d" : "#121920";
-    ctx.fillRect(button.rect.x + 2, button.rect.y + 2, button.rect.w - 4, button.rect.h - 4);
-    ctx.strokeStyle = focused ? button.accent : "#334551";
-    ctx.lineWidth = focused ? 2 : 1;
-    ctx.strokeRect(button.rect.x + 2, button.rect.y + 2, button.rect.w - 4, button.rect.h - 4);
+    drawForestButton(ctx, button.rect, {
+      selected: focused,
+      accent: focused ? button.accent : "#536b55",
+      fill: focused ? "#22342d" : "#121920",
+    });
     ctx.fillStyle = "#fff6dd";
     ctx.font = "700 13px Segoe UI, Arial";
     ctx.textAlign = "center";
@@ -309,12 +303,15 @@ function drawContent(ctx, geometry) {
   if (!layout.compact) {
     ctx.fillStyle = "#9db09a";
     ctx.font = "11px Segoe UI, Arial";
+    const hintWidth = buttons.length
+      ? Math.max(220, buttons[0].rect.x - (layout.contentX + 18) - 16)
+      : layout.contentW - 36;
     drawWrappedText(
       ctx,
       "Use Arrow Keys to move through topics, Left/Right or Tab to switch focus, and Enter to confirm.",
       layout.contentX + 18,
       panel.y + panel.h - 26,
-      layout.contentW - 160,
+      hintWidth,
       14,
       2
     );
@@ -324,16 +321,9 @@ function drawContent(ctx, geometry) {
 function drawStatusTag(ctx, x, y, label, color) {
   const measure = getMeasureContext("700 11px Segoe UI, Arial");
   const width = Math.ceil(measure.measureText(label).width) + 22;
-  ctx.fillStyle = "rgba(0, 0, 0, 0.46)";
-  ctx.fillRect(x, y, width, 24);
-  ctx.fillStyle = "#131a20";
-  ctx.fillRect(x + 2, y + 2, width - 4, 20);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x + 2, y + 2, width - 4, 20);
-  ctx.fillStyle = "#f6ead0";
-  ctx.font = "700 11px Segoe UI, Arial";
-  ctx.fillText(label, x + 11, y + 15);
+  drawForestPill(ctx, x, y, width, 24, label, color, {
+    font: "700 11px Segoe UI, Arial",
+  });
 }
 
 function formatRewardLines(rewards) {
@@ -496,19 +486,7 @@ function getCloseButton(geometry) {
 function drawCloseButton(ctx, button, hoverTarget) {
   const hovered = hoverTarget?.action === "close-overlay";
   const { x, y, w, h } = button.rect;
-  ctx.fillStyle = hovered ? "#7b2f35" : "#252d35";
-  ctx.fillRect(x, y, w, h);
-  ctx.strokeStyle = hovered ? "#ffb0a9" : "#82909a";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
-  ctx.strokeStyle = hovered ? "#fff0ed" : "#dce4e7";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(x + 9, y + 9);
-  ctx.lineTo(x + w - 9, y + h - 9);
-  ctx.moveTo(x + w - 9, y + 9);
-  ctx.lineTo(x + 9, y + h - 9);
-  ctx.stroke();
+  drawForestCloseButton(ctx, { x, y, w, h }, hovered, { accent: "#d7c28b" });
 }
 
 function pointInRect(x, y, rect) {

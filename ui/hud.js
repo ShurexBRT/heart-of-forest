@@ -32,6 +32,13 @@ import { drawTalentIcon } from "../rendering/talentIconAssets.js";
 import { getActiveService, getServiceEntries, getStashUiEntries } from "../systems/services.js";
 import { NPC_DEFS } from "../data/storyData.js";
 import { getClockView } from "../systems/clock.js";
+import {
+  drawForestButton,
+  drawForestCloseButton,
+  drawForestFrame,
+  drawForestPanel,
+  drawForestSubpanel,
+} from "./forestChrome.js";
 import { getQuestPanelHoverTarget, renderQuestPanel } from "./questPanel.js";
 import { getTrainingView } from "../systems/training.js";
 
@@ -351,31 +358,11 @@ function drawCombatVignette(ctx, state) {
 }
 
 function drawHudBackdrop(ctx, x, y, width, height, accent, alpha = 0.88) {
-  ctx.save();
-  ctx.fillStyle = "rgba(0, 0, 0, 0.38)";
-  ctx.fillRect(x + 3, y + 4, width, height);
-  ctx.fillStyle = `rgba(5, 10, 10, ${alpha})`;
-  ctx.fillRect(x, y, width, height);
-  ctx.fillStyle = "rgba(12, 24, 20, 0.96)";
-  ctx.fillRect(x + 4, y + 4, width - 8, height - 8);
-  ctx.fillStyle = "rgba(22, 38, 29, 0.78)";
-  ctx.fillRect(x + 8, y + 8, width - 16, Math.min(34, height - 16));
-  ctx.fillStyle = "rgba(5, 8, 7, 0.42)";
-  ctx.fillRect(x + 8, y + height - 20, width - 16, 12);
-  ctx.fillStyle = "rgba(156, 202, 120, 0.06)";
-  for (let stripeX = x + 18; stripeX < x + width - 18; stripeX += 34) {
-    ctx.fillRect(stripeX, y + 7, 10, height - 14);
-  }
-  ctx.fillStyle = "rgba(255, 239, 178, 0.1)";
-  ctx.fillRect(x + 16, y + 9, width - 32, 1);
-  ctx.fillStyle = "rgba(0, 0, 0, 0.22)";
-  ctx.fillRect(x + 16, y + height - 10, width - 32, 2);
-  drawPanelChrome(ctx, x, y, width, height, accent);
-  pixelRect(ctx, x + 28, y + 10, width - 56, 1, "rgba(236, 216, 142, 0.18)");
-  pixelRect(ctx, x + 28, y + height - 12, width - 56, 1, "rgba(55, 91, 47, 0.36)");
-  drawHudLeafCorner(ctx, x + 13, y + 12, accent, 1);
-  drawHudLeafCorner(ctx, x + width - 13, y + 12, accent, -1);
-  ctx.restore();
+  drawForestPanel(ctx, x, y, width, height, {
+    accent,
+    alpha,
+    inner: "#101914",
+  });
 }
 
 function drawOrb(ctx, cx, cy, radius, ratio, dark, light, label, value, maximum) {
@@ -1115,12 +1102,7 @@ function drawTrainingPanel(ctx, state) {
   const height = 86;
   const timeRatio = Math.max(0, Math.min(1, view.timeLeft / 20));
 
-  ctx.fillStyle = "rgba(0,0,0,0.58)";
-  ctx.fillRect(x, y, width, height);
-  ctx.fillStyle = "#111920";
-  ctx.fillRect(x + 4, y + 4, width - 8, height - 8);
-  ctx.strokeStyle = "#bfa765";
-  ctx.strokeRect(x, y, width, height);
+  drawHudBackdrop(ctx, x, y, width, height, "#bfa765", 0.76);
   ctx.fillStyle = "#fff0bd";
   ctx.font = "700 11px Segoe UI, Arial";
   const modeLabel =
@@ -1183,10 +1165,7 @@ function drawQuestLogOverlay(ctx, state) {
   const frame = getQuestLogFrame(state);
   const { x, y, width, height } = frame;
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.82)";
-  ctx.fillRect(x, y, width, height);
-  ctx.fillStyle = "#10161d";
-  ctx.fillRect(x + 6, y + 6, width - 12, height - 12);
+  drawHudBackdrop(ctx, x, y, width, height, "#7ca57b", 0.92);
   ctx.fillStyle = "#f6fff1";
   ctx.font = "700 22px Segoe UI, Arial";
   ctx.fillText(state.progression.campaign?.journalUnlocked ? "Field Journal" : "Field Notes", x + 18, y + 28);
@@ -1195,7 +1174,6 @@ function drawQuestLogOverlay(ctx, state) {
   ctx.textAlign = "right";
   ctx.fillText("L / Esc close  |  Up / Down select", x + width - 58, y + 28);
   ctx.textAlign = "left";
-  drawPanelChrome(ctx, x, y, width, height, "#7ca57b");
   drawOverlayCloseButton(ctx, getOverlayCloseButton(frame), state.ui.hoverTarget);
 
   if (quests.length === 0) {
@@ -1205,10 +1183,10 @@ function drawQuestLogOverlay(ctx, state) {
     return;
   }
 
-  ctx.fillStyle = "rgba(0,0,0,0.3)";
-  ctx.fillRect(listRect.x, listRect.y, listRect.width, listRect.height);
-  ctx.strokeStyle = "#34433d";
-  ctx.strokeRect(listRect.x, listRect.y, listRect.width, listRect.height);
+  drawForestSubpanel(ctx, listRect.x, listRect.y, listRect.width, listRect.height, {
+    accent: "#536b55",
+    fill: "rgba(8, 16, 13, 0.72)",
+  });
 
   panel.rows.forEach((row) => {
     const selected = row.index === state.ui.selectedQuestIndex;
@@ -1231,10 +1209,10 @@ function drawQuestLogOverlay(ctx, state) {
     );
   });
 
-  ctx.fillStyle = "rgba(0,0,0,0.24)";
-  ctx.fillRect(detailRect.x, detailRect.y, detailRect.width, detailRect.height);
-  ctx.strokeStyle = "#34433d";
-  ctx.strokeRect(detailRect.x, detailRect.y, detailRect.width, detailRect.height);
+  drawForestSubpanel(ctx, detailRect.x, detailRect.y, detailRect.width, detailRect.height, {
+    accent: "#536b55",
+    fill: "rgba(8, 16, 13, 0.64)",
+  });
 
   if (!selectedQuest) return;
   const bodyX = detailRect.x + 18;
@@ -1328,10 +1306,11 @@ function drawJournalRegionOverview(ctx, state, panel, startY) {
   const discovered = region.locations.filter((entry) => entry.discovered).length;
   const recipe = ITEM_DEFS[region.counterRecipeId];
 
-  ctx.fillStyle = "rgba(18,31,35,0.84)";
-  ctx.fillRect(x, startY, width, height);
-  ctx.strokeStyle = region.status.color;
-  ctx.strokeRect(x, startY, width, height);
+  drawForestSubpanel(ctx, x, startY, width, height, {
+    accent: region.status.color,
+    fill: "rgba(18,31,35,0.84)",
+    footerAccent: region.status.color,
+  });
   ctx.fillStyle = "#f5ead4";
   ctx.font = "700 12px Segoe UI, Arial";
   ctx.fillText(
@@ -1390,10 +1369,11 @@ function drawJournalBestiary(ctx, state, panel, startY) {
     const cardX = compact ? x : x + index * (cardWidth + gap);
     const cardY = compact ? startY + 12 + index * 56 : startY + 12;
     const cardHeight = compact ? 52 : 112;
-    ctx.fillStyle = entry.discovered ? "rgba(48,77,57,0.58)" : "rgba(30,35,38,0.7)";
-    ctx.fillRect(cardX, cardY, cardWidth, cardHeight);
-    ctx.strokeStyle = entry.mastered ? "#8fd892" : entry.discovered ? "#8fbf9a" : "#4a5555";
-    ctx.strokeRect(cardX, cardY, cardWidth, cardHeight);
+    drawForestSubpanel(ctx, cardX, cardY, cardWidth, cardHeight, {
+      accent: entry.mastered ? "#8fd892" : entry.discovered ? "#8fbf9a" : "#4a5555",
+      fill: entry.discovered ? "rgba(48,77,57,0.58)" : "rgba(30,35,38,0.7)",
+      footerAccent: entry.mastered ? "#8fd892" : null,
+    });
     ctx.fillStyle = entry.discovered ? "#eaf4d9" : "#87938f";
     ctx.font = "700 12px Segoe UI, Arial";
     ctx.fillText(entry.displayName, cardX + 10, cardY + 17);
@@ -1448,10 +1428,7 @@ function drawCharacterOverlay(ctx, state) {
   const helpWidth = Math.min(frame.compact ? 210 : 280, Math.max(180, width * 0.32));
   const helpX = x + width - helpWidth - 56;
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.86)";
-  ctx.fillRect(x, y, width, height);
-  ctx.fillStyle = "#10161d";
-  ctx.fillRect(x + 6, y + 6, width - 12, height - 12);
+  drawHudBackdrop(ctx, x, y, width, height, "#b08a52", 0.93);
   ctx.fillStyle = "#f6ead0";
   ctx.font = frame.compact ? "700 20px Segoe UI, Arial" : "700 24px Segoe UI, Arial";
   ctx.fillText("Ayla", x + 18, y + 30);
@@ -1483,7 +1460,6 @@ function drawCharacterOverlay(ctx, state) {
     drawTalentTab(ctx, state, x, y, width, height, frame.compact);
   }
 
-  drawPanelChrome(ctx, x, y, width, height, "#8a6e49");
   drawOverlayCloseButton(ctx, getOverlayCloseButton(frame), state.ui.hoverTarget);
 }
 
@@ -1507,10 +1483,11 @@ function drawTabs(ctx, state, x, y) {
   tabs.forEach(([id, label], index) => {
     const tx = x + index * (tabW + gap);
     const active = state.ui.activeTab === id;
-    ctx.fillStyle = active ? "#2a3342" : "#171d26";
-    ctx.fillRect(tx, y, tabW, 28);
-    ctx.strokeStyle = active ? "#79b8ff" : "#2d3848";
-    ctx.strokeRect(tx, y, tabW, 28);
+    drawForestButton(ctx, rect(tx, y, tabW, 28), {
+      selected: active,
+      accent: active ? "#d7bb71" : "#64815e",
+      fill: active ? "rgba(42, 51, 36, 0.94)" : "rgba(18, 28, 22, 0.9)",
+    });
     ctx.fillStyle = active ? "#fff3d8" : "#cdd9d4";
     ctx.font = "700 12px Segoe UI, Arial";
     ctx.fillText(label, tx + 16, y + 18);
@@ -1556,10 +1533,11 @@ function drawCharacterTab(ctx, state, x, y, width, height, bonuses) {
 
   panel.equipped.forEach((entry, index) => {
     const selected = index === state.ui.selectedEquipmentIndex;
-    ctx.fillStyle = selected ? "rgba(121, 184, 255, 0.16)" : "rgba(0, 0, 0, 0.32)";
-    ctx.fillRect(slotX, slotY - 16, 220, 34);
-    ctx.strokeStyle = selected ? "#79b8ff" : "#2d3848";
-    ctx.strokeRect(slotX, slotY - 16, 220, 34);
+    drawForestSubpanel(ctx, slotX, slotY - 16, 220, 34, {
+      selected,
+      accent: selected ? "#d7bb71" : "#42584b",
+      fill: selected ? "rgba(48, 72, 46, 0.54)" : "rgba(0, 0, 0, 0.28)",
+    });
     ctx.fillStyle = "#d3dde7";
     ctx.font = "11px Segoe UI, Arial";
     ctx.fillText(entry.slot.toUpperCase(), slotX + 12, slotY + 4);
@@ -1574,16 +1552,16 @@ function drawCharacterTab(ctx, state, x, y, width, height, bonuses) {
   }
 
   panel.loadouts.forEach((loadout) => {
-    ctx.fillStyle = loadout.entry.active
-      ? "rgba(48, 82, 62, 0.48)"
-      : "rgba(0,0,0,0.3)";
-    ctx.fillRect(loadout.rect.x, loadout.rect.y, loadout.rect.width, loadout.rect.height);
-    ctx.strokeStyle = loadout.entry.active
-      ? "#9bd89d"
-      : loadout.unlocked
-        ? "#698d6b"
-        : "#3d4848";
-    ctx.strokeRect(loadout.rect.x, loadout.rect.y, loadout.rect.width, loadout.rect.height);
+    drawForestSubpanel(ctx, loadout.rect.x, loadout.rect.y, loadout.rect.width, loadout.rect.height, {
+      selected: loadout.entry.active,
+      accent: loadout.entry.active
+        ? "#9bd89d"
+        : loadout.unlocked
+          ? "#698d6b"
+          : "#3d4848",
+      fill: loadout.entry.active ? "rgba(48, 82, 62, 0.48)" : "rgba(0,0,0,0.3)",
+      footerAccent: loadout.entry.active ? "#9bd89d" : null,
+    });
     ctx.fillStyle = loadout.unlocked ? "#fff2d5" : "#8d9994";
     ctx.font = "700 12px Segoe UI, Arial";
     ctx.fillText(loadout.label, loadout.rect.x + 10, loadout.rect.y + 17);
@@ -1636,10 +1614,11 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
 
   entries.forEach((entry, index) => {
     const selected = index === state.ui.selectedInventoryIndex;
-    ctx.fillStyle = selected ? "rgba(121, 184, 255, 0.16)" : "rgba(0, 0, 0, 0.26)";
-    ctx.fillRect(listX, rowY - 16, listWidth, 34);
-    ctx.strokeStyle = selected ? "#79b8ff" : "#263142";
-    ctx.strokeRect(listX, rowY - 16, listWidth, 34);
+    drawForestSubpanel(ctx, listX, rowY - 16, listWidth, 34, {
+      selected,
+      accent: selected ? "#d7bb71" : "#42584b",
+      fill: selected ? "rgba(48, 72, 46, 0.54)" : "rgba(0, 0, 0, 0.26)",
+    });
     ctx.fillStyle = entry.color || "#d8e2ec";
     ctx.fillRect(listX + 10, rowY - 8, 12, 12);
     ctx.fillStyle = getRarityAccent(entry.rarity, "#fff6d8");
@@ -1664,10 +1643,10 @@ function drawInventoryTab(ctx, state, x, y, width, height) {
 
   if (!selectedEntry) return;
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
-  ctx.fillRect(detailsX, detailsY - 18, detailsRect.width, detailsRect.height);
-  ctx.strokeStyle = "#2d3848";
-  ctx.strokeRect(detailsX, detailsY - 18, detailsRect.width, detailsRect.height);
+  drawForestSubpanel(ctx, detailsX, detailsY - 18, detailsRect.width, detailsRect.height, {
+    accent: "#596f58",
+    fill: "rgba(0, 0, 0, 0.34)",
+  });
   ctx.fillStyle = "#fff2d5";
   ctx.font = "700 14px Segoe UI, Arial";
   ctx.fillText(selectedEntry.name, detailsX + 12, detailsY + 2);
@@ -1841,21 +1820,22 @@ function drawTalentTab(ctx, state, x, y, width, height, compact = false) {
     const unlocked = Boolean(state.progression.talents[row.talent.id]);
     const selected = row.index === state.ui.selectedTalentIndex;
     const unlockState = row.unlockState;
-    ctx.fillStyle = unlocked
-      ? "rgba(91, 151, 105, 0.3)"
-      : selected
-        ? "rgba(121, 184, 255, 0.18)"
-        : "rgba(0, 0, 0, 0.3)";
-    ctx.fillRect(row.rect.x, row.rect.y, row.rect.width, row.rect.height);
-    ctx.strokeStyle = unlocked
-      ? row.color
-      : selected
-        ? "#d9efff"
-        : unlockState.unlockable
-          ? row.color
-          : "#34404c";
-    ctx.lineWidth = row.talent.capstone ? 3 : selected ? 2 : 1;
-    ctx.strokeRect(row.rect.x, row.rect.y, row.rect.width, row.rect.height);
+    drawForestSubpanel(ctx, row.rect.x, row.rect.y, row.rect.width, row.rect.height, {
+      selected: selected || unlocked,
+      accent: unlocked
+        ? row.color
+        : selected
+          ? "#d9efff"
+          : unlockState.unlockable
+            ? row.color
+            : "#34404c",
+      fill: unlocked
+        ? "rgba(91, 151, 105, 0.3)"
+        : selected
+          ? "rgba(121, 184, 255, 0.18)"
+          : "rgba(0, 0, 0, 0.3)",
+      footerAccent: row.talent.capstone ? row.color : null,
+    });
     const iconSize = Math.min(row.rect.height - 6, 36);
     drawTalentIcon(
       ctx,
@@ -1889,10 +1869,11 @@ function drawTalentTab(ctx, state, x, y, width, height, compact = false) {
   const detail = panel.selectedTalent;
   if (!detail) return;
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
-  ctx.fillRect(panel.detailRect.x, panel.detailRect.y, panel.detailRect.width, panel.detailRect.height);
-  ctx.strokeStyle = "#2d3848";
-  ctx.strokeRect(panel.detailRect.x, panel.detailRect.y, panel.detailRect.width, panel.detailRect.height);
+  drawForestSubpanel(ctx, panel.detailRect.x, panel.detailRect.y, panel.detailRect.width, panel.detailRect.height, {
+    accent: panel.selectedBranch?.color || "#8fdc8b",
+    fill: "rgba(0, 0, 0, 0.34)",
+    footerAccent: panel.selectedBranch?.color || "#8fdc8b",
+  });
   const detailUnlocked = Boolean(state.progression.talents[detail.id]);
   const detailIconSize = panel.compact ? 44 : 48;
   drawTalentIcon(
@@ -1987,10 +1968,11 @@ function drawServiceTab(ctx, state, x, y, width, height) {
       panel.rows.forEach(({ entry, index, rect: rowRect }) => {
         const serviceItem = entry.item || entry;
         const selected = index === state.ui.selectedServiceIndex;
-        ctx.fillStyle = selected ? "rgba(121, 184, 255, 0.16)" : "rgba(0, 0, 0, 0.26)";
-        ctx.fillRect(rowRect.x, rowRect.y, rowRect.width, rowRect.height);
-        ctx.strokeStyle = selected ? "#79b8ff" : "#263142";
-        ctx.strokeRect(rowRect.x, rowRect.y, rowRect.width, rowRect.height);
+        drawForestSubpanel(ctx, rowRect.x, rowRect.y, rowRect.width, rowRect.height, {
+          selected,
+          accent: selected ? "#d7bb71" : "#42584b",
+          fill: selected ? "rgba(48, 72, 46, 0.54)" : "rgba(0, 0, 0, 0.26)",
+        });
         ctx.fillStyle = serviceItem.color || "#d8e2ec";
         ctx.fillRect(rowRect.x + 10, rowRect.y + 10, 12, 12);
         ctx.fillStyle = getRarityAccent(serviceItem.rarity, "#fff6d8");
@@ -2008,10 +1990,10 @@ function drawServiceTab(ctx, state, x, y, width, height) {
 
     if (panel.selected) {
       const selectedItem = panel.selected.item || panel.selected;
-      ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
-      ctx.fillRect(panel.detailsRect.x, panel.detailsRect.y, panel.detailsRect.width, panel.detailsRect.height);
-      ctx.strokeStyle = "#2d3848";
-      ctx.strokeRect(panel.detailsRect.x, panel.detailsRect.y, panel.detailsRect.width, panel.detailsRect.height);
+      drawForestSubpanel(ctx, panel.detailsRect.x, panel.detailsRect.y, panel.detailsRect.width, panel.detailsRect.height, {
+        accent: "#596f58",
+        fill: "rgba(0, 0, 0, 0.34)",
+      });
       ctx.fillStyle = getRarityAccent(selectedItem.rarity, "#fff2d5");
       ctx.font = "700 14px Segoe UI, Arial";
       ctx.fillText(selectedItem.name, panel.detailsRect.x + 12, panel.detailsRect.y + 20);
@@ -2073,10 +2055,11 @@ function drawServiceTab(ctx, state, x, y, width, height) {
   if (service.kind === "altar" || service.kind === "crafting" || service.kind === "renewal") {
     panel.rows.forEach(({ entry, index, rect: rowRect, descriptionLines, compact }) => {
       const selected = index === state.ui.selectedServiceIndex;
-      ctx.fillStyle = selected ? "rgba(121, 184, 255, 0.16)" : "rgba(0, 0, 0, 0.26)";
-      ctx.fillRect(rowRect.x, rowRect.y, rowRect.width, rowRect.height);
-      ctx.strokeStyle = selected ? "#79b8ff" : "#263142";
-      ctx.strokeRect(rowRect.x, rowRect.y, rowRect.width, rowRect.height);
+      drawForestSubpanel(ctx, rowRect.x, rowRect.y, rowRect.width, rowRect.height, {
+        selected,
+        accent: selected ? "#d7bb71" : "#42584b",
+        fill: selected ? "rgba(48, 72, 46, 0.54)" : "rgba(0, 0, 0, 0.26)",
+      });
       ctx.fillStyle = "#fff6d8";
       ctx.font = "700 12px Segoe UI, Arial";
       ctx.fillText(entry.title || entry.name, rowRect.x + 12, rowRect.y + (compact ? 14 : 18));
@@ -2118,10 +2101,11 @@ function drawStashColumn(ctx, x, y, width, label, entries, selectedIndex, active
   ctx.fillStyle = active ? "#fff2d5" : "#cfd9d3";
   ctx.font = "700 13px Segoe UI, Arial";
   ctx.fillText(label, x, y - 8);
-  ctx.fillStyle = "rgba(0,0,0,0.24)";
-  ctx.fillRect(x, y, width, 252);
-  ctx.strokeStyle = active ? "#79b8ff" : "#263142";
-  ctx.strokeRect(x, y, width, 252);
+  drawForestSubpanel(ctx, x, y, width, 252, {
+    selected: active,
+    accent: active ? "#d7bb71" : "#42584b",
+    fill: "rgba(0,0,0,0.24)",
+  });
   let rowY = y + 18;
   if (entries.length === 0) {
     ctx.fillStyle = "#aebdc6";
@@ -2131,8 +2115,11 @@ function drawStashColumn(ctx, x, y, width, label, entries, selectedIndex, active
   }
   entries.slice(0, 6).forEach((entry, index) => {
     const selected = index === selectedIndex;
-    ctx.fillStyle = selected ? "rgba(121, 184, 255, 0.16)" : "rgba(0,0,0,0.2)";
-    ctx.fillRect(x + 8, rowY - 12, width - 16, 30);
+    drawForestSubpanel(ctx, x + 8, rowY - 12, width - 16, 30, {
+      selected,
+      accent: selected ? "#d7bb71" : "#42584b",
+      fill: selected ? "rgba(48, 72, 46, 0.5)" : "rgba(0,0,0,0.2)",
+    });
     ctx.fillStyle = entry.color || "#d8e2ec";
     ctx.fillRect(x + 14, rowY - 4, 10, 10);
     ctx.fillStyle = getRarityAccent(entry.rarity, "#fff6d8");
@@ -2224,10 +2211,7 @@ function drawInteractionPrompt(ctx, state) {
   const x = state.viewport.width / 2 - panelW / 2;
   const y = state.viewport.height - panelH - 128;
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.68)";
-  ctx.fillRect(x, y, panelW, panelH);
-  ctx.fillStyle = "#10161d";
-  ctx.fillRect(x + 4, y + 4, panelW - 8, panelH - 8);
+  drawHudBackdrop(ctx, x, y, panelW, panelH, "#d6bb73", 0.76);
   ctx.font = "700 14px Segoe UI, Arial";
   ctx.fillStyle = "#fff6d0";
   drawWrappedText(ctx, `E  ${state.story.prompt}`, x + 16, y + 22, panelW - 32, 16, 3);
@@ -2261,10 +2245,7 @@ function drawExitPrompt(ctx, state) {
   const y = Math.max(100, state.viewport.height - panelH - 108);
   const progress = Math.max(0, Math.min(1, state.exitCharge));
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.68)";
-  ctx.fillRect(x, y, panelW, panelH);
-  ctx.fillStyle = "#10161d";
-  ctx.fillRect(x + 4, y + 4, panelW - 8, panelH - 8);
+  drawHudBackdrop(ctx, x, y, panelW, panelH, locked ? "#d87979" : "#d6bb73", 0.76);
   ctx.font = "700 15px Segoe UI, Arial";
   ctx.fillStyle = locked ? "#ffc1b8" : "#fff6d0";
   ctx.fillText(title, x + 16, y + 22);
@@ -2291,16 +2272,7 @@ function drawWorldMapOverlay(ctx, state) {
   ctx.fillStyle = "rgba(4, 8, 11, 0.84)";
   ctx.fillRect(0, 0, viewport.width, viewport.height);
 
-  ctx.fillStyle = "rgba(7, 11, 15, 0.95)";
-  ctx.fillRect(x, y, panelW, panelH);
-  ctx.fillStyle = "#111820";
-  ctx.fillRect(x + 4, y + 4, panelW - 8, panelH - 8);
-  ctx.strokeStyle = "#d7c28b";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(x + 2, y + 2, panelW - 4, panelH - 4);
-  ctx.strokeStyle = "#31403a";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x + 12, y + 12, panelW - 24, panelH - 24);
+  drawHudBackdrop(ctx, x, y, panelW, panelH, "#d7c28b", 0.94);
 
   ctx.fillStyle = "#f4ead3";
   ctx.font = "700 30px Georgia, serif";
@@ -2324,13 +2296,10 @@ function drawWorldMapOverlay(ctx, state) {
   ctx.fillText("M / Esc close", x + panelW - 64, y + 38);
   ctx.textAlign = "left";
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
-  ctx.fillRect(contentX, contentY, graphW, graphH);
-  ctx.fillStyle = "#0f151c";
-  ctx.fillRect(contentX + 2, contentY + 2, graphW - 4, graphH - 4);
-  ctx.strokeStyle = "#384855";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(contentX + 2, contentY + 2, graphW - 4, graphH - 4);
+  drawForestSubpanel(ctx, contentX, contentY, graphW, graphH, {
+    accent: "#5d745f",
+    fill: "#0f151c",
+  });
 
   const nodePositions = {};
   const navigationTargets = new Set(state.navigation?.targetSceneIds || []);
@@ -2501,10 +2470,7 @@ function drawDialogue(ctx, state) {
   const frame = getDialogueFrame(state);
   const { x, y, width, height } = frame;
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.86)";
-  ctx.fillRect(x, y, width, height);
-  ctx.fillStyle = "#10161d";
-  ctx.fillRect(x + 4, y + 4, width - 8, height - 8);
+  drawHudBackdrop(ctx, x, y, width, height, "#d6bb73", 0.9);
   ctx.fillStyle = "#fff6d0";
   ctx.font = "700 16px Segoe UI, Arial";
   ctx.fillText(dialogue.speakerName, x + 18, y + 24);
@@ -2555,10 +2521,7 @@ function drawEndState(ctx, state) {
   const x = state.viewport.width / 2 - panelW / 2;
   const y = state.viewport.height / 2 - panelH / 2;
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
-  ctx.fillRect(x, y, panelW, panelH);
-  ctx.fillStyle = "#10161d";
-  ctx.fillRect(x + 4, y + 4, panelW - 8, panelH - 8);
+  drawHudBackdrop(ctx, x, y, panelW, panelH, "#d87979", 0.9);
   ctx.textAlign = "center";
   ctx.font = "700 28px Segoe UI, Arial";
   ctx.fillStyle = "#ffd5cd";
@@ -2760,27 +2723,20 @@ function drawActionButton(ctx, button, hoverTarget, fill, textColor) {
     hoverTarget?.slotIndex === button.slotIndex &&
     hoverTarget?.subpanel === button.subpanel &&
     hoverTarget?.value === button.value;
-  ctx.fillStyle = hovered ? "rgba(121, 184, 255, 0.18)" : fill;
-  ctx.fillRect(button.rect.x, button.rect.y, button.rect.width, button.rect.height);
-  ctx.strokeStyle = hovered ? "#d9efff" : button.accent;
-  ctx.strokeRect(button.rect.x, button.rect.y, button.rect.width, button.rect.height);
+  drawForestButton(ctx, button.rect, {
+    hovered,
+    selected: button.active,
+    accent: hovered ? "#d9efff" : button.accent,
+    fill,
+    selectedFill: "rgba(28, 50, 38, 0.94)",
+  });
   ctx.fillStyle = textColor;
   ctx.font = "700 11px Segoe UI, Arial";
   ctx.fillText(button.label, button.rect.x + 10, button.rect.y + 18);
 }
 
 function drawPanelChrome(ctx, x, y, width, height, accent) {
-  ctx.strokeStyle = accent;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x + 1.5, y + 1.5, width - 3, height - 3);
-  pixelRect(ctx, x + 8, y + 8, 18, 2, accent);
-  pixelRect(ctx, x + 8, y + 8, 2, 18, accent);
-  pixelRect(ctx, x + width - 26, y + 8, 18, 2, accent);
-  pixelRect(ctx, x + width - 10, y + 8, 2, 18, accent);
-  pixelRect(ctx, x + 8, y + height - 10, 18, 2, accent);
-  pixelRect(ctx, x + 8, y + height - 26, 2, 18, accent);
-  pixelRect(ctx, x + width - 26, y + height - 10, 18, 2, accent);
-  pixelRect(ctx, x + width - 10, y + height - 26, 2, 18, accent);
+  drawForestFrame(ctx, x, y, width, height, accent);
 }
 
 function pixelRect(ctx, x, y, width, height, color) {
@@ -2908,19 +2864,7 @@ function getActiveOverlayCloseHoverTarget(state, mouseX, mouseY) {
 function drawOverlayCloseButton(ctx, button, hoverTarget) {
   const hovered = hoverTarget?.action === "close-overlay";
   const { x, y, width, height } = button.rect;
-  ctx.fillStyle = hovered ? "#7b2f35" : "#252d35";
-  ctx.fillRect(x, y, width, height);
-  ctx.strokeStyle = hovered ? "#ffb0a9" : "#82909a";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x + 0.5, y + 0.5, width - 1, height - 1);
-  ctx.strokeStyle = hovered ? "#fff0ed" : "#dce4e7";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(x + 9, y + 9);
-  ctx.lineTo(x + width - 9, y + height - 9);
-  ctx.moveTo(x + width - 9, y + 9);
-  ctx.lineTo(x + 9, y + height - 9);
-  ctx.stroke();
+  drawForestCloseButton(ctx, { x, y, width, height }, hovered, { accent: "#d7c28b" });
 }
 
 function getTabTargets(state, frame) {
@@ -4086,11 +4030,7 @@ function drawTalentHoverTooltip(ctx, state, target) {
     Math.min(state.viewport.height - boxH - 16, targetRect.y - 8)
   );
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.94)";
-  ctx.fillRect(cursorX, cursorY, boxW, boxH);
-  ctx.fillStyle = "#090d11";
-  ctx.fillRect(cursorX + 3, cursorY + 3, boxW - 6, boxH - 6);
-  drawPanelChrome(ctx, cursorX, cursorY, boxW, boxH, tooltip.accent);
+  drawHudBackdrop(ctx, cursorX, cursorY, boxW, boxH, tooltip.accent, 0.94);
 
   drawTalentIcon(ctx, tooltip.iconTalentId, cursorX + 14, cursorY + 14, 52);
   ctx.fillStyle = tooltip.capstone ? "#fff0a8" : "#fff2d5";
@@ -4178,11 +4118,7 @@ function drawHoverTooltip(ctx, state) {
         : 20;
   const cursorY = Math.max(16, Math.min(state.viewport.height - boxH - 16, preferredY));
 
-  ctx.fillStyle = "rgba(0,0,0,0.88)";
-  ctx.fillRect(cursorX, cursorY, boxW, boxH);
-  ctx.fillStyle = "#10161d";
-  ctx.fillRect(cursorX + 3, cursorY + 3, boxW - 6, boxH - 6);
-  drawPanelChrome(ctx, cursorX, cursorY, boxW, boxH, accent || "#8aa7b4");
+  drawHudBackdrop(ctx, cursorX, cursorY, boxW, boxH, accent || "#8aa7b4", 0.9);
   ctx.fillStyle = accent || "#fff2d5";
   ctx.font = "700 12px Segoe UI, Arial";
   ctx.fillText(title, cursorX + 12, cursorY + 18);
