@@ -1248,6 +1248,28 @@ beskonacnu kupovinu talent poena.
 - Segment ne menja enemy HP, AI, radius, collision, damage, spawn table, loot,
   projectile brzine, quest uslove, boss art ili combat brojeve.
 
+### Faza 8Y
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: ukloniti los water collision overlay koji je prekrivao vec lepo
+  nacrtane water tile-ove i nije se poklapao sa tile gridom.
+- `rendering/renderer.js` vise ne crta `water` obstacle kao veliki providni
+  isometric rectangle preko scene.
+- Voda se u normalnom prikazu sada oslanja na `rendering/terrainAssets.js`:
+  atlas floor texture, tile water details, liquid biome signature i shoreline
+  transition po stvarnim water/ice tile-ovima.
+- Collision i bridge ignore logika ostaju nepromenjeni; water obstacle ostaje
+  gameplay/collision podatak, samo vise nije regularan visual layer.
+- Debug collision i dalje moze da se koristi za audit solidnih zona kada treba
+  proveriti zasto se nekom objektu ne moze prici.
+- QA: syntax check za `rendering/renderer.js`, `rendering/terrainAssets.js` i
+  `rendering/atlasAssets.js`, puna regresija `node --test tests\*.test.mjs`
+  sa `82/82` prolaza i browser screenshots za `Mossy Ruins`,
+  `Moonlit Marsh` i `Frostpine Tundra` bez velikog water overlay romba.
+- Segment ne menja water tile placement, collision rects, bridge behavior,
+  scene progression, quest placement, enemy spawnove ili combat.
+
 ## Van trenutnog scopea
 
 - Durability i repair.

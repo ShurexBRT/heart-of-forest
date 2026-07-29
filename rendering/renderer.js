@@ -549,7 +549,7 @@ function drawObstacle(ctx, obstacle, theme, sceneStyle, origin) {
     drawRock(ctx, obstacle, theme, sceneStyle, origin);
   }
   if (obstacle.type === "bush") drawBush(ctx, obstacle, sceneStyle, origin);
-  if (obstacle.type === "water") drawWater(ctx, obstacle, origin);
+  if (obstacle.type === "water") return;
   if (obstacle.type === "ruin") drawRuin(ctx, obstacle, sceneStyle, origin);
   if (obstacle.type === "cottage") drawCottage(ctx, obstacle, sceneStyle, origin);
   if (obstacle.type === "well") drawWell(ctx, obstacle, sceneStyle, origin);
@@ -629,44 +629,6 @@ function drawBush(ctx, bush, sceneStyle, origin) {
   fillPixelEllipse(ctx, point.x - 8, point.y - 21, 18, 10, mid);
   fillPixelEllipse(ctx, point.x + 8, point.y - 20, 16, 9, mid);
   fillPixelEllipse(ctx, point.x - 2, point.y - 24, 12, 7, light);
-}
-
-function drawWater(ctx, water, origin) {
-  const corners = [
-    toScreen(origin, water.x, water.y),
-    toScreen(origin, water.x + water.w, water.y),
-    toScreen(origin, water.x + water.w, water.y + water.h),
-    toScreen(origin, water.x, water.y + water.h),
-  ];
-
-  ctx.save();
-  ctx.fillStyle = water.style === "ice" ? "rgba(145, 195, 222, 0.82)" : "rgba(49, 109, 108, 0.8)";
-  ctx.beginPath();
-  ctx.moveTo(corners[0].x, corners[0].y);
-  for (let i = 1; i < corners.length; i += 1) {
-    ctx.lineTo(corners[i].x, corners[i].y);
-  }
-  ctx.closePath();
-  ctx.fill();
-  ctx.strokeStyle = water.style === "ice" ? "rgba(225, 247, 255, 0.82)" : "rgba(141, 214, 205, 0.55)";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.restore();
-
-  const minX = Math.min(...corners.map((corner) => corner.x));
-  const maxX = Math.max(...corners.map((corner) => corner.x));
-  const minY = Math.min(...corners.map((corner) => corner.y));
-  const maxY = Math.max(...corners.map((corner) => corner.y));
-  for (let y = minY + 8; y < maxY - 4; y += 10) {
-    pixelRect(
-      ctx,
-      minX + 12 + ((y / 10) % 2) * 8,
-      y,
-      Math.max(10, maxX - minX - 28),
-      2,
-      water.style === "ice" ? "rgba(242, 252, 255, 0.45)" : "rgba(184, 255, 239, 0.28)"
-    );
-  }
 }
 
 function drawRuin(ctx, ruin, sceneStyle, origin) {
