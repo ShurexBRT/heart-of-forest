@@ -261,27 +261,205 @@ function getActorPaletteColor(palette, key, fallback) {
   return palette?.[key] || fallback;
 }
 
-function buildActorSprite(palette, facing, frame, style, pose) {
+function buildAylaSprite(palette, facing, frame, pose) {
   const canvas = createCanvas(56, 64);
   const ctx = canvas.getContext("2d");
   ctx.imageSmoothingEnabled = false;
 
+  const hoodBase = getActorPaletteColor(palette, "hood", "#f6f4ef");
+  const cloakBase = getActorPaletteColor(palette, "cloak", "#7aa466");
+  const accent = getActorPaletteColor(palette, "accent", "#86d4a7");
+  const outline = "#191613";
+  const hoodShade = darkenColor(hoodBase, -22);
+  const hoodDeep = "#b9bdb0";
+  const hoodLight = "#fffdf4";
+  const cloakDeep = "#263423";
+  const cloakDark = darkenColor(cloakBase, -34);
+  const cloakMid = darkenColor(cloakBase, -8);
+  const leafLight = "#b8ed8f";
+  const spirit = pose === "cast" ? "#dffcf5" : "#f6f0a7";
+  const spiritHot = pose === "cast" ? "#ffffff" : "#fff8d0";
+  const leather = "#6c4a31";
+  const leatherDark = "#3f2a1f";
+  const bark = "#68402a";
+  const barkLight = "#a16e48";
+  const vine = "#6fbd60";
+  const backFacing = facing === "up";
+  const sideFacing = facing === "left" || facing === "right";
+  const step = [0, 1, 0, -1][frame % 4];
+  const staffRight = facing !== "left";
+  const sideBias = facing === "left" ? -2 : facing === "right" ? 2 : 0;
+  const leanX =
+    pose === "dash"
+      ? facing === "left"
+        ? -4
+        : facing === "right"
+          ? 4
+          : sideBias
+      : pose === "attack"
+        ? staffRight
+          ? 2
+          : -2
+        : sideFacing
+          ? sideBias
+          : 0;
+  const hoodLift = pose === "cast" ? -2 : pose === "dash" ? 1 : 0;
+  const hemLift = pose === "dash" ? 3 : pose === "walk" ? Math.abs(step) : 0;
+  const armLift = pose === "cast" ? -5 : pose === "attack" ? -2 : 0;
+  const staffTilt = pose === "attack" ? -6 : pose === "cast" ? -8 : pose === "dash" ? 5 : step;
+
+  drawAylaStaff(ctx, staffRight, leanX, staffTilt, { bark, barkLight, outline, spirit, spiritHot, vine });
+
+  px(ctx, 22 + leanX, 55 + Math.max(0, -step) + hemLift, 5, 4, leatherDark);
+  px(ctx, 29 + leanX, 55 + Math.max(0, step) + hemLift, 5, 4, leatherDark);
+  px(ctx, 21 + leanX, 58 + Math.max(0, -step) + hemLift, 7, 2, "#2b211a");
+  px(ctx, 29 + leanX, 58 + Math.max(0, step) + hemLift, 7, 2, "#2b211a");
+
+  px(ctx, 17 + leanX, 23, 22, 27 - hemLift, outline);
+  px(ctx, 18 + leanX, 24, 20, 24 - hemLift, cloakDeep);
+  px(ctx, 20 + leanX, 24, 16, 26 - hemLift, cloakDark);
+  px(ctx, 22 + leanX, 25, 12, 25 - hemLift, cloakMid);
+  px(ctx, 25 + leanX, 27, 7, 23 - hemLift, accent);
+  px(ctx, 19 + leanX, 46 - hemLift, 18, 7, outline);
+  px(ctx, 21 + leanX, 47 - hemLift, 14, 6, cloakDark);
+  px(ctx, 23 + leanX, 49 - hemLift, 10, 4, cloakMid);
+  px(ctx, 19 + leanX, 51 - hemLift, 5, 3, leafLight);
+  px(ctx, 31 + leanX, 51 - hemLift, 5, 3, vine);
+
+  if (!backFacing) {
+    px(ctx, 19 + leanX, 38, 18, 3, leatherDark);
+    px(ctx, 22 + leanX, 37, 12, 2, leather);
+    px(ctx, 25 + leanX, 35, 3, 17 - hemLift, "#e4f7a7");
+    px(ctx, 30 + leanX, 36, 3, 14 - hemLift, "#5daf65");
+  } else {
+    px(ctx, 21 + leanX, 29, 14, 20 - hemLift, hoodShade);
+    px(ctx, 24 + leanX, 30, 8, 18 - hemLift, cloakMid);
+  }
+
+  px(ctx, 15 + leanX, 24, 26, 5, outline);
+  px(ctx, 17 + leanX, 24, 22, 4, "#3c5638");
+  px(ctx, 18 + leanX, 25, 8, 3, vine);
+  px(ctx, 29 + leanX, 25, 9, 3, leafLight);
+  px(ctx, 16 + leanX, 28, 4, 4, "#4f7a43");
+  px(ctx, 36 + leanX, 28, 4, 4, "#7fcc6d");
+
+  drawAylaArms(ctx, staffRight, leanX, step, armLift, pose, {
+    accent,
+    cloakDark,
+    hoodBase,
+    hoodShade,
+    leather,
+    outline,
+    spirit,
+  });
+
+  px(ctx, 18 + leanX, 8 + hoodLift, 20, 17, outline);
+  px(ctx, 20 + leanX, 9 + hoodLift, 16, 15, hoodShade);
+  px(ctx, 21 + leanX, 9 + hoodLift, 14, 5, hoodLight);
+  px(ctx, 19 + leanX, 13 + hoodLift, 3, 9, hoodDeep);
+  px(ctx, 34 + leanX, 13 + hoodLift, 3, 9, hoodDeep);
+  px(ctx, 23 + leanX, 12 + hoodLift, 9, 3, hoodBase);
+
+  if (backFacing) {
+    px(ctx, 22 + leanX, 18 + hoodLift, 12, 6, hoodDeep);
+    px(ctx, 24 + leanX, 16 + hoodLift, 8, 4, hoodShade);
+  } else {
+    const eyeX = facing === "left" ? 24 : facing === "right" ? 29 : 27;
+    px(ctx, 22 + leanX, 17 + hoodLift, 12, 8, "#11100f");
+    px(ctx, eyeX + leanX, 19 + hoodLift, 3, 3, "#f4ffe1");
+    px(ctx, eyeX + leanX + (facing === "left" ? -2 : 2), 20 + hoodLift, 2, 2, "#aef1c7");
+    px(ctx, 23 + leanX, 24 + hoodLift, 10, 2, hoodDeep);
+  }
+
+  px(ctx, 16 + leanX, 6 + hoodLift, 11, 3, hoodShade);
+  px(ctx, 14 + leanX, 9 + hoodLift, 8, 3, hoodLight);
+  px(ctx, 30 + leanX, 6 + hoodLift, 10, 3, hoodShade);
+  px(ctx, 35 + leanX, 9 + hoodLift, 7, 3, hoodLight);
+
+  px(ctx, 22 + leanX, 25, 3, 2, vine);
+  px(ctx, 31 + leanX, 30, 2, 2, vine);
+  px(ctx, 23 + leanX, 43, 2, 2, vine);
+  px(ctx, 32 + leanX, 45 - hemLift, 2, 2, leafLight);
+
+  if (pose === "cast") {
+    px(ctx, 12 + leanX, 19, 2, 2, "#dffcf5");
+    px(ctx, 39 + leanX, 17, 2, 2, "#ffffff");
+    px(ctx, 42 + leanX, 27, 2, 2, "#baf5d9");
+    px(ctx, 16 + leanX, 34, 2, 2, "#baf5d9");
+  }
+
+  if (pose === "dash") {
+    px(ctx, 10 + leanX, 47 - hemLift, 10, 2, "#8fe5ca");
+    px(ctx, 35 + leanX, 48 - hemLift, 9, 2, "#dffcf5");
+    px(ctx, 14 + leanX, 52 - hemLift, 6, 2, "#f4ffe1");
+  }
+
+  return { canvas, anchorX: 28, anchorY: 58 };
+}
+
+function drawAylaStaff(ctx, staffRight, leanX, staffTilt, colors) {
+  const { bark, barkLight, outline, spirit, spiritHot, vine } = colors;
+  const shaftX = staffRight ? 43 + leanX : 10 + leanX;
+  const crookDir = staffRight ? 1 : -1;
+  const topY = 10 + staffTilt;
+
+  px(ctx, shaftX - 1, 18 + staffTilt, 5, 40, outline);
+  px(ctx, shaftX, 18 + staffTilt, 3, 39, bark);
+  px(ctx, shaftX + (staffRight ? 2 : 0), 19 + staffTilt, 1, 36, barkLight);
+  px(ctx, shaftX - 2 * crookDir, 14 + staffTilt, 7, 5, outline);
+  px(ctx, shaftX - 1 * crookDir, 12 + staffTilt, 7, 4, bark);
+  px(ctx, shaftX + 2 * crookDir, topY, 6, 4, bark);
+  px(ctx, shaftX + 1 * crookDir, topY - 2, 8, 3, "#c9eebd");
+  px(ctx, shaftX + 3 * crookDir, topY - 5, 4, 4, spirit);
+  px(ctx, shaftX + 4 * crookDir, topY - 4, 2, 2, spiritHot);
+  px(ctx, shaftX - 3 * crookDir, 16 + staffTilt, 3, 2, vine);
+  px(ctx, shaftX + 4 * crookDir, 17 + staffTilt, 3, 2, vine);
+  px(ctx, shaftX + 1 * crookDir, 31 + staffTilt, 2, 2, vine);
+}
+
+function drawAylaArms(ctx, staffRight, leanX, step, armLift, pose, colors) {
+  const { accent, cloakDark, hoodBase, hoodShade, leather, outline, spirit } = colors;
+  const leftLift = pose === "dash" ? step : armLift + step;
+  const rightLift = pose === "dash" ? -step : armLift - step;
+  const staffArmLift = pose === "attack" ? -4 : pose === "cast" ? -6 : 0;
+
+  px(ctx, 14 + leanX, 29 + leftLift, 7, 14, outline);
+  px(ctx, 35 + leanX, 29 + rightLift, 7, 14, outline);
+  px(ctx, 16 + leanX, 29 + leftLift, 5, 13, hoodShade);
+  px(ctx, 35 + leanX, 29 + rightLift, 5, 13, hoodBase);
+  px(ctx, 14 + leanX, 40 + leftLift, 8, 4, cloakDark);
+  px(ctx, 34 + leanX, 40 + rightLift, 8, 4, cloakDark);
+  px(ctx, 16 + leanX, 43 + leftLift, 7, 4, accent);
+  px(ctx, 33 + leanX, 43 + rightLift, 7, 4, accent);
+
+  if (staffRight) {
+    px(ctx, 36 + leanX, 31 + staffArmLift, 5, 13, leather);
+    px(ctx, 38 + leanX, 38 + staffArmLift, 6, 4, spirit);
+  } else {
+    px(ctx, 15 + leanX, 31 + staffArmLift, 5, 13, leather);
+    px(ctx, 11 + leanX, 38 + staffArmLift, 6, 4, spirit);
+  }
+}
+
+function buildActorSprite(palette, facing, frame, style, pose) {
   const actorKind = getActorKind(style);
+  if (actorKind === "ayla") return buildAylaSprite(palette, facing, frame, pose);
+
+  const canvas = createCanvas(56, 64);
+  const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+
   const npcProfile = getNpcActorProfile(style);
-  const hoodBase = getActorPaletteColor(palette, "hood", actorKind === "ayla" ? "#f6f4ef" : "#eee7db");
-  const cloakBase = getActorPaletteColor(palette, "cloak", actorKind === "ayla" ? "#7aa466" : "#6e7f5e");
-  const accent = getActorPaletteColor(palette, "accent", actorKind === "ayla" ? "#86d4a7" : "#d6bb73");
-  const outline = actorKind === "ayla" ? "#1f1916" : "#231c19";
-  const hoodShade = darkenColor(hoodBase, actorKind === "ayla" ? -20 : -24);
-  const hoodLight = actorKind === "ayla" ? "#f8f5ec" : hoodBase;
+  const hoodBase = getActorPaletteColor(palette, "hood", "#eee7db");
+  const cloakBase = getActorPaletteColor(palette, "cloak", "#6e7f5e");
+  const accent = getActorPaletteColor(palette, "accent", "#d6bb73");
+  const outline = "#231c19";
+  const hoodShade = darkenColor(hoodBase, -24);
+  const hoodLight = hoodBase;
   const trimDark = darkenColor(cloakBase, -24);
   const trimLight = cloakBase;
   const leather = "#7b5638";
   const leatherDark = "#513726";
-  const bark = actorKind === "ayla" ? "#6a432b" : "#684837";
-  const barkLight = actorKind === "ayla" ? "#9a6a49" : "#92644a";
-  const vine = "#6db45b";
-  const hasStaff = actorKind === "ayla";
   const backFacing = facing === "up";
   const sideFacing = facing === "left" || facing === "right";
   const step = [0, 1, 0, -1][frame % 4];
@@ -354,52 +532,6 @@ function buildActorSprite(palette, facing, frame, style, pose) {
     px(ctx, 18 + shift + leanX, 26, 20, 24 - hemLift, hoodLight);
     px(ctx, 22 + shift + leanX, 26, 12, 26 - hemLift, trimLight);
     px(ctx, 24 + shift + leanX, 27, 8, 24 - hemLift, accent);
-  }
-
-  if (hasStaff && staffRight) {
-    const staffTilt = pose === "attack" ? -5 : pose === "cast" ? -8 : pose === "dash" ? 4 : step;
-    px(ctx, 42 + leanX, 18 + staffTilt, 3, 38, bark);
-    px(ctx, 44 + leanX, 18 + staffTilt, 1, 36, barkLight);
-    px(ctx, 41 + leanX, 18 + staffTilt, 8, 2, barkDark);
-    px(ctx, 46 + leanX, 10 + staffTilt, 3, 10, bark);
-    px(ctx, 45 + leanX, 9 + staffTilt, 6, 2, bark);
-    px(ctx, 44 + leanX, 8 + staffTilt, 8, 3, "#c7eec1");
-    px(ctx, 47 + leanX, 6 + staffTilt, 3, 3, pose === "cast" ? "#dffcf5" : "#f5f0b2");
-    px(ctx, 43 + leanX, 14 + staffTilt, 2, 2, vine);
-    px(ctx, 48 + leanX, 12 + staffTilt, 2, 2, vine);
-    px(ctx, 46 + leanX, 24 + staffTilt, 2, 2, vine);
-  } else if (hasStaff) {
-    const staffTilt = pose === "attack" ? -5 : pose === "cast" ? -8 : pose === "dash" ? 4 : -step;
-    px(ctx, 11 + leanX, 18 + staffTilt, 3, 38, bark);
-    px(ctx, 11 + leanX, 18 + staffTilt, 1, 36, barkLight);
-    px(ctx, 8 + leanX, 18 + staffTilt, 8, 2, barkDark);
-    px(ctx, 7 + leanX, 10 + staffTilt, 3, 10, bark);
-    px(ctx, 5 + leanX, 9 + staffTilt, 6, 2, bark);
-    px(ctx, 4 + leanX, 8 + staffTilt, 8, 3, "#c7eec1");
-    px(ctx, 6 + leanX, 6 + staffTilt, 3, 3, pose === "cast" ? "#dffcf5" : "#f5f0b2");
-    px(ctx, 8 + leanX, 14 + staffTilt, 2, 2, vine);
-    px(ctx, 3 + leanX, 12 + staffTilt, 2, 2, vine);
-    px(ctx, 7 + leanX, 24 + staffTilt, 2, 2, vine);
-  }
-
-  if (actorKind === "ayla") {
-    const castGlow = pose === "cast" ? "#dffcf5" : "#f5f0b2";
-    px(ctx, 18 + leanX, 13 + hoodLift, 7, 2, "#fffdf4");
-    px(ctx, 30 + leanX, 12 + hoodLift, 4, 2, "#d9e4cb");
-    px(ctx, 20 + leanX, 24, 2, 8, "#e4dfd2");
-    px(ctx, 34 + leanX, 25, 2, 7, "#ffffff");
-    px(ctx, 25 + leanX, 28, 2, 19 - hemLift, "#5c9a58");
-    px(ctx, 29 + leanX, 32, 2, 16 - hemLift, "#afe38f");
-    px(ctx, 24 + leanX, 35, 8, 2, "#476f45");
-    px(ctx, 22 + leanX, 25, 3, 2, vine);
-    px(ctx, 31 + leanX, 30, 2, 2, vine);
-    px(ctx, 23 + leanX, 43, 2, 2, vine);
-    px(ctx, 30 + leanX, 46 - hemLift, 2, 2, vine);
-    px(ctx, 31 + leanX, 19 + hoodLift, 2, 2, castGlow);
-    if (pose === "dash") {
-      px(ctx, 13 + leanX, 47 - hemLift, 8, 2, "#9ce7cf");
-      px(ctx, 35 + leanX, 48 - hemLift, 7, 2, "#dffcf5");
-    }
   }
 
   if (actorKind === "npc") {
@@ -1221,5 +1353,3 @@ function clampColor(value) {
 function toHex(value) {
   return value.toString(16).padStart(2, "0");
 }
-
-const barkDark = "#4a3122";

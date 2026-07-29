@@ -1101,6 +1101,28 @@ beskonacnu kupovinu talent poena.
 - Segment ne menja enemy HP, damage, radius, AI, spawn table, quest uslove,
   projectile brzine, cooldown-e, loot ili collision.
 
+### Faza 8S
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: uskladiti Aylin sprite kvalitet sa novim neprijateljima bez rizika koji
+  bi doneo prerani bitmap spritesheet swap.
+- `rendering/pixelAssets.js` sada ima zaseban `buildAylaSprite` pipeline za
+  Aylu, odvojen od NPC actor buildera.
+- Ayla dobija jasniju produkcionu siluetu: svetli hood, tamni face slit, leaf
+  mantle, zeleniji cloak/sash, stabilnije noge, prepoznatljiv staff i pose
+  detalje za cast, attack i dash.
+- `rendering/renderer.js` vise ne pokusava ugaseni Ayla atlas path; proceduralni
+  player sprite je trenutno source of truth.
+- Dodat je `docs/PLAYER_ART_DIRECTION.md` kao ugovor za buduci bitmap sheet i
+  animacione pass-ove.
+- QA: syntax check za `pixelAssets`, `renderer` i `atlasAssets`, puna regresija
+  `node --test tests\*.test.mjs` sa `79/79` prolaza, proceduralni sprite preview
+  za sve facing/pose kombinacije i browser smoke u Homestead sceni bez fatalnih
+  runtime gresaka.
+- Segment ne menja player collision radius, movement, damage, cooldown-e, NPC
+  sprite profile, quest uslove, enemy art ili item pickup logiku.
+
 ## Van trenutnog scopea
 
 - Durability i repair.

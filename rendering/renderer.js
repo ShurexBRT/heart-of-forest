@@ -7,7 +7,6 @@ import {
 } from "../core/projection.js";
 import { NPC_DEFS } from "../data/storyData.js";
 import {
-  drawAylaAtlasSprite,
   drawBiomeProp,
   getAtlasRevision,
 } from "./atlasAssets.js";
@@ -1739,16 +1738,6 @@ function drawPlayer(ctx, player, origin) {
   const frame = speed > 20 ? Math.floor(player.animTime) % 4 : Math.floor(player.animTime) % 2;
   const facing = resolveFacing(player.aimAngle);
   drawPlayerGrounding(ctx, player, point, speed);
-  if (
-    drawAylaAtlasSprite(ctx, point.x, point.y, facing, frame, player.pose, {
-      alpha: player.invulnerable > 0 && Math.floor(performance.now() / 60) % 2 === 0 ? 0.86 : 1,
-      tint: player.hurtFlash > 0 ? "#ffd7ca" : null,
-      tintAlpha: 0.56,
-      scale: 0.56,
-    })
-  ) {
-    return;
-  }
   drawPixelSprite(
     ctx,
     getActorSprite(
