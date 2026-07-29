@@ -996,6 +996,26 @@ beskonacnu kupovinu talent poena.
 - QA: dodat `tests/hud.test.mjs`, screenshotovan Homestead HUD sa low-Spirit,
   cooldown i charging ultimate stanjem; nema fatal browser errora.
 
+### Faza 8N
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: smanjiti osecaj "mrtvog inputa" kada igrac pritisne ability koji ne
+  moze da se aktivira zbog cooldowna, Spirit-a, zakljucanog Pulse-a ili
+  nedovoljno Heart Charge-a.
+- `systems/combat.js` sada na blokiranom ability inputu prikazuje kratku
+  floating poruku kod Ayle: `Need Spirit`, `Recharging`, `Dash recharging`,
+  `Build Heart Charge` ili `Unlock Pulse`.
+- Feedback ima rate-limit po ability/reason paru, pa brzo ponavljanje inputa ne
+  zatrpava ekran i ne pretvara HUD u spam.
+- Ability-denied tekst je odvojen od damage number settinga: cak i kada su
+  damage brojevi iskljuceni, input feedback ostaje vidljiv jer nije damage.
+- Segment ne menja cooldown trajanja, Spirit troskove, Heart Charge dobitak,
+  damage, range, hitboxe ili talent uslove.
+- QA: dodat `tests/combat-feedback.test.mjs`, koji proverava low-Spirit bolt,
+  rate-limit, charging ultimate i locked Pulse slucajeve; runtime screenshot je
+  proverio stvarni right-click input bez projektila i bez fatal browser errora.
+
 ## Van trenutnog scopea
 
 - Durability i repair.

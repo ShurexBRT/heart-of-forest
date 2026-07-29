@@ -30,6 +30,7 @@ const BLOOM_WINDOW = 1.1;
 const BLOOM_BOLT_BONUS = 12;
 const COMBAT_TAG_DURATION = 4.2;
 const PULSE_PROJECTILE_CLEAR_PAD = 18;
+const ABILITY_DENIED_FEEDBACK_GAP = 0.42;
 
 const ENEMY_XP = {
   thornling: 16,
@@ -257,7 +258,14 @@ function castSpiritBolt(state) {
   const player = state.player;
   const info = player.abilityInfo.bolt;
 
-  if (player.cooldowns.bolt > 0 || !player.canSpend(info.cost)) return;
+  if (player.cooldowns.bolt > 0) {
+    pushAbilityDeniedFeedback(state, "bolt", "Recharging", "#89a9bd");
+    return;
+  }
+  if (!player.canSpend(info.cost)) {
+    pushAbilityDeniedFeedback(state, "bolt", "Need Spirit", "#d87979");
+    return;
+  }
 
   player.cooldowns.bolt = info.cooldown;
   player.spendSpirit(info.cost);
@@ -295,7 +303,10 @@ function castDash(state, input) {
   const player = state.player;
   const info = player.abilityInfo.dash;
 
-  if (player.cooldowns.dash > 0) return;
+  if (player.cooldowns.dash > 0) {
+    pushAbilityDeniedFeedback(state, "dash", "Dash recharging", "#89a9bd");
+    return;
+  }
 
   const movement = getMovementVector(input);
   const aimDirection = normalize(state.mouseWorld.x - player.x, state.mouseWorld.y - player.y);
@@ -348,7 +359,14 @@ function castRootSnare(state) {
   const player = state.player;
   const info = player.abilityInfo.root;
 
-  if (player.cooldowns.root > 0 || !player.canSpend(info.cost)) return;
+  if (player.cooldowns.root > 0) {
+    pushAbilityDeniedFeedback(state, "root", "Recharging", "#89a9bd");
+    return;
+  }
+  if (!player.canSpend(info.cost)) {
+    pushAbilityDeniedFeedback(state, "root", "Need Spirit", "#d87979");
+    return;
+  }
 
   const toMouse = normalize(state.mouseWorld.x - player.x, state.mouseWorld.y - player.y);
   const targetDistance = Math.min(
@@ -420,7 +438,14 @@ function castSignatureAbility(state) {
 
 function castUltimate(state, signature) {
   const player = state.player;
-  if (player.cooldowns.pulse > 0 || player.heartCharge < 100) return;
+  if (player.cooldowns.pulse > 0) {
+    pushAbilityDeniedFeedback(state, "pulse", "Recharging", "#89a9bd");
+    return;
+  }
+  if (player.heartCharge < 100) {
+    pushAbilityDeniedFeedback(state, "pulse", "Build Heart Charge", "#fff0a0");
+    return;
+  }
 
   player.heartCharge = 0;
   player.cooldowns.pulse = 5.5;
@@ -524,7 +549,18 @@ function castVerdantPulse(state) {
   const player = state.player;
   const info = player.abilityInfo.pulse;
 
-  if (!info.unlocked || player.cooldowns.pulse > 0 || !player.canSpend(info.cost)) return;
+  if (!info.unlocked) {
+    pushAbilityDeniedFeedback(state, "pulse", "Unlock Pulse", "#8f99a3");
+    return;
+  }
+  if (player.cooldowns.pulse > 0) {
+    pushAbilityDeniedFeedback(state, "pulse", "Recharging", "#89a9bd");
+    return;
+  }
+  if (!player.canSpend(info.cost)) {
+    pushAbilityDeniedFeedback(state, "pulse", "Need Spirit", "#d87979");
+    return;
+  }
 
   player.cooldowns.pulse = info.cooldown;
   player.spendSpirit(info.cost);
@@ -1061,6 +1097,37 @@ function pushCombatText(state, x, y, amount, color, playerHit = false, options =
   if (state.combatText.length > 32) {
     state.combatText.splice(0, state.combatText.length - 32);
   }
+}
+
+function pushAbilityDeniedFeedback(state, abilityName, text, color) {
+  const player = state.player;
+  if (!player || !text) return;
+
+  const now = state.time || 0;
+  const key = `${abilityName}:${text}`;
+  state.abilityDeniedFeedbackUntil = state.abilityDeniedFeedbackUntil || {};
+  if ((state.abilityDeniedFeedbackUntil[key] || 0) > now) {
+    return;
+  }
+  state.abilityDeniedFeedbackUntil[key] = now + ABILITY_DENIED_FEEDBACK_GAP;
+
+  state.combatText = state.combatText || [];
+  state.combatText.push({
+    x: player.x,
+    y: player.y - 34,
+    text,
+    color,
+    life: 0.72,
+    maxLife: 0.72,
+    rise: 18,
+    scale: 0.84,
+    heavy: false,
+    abilityDenied: true,
+  });
+  if (state.combatText.length > 40) {
+    state.combatText.splice(0, state.combatText.length - 40);
+  }
+  queueAudio(state, "ui");
 }
 
 function updateCombatText(state, dt) {
