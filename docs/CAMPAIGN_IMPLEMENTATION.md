@@ -925,6 +925,32 @@ beskonacnu kupovinu talent poena.
   `rendering/pixelAssets.js`; puna regresija `node --test tests\*.test.mjs`
   prolazi sa `75/75`.
 
+### Faza 8K
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: uciniti Ayla-u i interakcione ciljeve citljivijim bez menjanja
+  collisiona, interaction radiusa, quest logike ili input pravila.
+- Ayla dobija renderer-only grounding senku i mali zeleni/blue/red aura sloj
+  za idle/move, dash i low-health stanja, pa se bolje odvaja od bogatih podova.
+- `story.focus` i `story.hovered` sada imaju razlicite world markere:
+  najblizi E cilj dobija tihi zeleni pulse, a direktan LMB hover dobija jaci
+  zlatni target ring.
+- Hover nad objektom van dometa crta topao dashed leash izmedju Ayla-e i cilja,
+  tako da "Move closer" pravilo ima vizuelni nagovestaj pre klika.
+- Quest/collectable objekti dobijaju diskretan glint kad nisu hover/focus, sto
+  pomaze kod malih memory/root/flower/brazier objekata u gustim biome teksturama.
+- NPC focus dobija mali palette-colored ring koji koristi vec postojece
+  `story.focus` stanje i ne uvodi LMB interakciju sa NPC-jevima.
+- Ovaj pass je renderer-only u gameplay smislu: nema novih solid zona, nema
+  sirenja hover boxova, nema izmena questova, nagrada ili reachability pravila.
+- Runtime QA je preko DevTools kontrolisanih screenshotova proverio in-range
+  Homestead interaction marker i out-of-range Starfall Sanctum hover leash.
+- Automatizovana provera: syntax check za `main.js`, `world/arena.js`,
+  `rendering/renderer.js`, `rendering/atlasAssets.js` i
+  `rendering/pixelAssets.js`; puna regresija `node --test tests\*.test.mjs`
+  prolazi sa `75/75`.
+
 ## Van trenutnog scopea
 
 - Durability i repair.

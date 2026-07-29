@@ -531,7 +531,7 @@ function drawSortedWorld(ctx, state, origin) {
       drawObstacle(ctx, renderable.item, state.arena.theme, state.arena.sceneStyle, origin);
     }
     if (renderable.kind === "interactable") drawInteractable(ctx, renderable.item, state, origin);
-    if (renderable.kind === "npc") drawNpc(ctx, renderable.item, origin);
+    if (renderable.kind === "npc") drawNpc(ctx, renderable.item, state, origin);
     if (renderable.kind === "afterImage") drawAfterImage(ctx, renderable.item, origin);
     if (renderable.kind === "enemy") drawEnemy(ctx, renderable.item, state, origin);
     if (renderable.kind === "boss") drawBoss(ctx, renderable.item, state, origin);
@@ -1366,20 +1366,7 @@ function interpolatePoint(start, end, t) {
 
 function drawInteractable(ctx, item, state, origin) {
   const point = toScreen(origin, item.anchorX, item.anchorY);
-  if (state.story.hovered?.data?.id === item.id) {
-    ctx.save();
-    ctx.globalAlpha = 0.7;
-    drawIsoRing(
-      ctx,
-      origin,
-      item.x,
-      item.y,
-      Math.max(24, Math.min(58, Math.max(item.w || 18, item.h || 18) * 0.58)),
-      7,
-      "#fff1a6"
-    );
-    ctx.restore();
-  }
+  drawInteractionTargetMarker(ctx, item, state, origin, point);
 
   if (item.type === "farmPlot") {
     const halfW = item.w / 2;
@@ -1720,9 +1707,10 @@ function drawFarmCrop(ctx, item, origin) {
   }
 }
 
-function drawNpc(ctx, npc, origin) {
+function drawNpc(ctx, npc, state, origin) {
   const point = toScreen(origin, npc.anchorX, npc.anchorY);
   const palette = NPC_DEFS[npc.id]?.palette || npc.palette;
+  drawNpcFocusMarker(ctx, npc, state, origin, palette);
   drawNpcSilhouetteBase(ctx, point.x, point.y, palette);
   drawPixelSprite(ctx, getActorSprite(palette, "down", 0, "npc"), point.x, point.y);
 }
@@ -1749,6 +1737,7 @@ function drawPlayer(ctx, player, origin) {
   const speed = Math.hypot(player.vx, player.vy);
   const frame = speed > 20 ? Math.floor(player.animTime) % 4 : Math.floor(player.animTime) % 2;
   const facing = resolveFacing(player.aimAngle);
+  drawPlayerGrounding(ctx, player, point, speed);
   if (
     drawAylaAtlasSprite(ctx, point.x, point.y, facing, frame, player.pose, {
       alpha: player.invulnerable > 0 && Math.floor(performance.now() / 60) % 2 === 0 ? 0.86 : 1,
@@ -1873,6 +1862,59 @@ function drawBossStatus(ctx, boss, state, origin) {
   }
 }
 
+function drawInteractionTargetMarker(ctx, item, state, origin, point) {
+  const hovered = state.story.hovered?.data?.id === item.id;
+  const focused = state.story.focus?.kind === "object" && state.story.focus?.data?.id === item.id;
+  const questObject = Boolean(item.collectKey || item.requiredItemId);
+  if (!hovered && !focused && !questObject) return;
+
+  const distance = hovered
+    ? state.story.hovered.distance
+    : focused
+      ? state.story.focus.distance
+      : Infinity;
+  const inRange = distance <= (item.interactionRadius || 60);
+  const baseRadius = Math.max(24, Math.min(64, Math.max(item.w || 18, item.h || 18) * 0.58));
+  const time = state.time ?? performance.now() / 1000;
+  const pulse = 0.5 + Math.sin(time * 5.4 + item.x * 0.02 + item.y * 0.01) * 0.5;
+  const markerColor = hovered ? (inRange ? "#fff1a6" : "#ffb07c") : "#9fe28c";
+  const softColor = questObject ? "#dfffa4" : markerColor;
+
+  if (questObject && !hovered && !focused) {
+    ctx.save();
+    ctx.globalAlpha = 0.3 + pulse * 0.16;
+    pixelRect(ctx, point.x - 2, point.y - 34 - pulse * 3, 4, 4, softColor);
+    pixelRect(ctx, point.x - 1, point.y - 40 - pulse * 3, 2, 4, "#fff6bd");
+    ctx.restore();
+    return;
+  }
+
+  ctx.save();
+  ctx.globalAlpha = hovered ? 0.72 : 0.38;
+  drawIsoRing(ctx, origin, item.x, item.y, baseRadius + (hovered ? pulse * 4 : 0), hovered ? 7 : 5, markerColor);
+  ctx.globalAlpha = hovered ? 0.18 : 0.12;
+  fillPixelEllipse(ctx, point.x, point.y + 2, baseRadius * 0.92, Math.max(4, baseRadius * 0.18), markerColor);
+  ctx.restore();
+
+  if (hovered && !inRange) {
+    ctx.save();
+    ctx.globalAlpha = 0.66;
+    drawIsoDashedLine(ctx, origin, state.player.x, state.player.y, item.x, item.y, 5, "#ffb07c");
+    ctx.globalAlpha = 0.42;
+    drawIsoDashedLine(ctx, origin, state.player.x, state.player.y, item.x, item.y, 2, "#fff1a6");
+    ctx.restore();
+  }
+}
+
+function drawNpcFocusMarker(ctx, npc, state, origin, palette = {}) {
+  if (state.story.focus?.kind !== "npc" || state.story.focus?.data?.id !== npc.id) return;
+  const accent = palette.accent || "#d8f0a0";
+  ctx.save();
+  ctx.globalAlpha = 0.42;
+  drawIsoRing(ctx, origin, npc.x, npc.y, npc.interactionRadius * 0.45, 5, accent);
+  ctx.restore();
+}
+
 function drawNpcSilhouetteBase(ctx, x, y, palette = {}) {
   const accent = palette.accent || "#d8f0a0";
   drawIsoShadow(ctx, x, y + 3, 14, 5);
@@ -1881,6 +1923,27 @@ function drawNpcSilhouetteBase(ctx, x, y, palette = {}) {
   fillPixelEllipse(ctx, x, y + 2, 15, 4, accent);
   ctx.restore();
   pixelRect(ctx, x - 8, y - 38, 16, 2, accent);
+}
+
+function drawPlayerGrounding(ctx, player, point, speed) {
+  const moving = speed > 20;
+  const lowHealth = player.hp / Math.max(1, player.maxHp) <= 0.35;
+  const accent = player.dashTime > 0 ? "#9beeff" : lowHealth ? "#ff9a8b" : "#9fe28c";
+  const auraAlpha = player.dashTime > 0 ? 0.28 : moving ? 0.18 : 0.13;
+
+  drawIsoShadow(ctx, point.x, point.y + 5, 17, 6);
+  ctx.save();
+  ctx.globalAlpha = auraAlpha;
+  fillPixelEllipse(ctx, point.x, point.y + 5, player.dashTime > 0 ? 24 : 18, player.dashTime > 0 ? 7 : 5, accent);
+  ctx.restore();
+
+  if (lowHealth) {
+    ctx.save();
+    ctx.globalAlpha = 0.32;
+    pixelRect(ctx, point.x - 12, point.y - 45, 4, 4, "#ff9a8b");
+    pixelRect(ctx, point.x + 8, point.y - 43, 4, 4, "#ff9a8b");
+    ctx.restore();
+  }
 }
 
 function drawEnemyGrounding(ctx, enemy, state, origin, point) {
@@ -2174,6 +2237,19 @@ function drawIsoLine(ctx, origin, x1, y1, x2, y2, size, color) {
   const steps = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / size));
 
   for (let i = 0; i <= steps; i += 1) {
+    const t = i / steps;
+    const point = toScreen(origin, x1 + dx * t, y1 + dy * t, 1);
+    pixelRect(ctx, point.x - size / 2, point.y - size / 2, size, size, color);
+  }
+}
+
+function drawIsoDashedLine(ctx, origin, x1, y1, x2, y2, size, color) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 14));
+
+  for (let i = 0; i <= steps; i += 1) {
+    if (i % 2 !== 0) continue;
     const t = i / steps;
     const point = toScreen(origin, x1 + dx * t, y1 + dy * t, 1);
     pixelRect(ctx, point.x - size / 2, point.y - size / 2, size, size, color);
