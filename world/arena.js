@@ -955,13 +955,13 @@ function buildMossrootMarsh(context, rng) {
       requiresCleared: true,
       sortY: 326,
     }),
-    interactable("waystone-seal-2", "seal", 1198, 244, {
+    interactable("waystone-seal-2", "seal", 1052, 270, {
       name: "Waystone Seal",
       promptLabel: "Recover Seal",
       collectKey: "waystoneSealsRecovered",
       toastText: "Waystone seal recovered",
       requiresCleared: true,
-      sortY: 256,
+      sortY: 282,
     }),
     interactable("tide-seal-1", "seal", 1404, 350, {
       name: "Tide Seal",

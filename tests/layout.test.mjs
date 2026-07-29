@@ -427,6 +427,37 @@ test("quest target data covers scenes that contain collectable objectives", () =
   assert.deepEqual(failures, []);
 });
 
+test("Moonlit Marsh Waystone Seal is readable beside the north plank bridge", () => {
+  const arena = createArena({
+    ...SCENES.mossroot_marsh,
+    worldFlags: {
+      heartwood_restored: true,
+      marsh_route_lit: true,
+      chapel_of_tides_open: true,
+    },
+    questStates: { sealed_reliquary: "active" },
+  });
+  const seal = arena.interactables.find(
+    (interactable) => interactable.id === "waystone-seal-2"
+  );
+
+  assert.ok(seal);
+  assert.equal(hasPathReachableInteractionPoint(arena, seal), true);
+
+  const visualOverlaps = arena.obstacles
+    .filter((obstacle) => obstacle.type === "water" || obstacle.type === "bridge")
+    .filter(
+      (obstacle) =>
+        seal.x >= obstacle.x &&
+        seal.x <= obstacle.x + obstacle.w &&
+        seal.y >= obstacle.y &&
+        seal.y <= obstacle.y + obstacle.h
+    )
+    .map((obstacle) => `${obstacle.type}:${obstacle.x},${obstacle.y}`);
+
+  assert.deepEqual(visualOverlaps, []);
+});
+
 test("small collectable items have forgiving click and approach affordance", () => {
   const arena = createArena({
     ...SCENES.whispering_woods,

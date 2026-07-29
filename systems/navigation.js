@@ -464,10 +464,10 @@ function getNavigationHint(questId, status, targetSceneIds, progression) {
   }
   if (questId === "sealed_reliquary") {
     if (targetSceneIds.length > 1) {
-      return "One Waystone Seal is in Whispering Woods near the east road; the other is in Moonlit Marsh near the northern planks.";
+      return "One Waystone Seal is in Whispering Woods near the east road; the other is in Moonlit Marsh by the western approach to the north plank bridge.";
     }
     return targetSceneIds.includes("mossroot_marsh")
-      ? "Recover the remaining Waystone Seal in Moonlit Marsh near the northern planks."
+      ? "Recover the remaining Waystone Seal in Moonlit Marsh by the western approach to the north plank bridge."
       : "Recover the remaining Waystone Seal in Whispering Woods near the east road.";
   }
   if (questId === "depths_of_memory") {

@@ -1156,9 +1156,10 @@ beskonacnu kupovinu talent poena.
 - Status: zavrseno
 - Cilj: auditovati quest guidance za collectable objective-e, posebno drugi
   Waystone Seal u `The Sealed Reliquary`.
-- Drugi Waystone Seal je u `Moonlit Marsh`, kod severnih dasaka; quest log sada
-  izabrani `The Sealed Reliquary` vodi na `Whispering Woods` i `Moonlit Marsh`,
-  a posle prvog pokupljenog seal-a ostaje samo `Moonlit Marsh`.
+- Drugi Waystone Seal je u `Moonlit Marsh`, kod zapadnog prilaza severnom plank
+  mostu; quest log sada izabrani `The Sealed Reliquary` vodi na
+  `Whispering Woods` i `Moonlit Marsh`, a posle prvog pokupljenog seal-a ostaje
+  samo `Moonlit Marsh`.
 - Quest log sada za izabrani quest prikazuje `FIELD LEAD`/route note i za
   optional questove, ne samo za globalni main tracker.
 - `Apothecary's Route`, `Depths of Memory` i `Stillwater Homecoming` target data
@@ -1172,6 +1173,26 @@ beskonacnu kupovinu talent poena.
   potvrdjuje runtime target `Moonlit Marsh`.
 - Segment ne menja quest nagrade, required countere, scene placement, collision,
   combat, item dropove ili unlock uslove.
+
+### Faza 8V
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: popraviti stvarni staging drugog `Waystone Seal` objective-a u
+  `Moonlit Marsh`, jer je bio postavljen preko vode/bridge vizuelnog sloja i
+  igrac ga je mogao promasiti iako je tehnicki bio reachable.
+- `waystone-seal-2` je pomeren sa `1198,244` na `1052,270`, na cist travnati
+  zapadni prilaz severnom plank mostu.
+- Navigation hint za `The Sealed Reliquary` sada opisuje novi staging:
+  `western approach to the north plank bridge`.
+- Dodat je layout regression test koji proverava da `waystone-seal-2` ostaje
+  path-reachable i da ne sedi unutar `water` ili `bridge` vizuelnog bounds-a.
+- QA: targeted syntax check za `world/arena.js`, `systems/navigation.js` i
+  `tests/layout.test.mjs`, targeted `layout` + `heartwood-phase-one` testovi i
+  browser screenshot potvrda da se seal vidi i da prompt radi sa normalnog
+  prilaza.
+- Segment ne menja quest countere, nagrade, interaction radius, combat, enemy
+  spawnove, bridge/water collision ili Tide Seal staging.
 
 ## Van trenutnog scopea
 
