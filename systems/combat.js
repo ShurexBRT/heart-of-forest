@@ -550,7 +550,7 @@ function castVerdantPulse(state) {
   const info = player.abilityInfo.pulse;
 
   if (!info.unlocked) {
-    pushAbilityDeniedFeedback(state, "pulse", "Unlock Pulse", "#8f99a3");
+    pushAbilityDeniedFeedback(state, "pulse", "Open Talents (N)", "#8f99a3");
     return;
   }
   if (player.cooldowns.pulse > 0) {

@@ -93,5 +93,5 @@ test("ultimate input explains charge and locked pulse states", () => {
   pressPulse(locked);
 
   assert.equal(locked.pulses.length, 0);
-  assert.equal(locked.combatText.at(-1)?.text, "Unlock Pulse");
+  assert.equal(locked.combatText.at(-1)?.text, "Open Talents (N)");
 });

@@ -201,6 +201,9 @@ beskonacnu kupovinu talent poena.
 | 8AC | Terrain water, ice, path and floor relief polish | Zavrseno |
 | 8AD | Ayla and NPC runtime presence polish | Zavrseno |
 | 8AE | Enemy windup and recover readability polish | Zavrseno |
+| 8AF | Quest presentation UI polish | Zavrseno |
+| 8AG | Boss directional sprite atlas pass | Zavrseno |
+| 8AH | Quest text and Signature ultimate guidance polish | Zavrseno |
 
 ## Dnevnik implementacije
 
@@ -1009,7 +1012,7 @@ beskonacnu kupovinu talent poena.
   nedovoljno Heart Charge-a.
 - `systems/combat.js` sada na blokiranom ability inputu prikazuje kratku
   floating poruku kod Ayle: `Need Spirit`, `Recharging`, `Dash recharging`,
-  `Build Heart Charge` ili `Unlock Pulse`.
+  `Build Heart Charge` ili `Open Talents (N)`.
 - Feedback ima rate-limit po ability/reason paru, pa brzo ponavljanje inputa ne
   zatrpava ekran i ne pretvara HUD u spam.
 - Ability-denied tekst je odvojen od damage number settinga: cak i kada su
@@ -1445,6 +1448,38 @@ beskonacnu kupovinu talent poena.
   browser screenshots svih sedam bossova u njihovim scenama.
 - Segment ne menja boss AI, HP, damage, attack timing, faze, hitbox/collision
   radius, loot, quest progression ili boss arena layout.
+
+### Faza 8AH
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: dotegnuti quest wording i uciniti put do Signature ultimate magija
+  jasan kroz pricu, talent panel, hover tekstove i combat feedback.
+- Rani Heartwood toastovi i opisi sada jasnije vode igraca iz Hearthroot
+  slusanja u Moonleaf tutorial, Whispering Woods, Barkskin pripremu i Mossy
+  Ruins bez menjanja quest uslova ili rewarda.
+- `The Sealed Reliquary` opis i objective label sada eksplicitno kazu da je
+  jedan Waystone Seal kod Whispering Woods east road-a, a drugi kod Moonlit
+  Marsh north plank bridge-a.
+- `The Choice Beneath the Bark` sada u opisu, toastu i Bramovom complete
+  dijalogu jasno objasnjava Rootsong Rite: pritisni `N`, izaberi jedan finalni
+  `ULT` talenat, izgradi 100 Heart Charge i castuj ga sa `R`.
+- Talent branch subtitle-i i capstone opisi sada pominju konkretne Signature
+  ultimate-e (`Heartwood Tempest`, `Verdant Nova`, `Awaken the Grove`) i njihov
+  100 Heart Charge uslov.
+- Talent tab dobija `Signature Path`/`Rootsong Rite Open`/`Signature Ready`
+  guide karticu koja menja tekst prema trenutnom progresu igraca.
+- Ability hover i locked Pulse combat feedback sada vode ka talent panelu:
+  zakljucan `R` prikazuje `Open Talents (N)`, a HUD tooltip objasnjava
+  Scarroot Rootsong Rite i Heart Charge loop.
+- Dodate su regresije za Rootsong quest/capstone tekstove, HUD locked detail i
+  azuriran quest-flow onboarding wording.
+- QA: syntax check za `ui/hud.js`, `systems/combat.js`, `data/storyData.js` i
+  `data/gameData.js`, targeted `combat-feedback/hud/progression-systems`
+  testovi i puna regresija `node --test tests\*.test.mjs` sa `84/84` prolaza.
+- Segment ne menja quest gating, counters, rewarde, talent prerequisite brojeve,
+  capstone exclusive pravilo, Heart Charge gain, damage, cooldown ili input
+  hotkeye.
 
 ## Van trenutnog scopea
 

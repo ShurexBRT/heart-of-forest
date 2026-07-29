@@ -40,6 +40,7 @@ import {
   shouldStartReliquaryTrial,
 } from "../systems/challenges.js";
 import { REGION_DEFS } from "../data/regionData.js";
+import { TALENT_DEFS } from "../data/gameData.js";
 import { QUEST_DEFS } from "../data/storyData.js";
 import { syncCampaignProgress } from "../systems/campaign.js";
 
@@ -74,6 +75,29 @@ test("talent branches enforce prerequisites and one signature capstone", () => {
   assert.equal(unlockTalent(progression, "focused_bolt"), true);
   assert.equal(unlockTalent(progression, "verdant_nova"), false);
   assert.equal(getPlayerBonuses(progression).signatureAbility, "heartwood_tempest");
+});
+
+test("Rootsong quest and Signature capstones explain the ultimate path", () => {
+  const quest = QUEST_DEFS.scarroot_homecoming;
+  const questText = [
+    quest.description,
+    quest.startToast,
+    quest.completeToast,
+    ...(quest.dialogue?.complete || []),
+  ].join(" ");
+
+  assert.match(questText, /Rootsong Rite/i);
+  assert.match(questText, /Talents with N|Press N/i);
+  assert.match(questText, /Heart Charge/i);
+  assert.match(questText, /\bR\b/);
+
+  const capstones = TALENT_DEFS.filter((talent) => talent.capstone);
+  assert.equal(capstones.length, 3);
+  for (const talent of capstones) {
+    assert.match(talent.description, /Rootsong Rite/i);
+    assert.match(talent.description, /100 Heart Charge/i);
+    assert.match(talent.worldRequirementLabel, /The Choice Beneath the Bark/i);
+  }
 });
 
 test("equipped gear can be attuned through three material-gated ranks", () => {

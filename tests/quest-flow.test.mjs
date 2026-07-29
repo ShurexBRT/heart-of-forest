@@ -61,7 +61,7 @@ test("new game can complete the Homestead to Rootwarden preparation loop", () =>
   state.storyEvents.push({ type: "collect", key: "hearthrootAwakened", amount: 1 });
   consumeStoryEvents(state);
   assert.equal(state.progression.questStates.wake_hearthroot, "done");
-  assert.match(state.story.toastText, /Moonleaf seeds and ironbark/i);
+  assert.match(state.story.toastText, /Plant Moonleaf next/i);
   assert.equal(state.progression.worldFlags.hearthroot_awake, true);
   assert.equal(getItemCount(state.progression, "ironbark"), 1);
   assert.equal(getItemCount(state.progression, "moonleaf_seed"), 2);
@@ -132,7 +132,7 @@ test("new game can complete the Homestead to Rootwarden preparation loop", () =>
   assert.equal(brewResult.audioCue, "brew");
   consumeStoryEvents(state);
   assert.equal(state.progression.questStates.brew_before_blood, "done");
-  assert.match(state.story.toastText, /Mossy Ruins trail opens/i);
+  assert.match(state.story.toastText, /Mossy Ruins opens/i);
   assert.equal(getItemCount(state.progression, "barkskin_draught"), 1);
   assert.equal(state.progression.worldFlags.heartwood_ruins_open, true);
 

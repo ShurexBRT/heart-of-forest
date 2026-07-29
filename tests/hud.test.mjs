@@ -50,4 +50,6 @@ test("HUD ability readiness explains locked, cooldown, spirit, charge, and ready
   const locked = getHudAbilityReadiness(player, "pulse", { ...pulseInfo, unlocked: false });
   assert.equal(locked.state, "locked");
   assert.equal(locked.shortLabel, "LOCK");
+  assert.match(locked.detail, /Talents \(N\)/);
+  assert.match(locked.detail, /Rootsong Rite/);
 });

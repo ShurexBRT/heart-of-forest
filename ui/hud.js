@@ -105,6 +105,43 @@ function getHudAbilitySpecs() {
   ];
 }
 
+function getLearnedSignatureTalent(progression = {}) {
+  return TALENT_DEFS.find(
+    (talent) => talent.capstone && progression.talents?.[talent.id]
+  ) || null;
+}
+
+function getSignatureRiteGuide(state) {
+  const progression = state?.progression || {};
+  const learnedSignature = getLearnedSignatureTalent(progression);
+  if (learnedSignature) {
+    const branch = TALENT_BRANCHES[learnedSignature.branch];
+    const heartCharge = Math.round(Math.max(0, Math.min(100, state?.player?.heartCharge || 0)));
+    return {
+      title: `Signature: ${learnedSignature.name}`,
+      status: heartCharge >= 100 ? "READY: R" : `${heartCharge}% Heart Charge`,
+      accent: branch?.color || "#fff0a0",
+      body: "Fight to build 100 Heart Charge, then press R. Your chosen Signature replaces Verdant Pulse.",
+    };
+  }
+
+  if (progression.worldFlags?.signature_rite_unlocked) {
+    return {
+      title: "Rootsong Rite Open",
+      status: "Choose one ULT",
+      accent: "#fff0a0",
+      body: "Pick one final capstone in any branch. Only one Signature ultimate can be learned; R spends 100 Heart Charge.",
+    };
+  }
+
+  return {
+    title: "Signature Path",
+    status: "Scarroot Rite",
+    accent: "#8fdd79",
+    body: "Defeat Elder Hollow, recover the first keeper's memory, then return to Bram to open Signature ultimates.",
+  };
+}
+
 export function getHudAbilityReadiness(player, abilityName, info = {}) {
   const cooldown = Math.max(0, player?.cooldowns?.[abilityName] || 0);
   const cost = Math.max(0, Math.floor(info.cost || 0));
@@ -118,7 +155,7 @@ export function getHudAbilityReadiness(player, abilityName, info = {}) {
       label: "Locked",
       shortLabel: "LOCK",
       tone: "#7d8791",
-      detail: "Unlock this magic in the Talents tab.",
+      detail: "Unlock this magic in Talents (N). Signature ultimates open through Scarroot's Rootsong Rite.",
       cooldown,
       cost,
       spirit,
@@ -1992,6 +2029,31 @@ function drawTalentTab(ctx, state, x, y, width, height, compact = false) {
   ctx.fillStyle = "#d7e4cf";
   ctx.fillText(`Unspent Points: ${state.progression.talentPoints}  |  One Signature ultimate`, panel.treeRect.x + 150, panel.headerY);
 
+  drawForestSubpanel(ctx, panel.signatureGuideRect.x, panel.signatureGuideRect.y, panel.signatureGuideRect.width, panel.signatureGuideRect.height, {
+    accent: panel.signatureGuide.accent,
+    fill: "rgba(10, 18, 14, 0.52)",
+    footerAccent: panel.signatureGuide.accent,
+  });
+  ctx.fillStyle = "#fff2d5";
+  ctx.font = "700 12px Segoe UI, Arial";
+  ctx.fillText(panel.signatureGuide.title, panel.signatureGuideRect.x + 12, panel.signatureGuideRect.y + 15);
+  ctx.textAlign = "right";
+  ctx.fillStyle = panel.signatureGuide.accent;
+  ctx.font = "700 10px Segoe UI, Arial";
+  ctx.fillText(panel.signatureGuide.status, panel.signatureGuideRect.x + panel.signatureGuideRect.width - 12, panel.signatureGuideRect.y + 15);
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#d7e4cf";
+  ctx.font = "10px Segoe UI, Arial";
+  drawWrappedText(
+    ctx,
+    panel.signatureGuide.body,
+    panel.signatureGuideRect.x + 12,
+    panel.signatureGuideRect.y + 29,
+    panel.signatureGuideRect.width - 24,
+    12,
+    2
+  );
+
   for (const branch of panel.branches) {
     ctx.fillStyle = branch.color;
     ctx.font = "700 13px Segoe UI, Arial";
@@ -3342,16 +3404,30 @@ function getTalentPanelData(state, frame) {
   const compact = frame.compact || frame.width < 760;
   const treeRect = rect(frame.x + 28, frame.y + 92, frame.width - 56, frame.height - 112);
   const headerY = frame.y + 104;
-  const branchHeaderY = frame.y + 128;
   const branchIds = Object.keys(TALENT_BRANCHES);
   const columnGap = compact ? 8 : 18;
   const columnWidth = (treeRect.width - columnGap * 2) / 3;
   const nodeHeight = compact ? 38 : 42;
-  const tierGap = Math.max(
-    compact ? 42 : 48,
-    Math.min(compact ? 48 : 56, (frame.height - 270) / 5)
+  const detailHeight = compact ? 70 : 76;
+  const detailRect = rect(
+    treeRect.x,
+    frame.y + frame.height - detailHeight - 18,
+    treeRect.width,
+    detailHeight
   );
-  const nodesTop = frame.y + 158;
+  const signatureGuideRect = rect(
+    treeRect.x,
+    frame.y + 118,
+    treeRect.width,
+    compact ? 44 : 48
+  );
+  const branchHeaderY = signatureGuideRect.y + signatureGuideRect.height + (compact ? 16 : 18);
+  const nodesTop = branchHeaderY + (compact ? 30 : 34);
+  const availableTierGap = (detailRect.y - nodesTop - nodeHeight - 8) / 5;
+  const tierGap = Math.max(
+    compact ? 34 : 38,
+    Math.min(compact ? 47 : 52, availableTierGap)
+  );
   const rows = TALENT_DEFS.map((talent, index) => {
     const branchIndex = branchIds.indexOf(talent.branch);
     const branch = TALENT_BRANCHES[talent.branch];
@@ -3392,19 +3468,14 @@ function getTalentPanelData(state, frame) {
   const selectedUnlockState = selectedTalent
     ? getTalentUnlockState(state.progression, selectedTalent.id)
     : { unlockable: false, reason: "" };
-  const detailHeight = compact ? 70 : 76;
-  const detailRect = rect(
-    treeRect.x,
-    frame.y + frame.height - detailHeight - 18,
-    treeRect.width,
-    detailHeight
-  );
   return {
     compact,
     rows,
     treeRect,
     headerY,
     branchHeaderY,
+    signatureGuideRect,
+    signatureGuide: getSignatureRiteGuide(state),
     branches: branchIds.map((branchId, index) => ({
       ...TALENT_BRANCHES[branchId],
       centerX: treeRect.x + index * (columnWidth + columnGap) + columnWidth / 2,
@@ -3757,6 +3828,7 @@ function buildTalentTooltip(state, row) {
   }
   if (talent.capstone) {
     requirements.push("Only one Signature Ultimate can be learned.");
+    requirements.push("Path: finish The Choice Beneath the Bark with Bram, open Talents (N), learn one final ULT, build 100 Heart Charge, then press R.");
   }
 
   return {
@@ -4119,13 +4191,13 @@ function getHudHoverOnlyTarget(state, mouseX, mouseY) {
         tooltip: {
           title: slot.info.label,
           lines: locked
-            ? [readiness.detail, "Spirit tree"]
+            ? [readiness.detail, "Press N to inspect the talent tree and Signature path."]
             : [
                 `Status: ${readiness.label}`,
                 readiness.detail,
                 slot.info.cost > 0 ? `Cost ${slot.info.cost} Spirit` : "No Spirit cost",
                 `Cooldown ${slot.info.cooldown.toFixed(2)}s`,
-                slot.info.signatureAbility ? "Uses Heart Charge as its ultimate resource." : "",
+                slot.info.signatureAbility ? "Signature ultimate: build 100 Heart Charge, then press R." : "",
               ].filter(Boolean),
           accent: slot.color,
         },
