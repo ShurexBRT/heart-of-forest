@@ -1328,6 +1328,10 @@ function interpolatePoint(start, end, t) {
   };
 }
 
+function clamp01(value) {
+  return Math.max(0, Math.min(1, value));
+}
+
 function drawInteractable(ctx, item, state, origin) {
   const point = toScreen(origin, item.anchorX, item.anchorY);
   drawInteractionTargetMarker(ctx, item, state, origin, point);
@@ -1800,6 +1804,7 @@ function drawEnemy(ctx, enemy, state, origin) {
       tintAlpha: 0.82,
     });
   }
+  drawEnemyActionDetails(ctx, enemy, state, origin, point);
   if (enemy.hitFlash > 0) {
     drawActorHitSpark(ctx, point.x, point.y, enemy.radius, getDamageReadColor(enemy.config.damageType));
   }
@@ -2056,10 +2061,74 @@ function drawEnemyGrounding(ctx, enemy, state, origin, point) {
   }
 }
 
+function drawEnemyActionDetails(ctx, enemy, state, origin, point) {
+  const role = enemy.config.role || "melee";
+  const angle = Number.isFinite(enemy.attackAngle) ? enemy.attackAngle : enemy.facing || 0;
+  const color = enemy.config.windupColor || getDamageReadColor(enemy.config.damageType || enemy.config.projectileType);
+
+  if (enemy.state === "windup") {
+    const progress = getEnemyWindupProgress(enemy);
+    const startWorld = {
+      x: enemy.x + Math.cos(angle) * (enemy.radius + 12),
+      y: enemy.y + Math.sin(angle) * (enemy.radius + 12),
+    };
+    const endWorld = {
+      x: enemy.x + Math.cos(angle) * (enemy.radius + (role === "ranged" ? 58 : 34)),
+      y: enemy.y + Math.sin(angle) * (enemy.radius + (role === "ranged" ? 58 : 34)),
+    };
+    const start = toScreen(origin, startWorld.x, startWorld.y, 28);
+    const end = toScreen(origin, endWorld.x, endWorld.y, 28);
+    const charge = interpolatePoint(start, end, progress);
+
+    ctx.save();
+    ctx.globalAlpha = 0.34 + progress * 0.44;
+    drawThickPixelLine(ctx, start, charge, role === "melee" ? 3 : 2, color, 0.82);
+    pixelRect(ctx, charge.x - 3, charge.y - 3, 6, 6, color);
+    pixelRect(ctx, charge.x - 1, charge.y - 6, 2, 12, "#fff6c7");
+
+    if (role === "support") {
+      pixelRect(ctx, point.x - 3, point.y - 54, 6, 2, color);
+      pixelRect(ctx, point.x - 1, point.y - 58, 2, 10, "#efffc8");
+    } else if (role === "ranged") {
+      pixelRect(ctx, point.x - 7, point.y - 49, 4, 4, color);
+      pixelRect(ctx, point.x + 4, point.y - 46, 4, 4, "#fff6c7");
+    }
+    ctx.restore();
+    return;
+  }
+
+  if (enemy.state === "recover") {
+    const fade = clamp01((enemy.stateTimer ?? 0) / Math.max(0.1, enemy.config.recover || 0.45));
+    const tail = toScreen(
+      origin,
+      enemy.x - Math.cos(angle) * (enemy.radius + 10),
+      enemy.y - Math.sin(angle) * (enemy.radius + 10),
+      8
+    );
+
+    ctx.save();
+    ctx.globalAlpha = 0.18 + fade * 0.24;
+    if (role === "melee") {
+      pixelRect(ctx, tail.x - 5, tail.y - 2, 10, 2, color);
+      pixelRect(ctx, tail.x - 2, tail.y + 2, 5, 2, "#e8d49a");
+    } else {
+      pixelRect(ctx, point.x - 5, point.y - 47, 10, 2, color);
+      pixelRect(ctx, point.x - 2, point.y - 50, 4, 4, "#fff6c7");
+    }
+    ctx.restore();
+  }
+}
+
+function getEnemyWindupProgress(enemy) {
+  const duration = Math.max(0.01, enemy.config.windup || 0.2);
+  return clamp01(1 - (enemy.stateTimer ?? 0) / duration);
+}
+
 function drawEnemyWindupMarker(ctx, enemy, origin) {
   const color = enemy.config.windupColor || getDamageReadColor(enemy.config.damageType || enemy.config.projectileType);
   const role = enemy.config.role || "melee";
   const angle = Number.isFinite(enemy.attackAngle) ? enemy.attackAngle : enemy.facing || 0;
+  const progress = getEnemyWindupProgress(enemy);
   const range = enemy.config.attackRange || (role === "ranged" ? 180 : 70);
   const startDistance = Math.max(18, enemy.radius + 8);
   const endDistance = role === "ranged" ? Math.min(220, Math.max(130, range)) : Math.min(105, Math.max(54, range + 20));
@@ -2071,11 +2140,19 @@ function drawEnemyWindupMarker(ctx, enemy, origin) {
   const prongSize = role === "ranged" ? 12 : 8;
 
   ctx.save();
-  ctx.globalAlpha = 0.76;
-  drawIsoRing(ctx, origin, enemy.x, enemy.y, enemy.radius + 12, 8, color);
+  ctx.globalAlpha = 0.54 + progress * 0.28;
+  drawIsoRing(ctx, origin, enemy.x, enemy.y, enemy.radius + 10 + progress * 5, 8, color);
 
   if (role === "support") {
-    drawIsoRing(ctx, origin, enemy.x, enemy.y, Math.min(92, Math.max(58, (enemy.config.supportRadius || 140) * 0.48)), 6, color);
+    drawIsoRing(
+      ctx,
+      origin,
+      enemy.x,
+      enemy.y,
+      Math.min(98, Math.max(58, (enemy.config.supportRadius || 140) * (0.44 + progress * 0.08))),
+      6,
+      color
+    );
     drawIsoLine(ctx, origin, enemy.x - 18, enemy.y, enemy.x + 18, enemy.y, 4, color);
     drawIsoLine(ctx, origin, enemy.x, enemy.y - 18, enemy.x, enemy.y + 18, 4, color);
     ctx.restore();
@@ -2083,6 +2160,9 @@ function drawEnemyWindupMarker(ctx, enemy, origin) {
   }
 
   drawIsoLine(ctx, origin, startX, startY, endX, endY, role === "ranged" ? 4 : 5, color);
+  const chargeX = startX + (endX - startX) * progress;
+  const chargeY = startY + (endY - startY) * progress;
+  drawIsoRing(ctx, origin, chargeX, chargeY, 7 + progress * 5, progress > 0.72 ? 5 : 3, "#fff6c7");
   drawIsoLine(
     ctx,
     origin,

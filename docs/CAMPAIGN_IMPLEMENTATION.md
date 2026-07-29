@@ -200,6 +200,7 @@ beskonacnu kupovinu talent poena.
 | 8AB | Enemy hit-flash mask bugfix | Zavrseno |
 | 8AC | Terrain water, ice, path and floor relief polish | Zavrseno |
 | 8AD | Ayla and NPC runtime presence polish | Zavrseno |
+| 8AE | Enemy windup and recover readability polish | Zavrseno |
 
 ## Dnevnik implementacije
 
@@ -1373,6 +1374,26 @@ beskonacnu kupovinu talent poena.
   Homestead NPC focus, Ayla cast i Ayla dash state.
 - Segment ne menja player movement, collision, attack/cast timing, hitboxe,
   NPC pozicije, NPC interakcione radiuse, quest flow ili save format.
+
+### Faza 8AE
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: uciniti neprijateljske napade citljivijim i prijatnijim za reakciju bez
+  promene AI-ja ili combat brojeva.
+- `rendering/renderer.js` sada posle enemy sprite-a crta `drawEnemyActionDetails`:
+  windup charge tick duz pravca napada, role-colored motes za ranged/support i
+  mali recover dust/release trag.
+- `drawEnemyWindupMarker` sada koristi stvarni `stateTimer/config.windup`
+  progress da ring i charge marker jace pulsiraju kako se release priblizava.
+- `docs/ENEMY_ART_DIRECTION.md` belezi da su ovi efekti renderer-side
+  readability sloj preko enemy v1 sheet-a, ne zamena sprite pipeline-a.
+- QA: syntax check za `rendering/renderer.js`, targeted
+  `combat-feedback/signature-ultimate/heartwood-phase-one` testovi, puna
+  regresija `node --test tests\*.test.mjs` sa `82/82` prolaza i browser
+  showcase `enemy-windup-recover-showcase-v2.png`.
+- Segment ne menja enemy windup duration, recover duration, damage, AI odluke,
+  projectile brzine, collision radius, spawn table, loot ili quest progression.
 
 ## Van trenutnog scopea
 

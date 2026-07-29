@@ -41,6 +41,9 @@ Heart of Forest enemies should read by gameplay role first and biome identity se
   full roster concept plus four grouped directional source sheets.
 - `rendering/pixelAssets.js` remains the deterministic procedural fallback if
   the bitmap atlas is unavailable.
+- Runtime feel polish may add windup charge ticks, role-colored motes and
+  recover dust over the sprite. These are readability effects, not sprite-sheet
+  replacements.
 - No combat numbers, AI, radius, damage, spawn rules, or quest progression are changed.
 - Future animation passes can add extra walk/windup frames per facing, but must
   preserve the same row/type and facing order unless the loader is updated.
