@@ -17,6 +17,7 @@ const ATLAS_WORLD_ART_ENABLED = true;
 const ATLAS_TILE_PATTERNS_ENABLED = false;
 const ATLAS_FLOOR_TEXTURES_ENABLED = true;
 const ATLAS_PLAYER_ENABLED = true;
+const SPRITE_TINT_CACHE = new WeakMap();
 
 const SCENE_ATLAS_KEYS = {
   whisperingWoods: "mossy-ruins",
@@ -1115,23 +1116,51 @@ function drawSpriteCanvas(ctx, sprite, x, y, options = {}) {
   const anchorX = options.anchorX ?? 0.5;
   const anchorY = options.anchorY ?? 1;
   const scale = options.scale || 1;
+  const alpha = options.alpha ?? 1;
   const drawWidth = sprite.width * scale;
   const drawHeight = sprite.height * scale;
   const left = Math.round(x - drawWidth * anchorX);
   const top = Math.round(y - drawHeight * anchorY);
 
   ctx.save();
-  ctx.globalAlpha = options.alpha ?? 1;
+  ctx.globalAlpha = alpha;
   ctx.drawImage(sprite, left, top, Math.round(drawWidth), Math.round(drawHeight));
 
   if (options.tint) {
-    ctx.globalCompositeOperation = "source-atop";
-    ctx.globalAlpha = options.tintAlpha ?? 0.6;
-    ctx.fillStyle = options.tint;
-    ctx.fillRect(left, top, Math.round(drawWidth), Math.round(drawHeight));
+    ctx.globalAlpha = alpha * (options.tintAlpha ?? 0.6);
+    ctx.drawImage(
+      getTintedSpriteCanvas(sprite, options.tint),
+      left,
+      top,
+      Math.round(drawWidth),
+      Math.round(drawHeight)
+    );
   }
 
   ctx.restore();
+}
+
+function getTintedSpriteCanvas(sprite, tint) {
+  let tintVariants = SPRITE_TINT_CACHE.get(sprite);
+  if (!tintVariants) {
+    tintVariants = new Map();
+    SPRITE_TINT_CACHE.set(sprite, tintVariants);
+  }
+
+  if (!tintVariants.has(tint)) {
+    const tinted = document.createElement("canvas");
+    tinted.width = sprite.width;
+    tinted.height = sprite.height;
+    const tintedCtx = tinted.getContext("2d");
+    tintedCtx.imageSmoothingEnabled = false;
+    tintedCtx.drawImage(sprite, 0, 0);
+    tintedCtx.globalCompositeOperation = "source-atop";
+    tintedCtx.fillStyle = tint;
+    tintedCtx.fillRect(0, 0, tinted.width, tinted.height);
+    tintVariants.set(tint, tinted);
+  }
+
+  return tintVariants.get(tint);
 }
 
 function pickAylaFrame(facing, frame, pose) {

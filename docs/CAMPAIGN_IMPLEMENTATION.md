@@ -197,6 +197,7 @@ beskonacnu kupovinu talent poena.
 | 7D | First-hour quest polish i collision reachability audit | Zavrseno |
 | 7E | HUD modernization pass | Zavrseno |
 | 7F | Biome floor and building texture pass | Zavrseno |
+| 8AB | Enemy hit-flash mask bugfix | Zavrseno |
 
 ## Dnevnik implementacije
 
@@ -1310,6 +1311,23 @@ beskonacnu kupovinu talent poena.
 - Segment ne menja hotkeye, hover targete, quest acceptance/turn-in flow,
   save/load ponasanje, menu selekcije, input routing, world map node podatke
   ili gameplay brojeve.
+
+### Faza 8AB
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: ukloniti vidljivu pravougaonu "hitbox" kocku koja se pojavljivala oko
+  neprijatelja kada primi udarac.
+- `rendering/atlasAssets.js` sada hit-flash tint crta preko alpha-maskiranog
+  offscreen sprite canvasa, pa se prebojava samo telo sprite-a umesto celog
+  frejma preko vec nacrtanog terena.
+- `rendering/pixelAssets.js` dobija isti masked-tint fallback, da proceduralni
+  sprite-evi i atlas sprite-evi imaju isto ponasanje.
+- QA: syntax check za `rendering/atlasAssets.js` i `rendering/pixelAssets.js`,
+  puna regresija `node --test tests\*.test.mjs` sa `82/82` prolaza i browser
+  smoke screenshot `enemy-hitflash-mask-forced-enemy.png` u `Whispering Woods`.
+- Segment ne menja enemy collision, radius, AI, combat brojeve, hit timing,
+  health bar, damage text ili spawn table.
 
 ## Van trenutnog scopea
 

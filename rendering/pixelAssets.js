@@ -1,5 +1,6 @@
 const textureCache = new Map();
 const spriteCache = new Map();
+const spriteTintCache = new WeakMap();
 
 export function resolveFacing(angle = 0) {
   const normal = ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
@@ -28,13 +29,34 @@ export function drawPixelSprite(ctx, sprite, x, y, options = {}) {
   ctx.drawImage(sprite.canvas, drawX, drawY, width, height);
 
   if (tint) {
-    ctx.globalCompositeOperation = "source-atop";
     ctx.globalAlpha *= tintAlpha;
-    ctx.fillStyle = tint;
-    ctx.fillRect(drawX, drawY, width, height);
+    ctx.drawImage(getTintedSpriteCanvas(sprite.canvas, tint), drawX, drawY, width, height);
   }
 
   ctx.restore();
+}
+
+function getTintedSpriteCanvas(canvas, tint) {
+  let tintVariants = spriteTintCache.get(canvas);
+  if (!tintVariants) {
+    tintVariants = new Map();
+    spriteTintCache.set(canvas, tintVariants);
+  }
+
+  if (!tintVariants.has(tint)) {
+    const tinted = document.createElement("canvas");
+    tinted.width = canvas.width;
+    tinted.height = canvas.height;
+    const tintedCtx = tinted.getContext("2d");
+    tintedCtx.imageSmoothingEnabled = false;
+    tintedCtx.drawImage(canvas, 0, 0);
+    tintedCtx.globalCompositeOperation = "source-atop";
+    tintedCtx.fillStyle = tint;
+    tintedCtx.fillRect(0, 0, tinted.width, tinted.height);
+    tintVariants.set(tint, tinted);
+  }
+
+  return tintVariants.get(tint);
 }
 
 export function getGroundTexture(ground, theme) {
