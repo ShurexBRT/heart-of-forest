@@ -237,27 +237,7 @@ function drawContent(ctx, geometry) {
   }
 
   if (view.objectives?.length) {
-    ctx.fillStyle = "#fff2d5";
-    ctx.font = "700 14px Segoe UI, Arial";
-    ctx.fillText("Objectives", layout.contentX + 18, cursorY + 6);
-    cursorY += 24;
-    ctx.font = "12px Segoe UI, Arial";
-    for (const objective of view.objectives) {
-      const complete = objective.current >= objective.required;
-      ctx.fillStyle = complete ? "#a4de8c" : "#d7e4cf";
-      const prefix = complete ? "[Done]" : "[ ]";
-      drawWrappedText(
-        ctx,
-        `${prefix} ${objective.label}: ${Math.min(objective.current, objective.required)}/${objective.required}`,
-        layout.contentX + 18,
-        cursorY,
-        layout.contentW - 36,
-        16,
-        2
-      );
-      cursorY += 18;
-    }
-    cursorY += 8;
+    cursorY = drawObjectiveProgressCard(ctx, geometry, cursorY, contentLimitY);
   }
 
   if (view.quest?.rewards) {
@@ -324,6 +304,154 @@ function drawStatusTag(ctx, x, y, label, color) {
   drawForestPill(ctx, x, y, width, 24, label, color, {
     font: "700 11px Segoe UI, Arial",
   });
+}
+
+function drawObjectiveProgressCard(ctx, geometry, startY, contentLimitY) {
+  const { layout, view } = geometry;
+  const objectives = view.objectives || [];
+  if (objectives.length === 0) return startY;
+
+  const x = layout.contentX + 18;
+  const width = layout.contentW - 36;
+  const progress = getObjectiveProgress(view);
+  const accent = view.mode === "turn-in" ? "#e6c57e" : view.mode === "offer" ? "#8fdc8b" : "#79b8ff";
+  const rowHeight = layout.compact ? 26 : 30;
+  const availableRows = Math.max(1, Math.floor((contentLimitY - startY - 56) / rowHeight));
+  const visibleObjectives = objectives.slice(0, availableRows);
+  const hiddenCount = objectives.length - visibleObjectives.length;
+  const height = 38 + visibleObjectives.length * rowHeight + (hiddenCount > 0 ? 20 : 10);
+
+  drawForestSubpanel(ctx, x, startY, width, height, {
+    accent,
+    fill: "rgba(12, 24, 18, 0.62)",
+    footerAccent: accent,
+  });
+  ctx.fillStyle = "#fff2d5";
+  ctx.font = "700 12px Segoe UI, Arial";
+  ctx.fillText("Objectives", x + 10, startY + 18);
+  ctx.textAlign = "right";
+  ctx.fillStyle = view.mode === "turn-in" ? "#ffe4a8" : "#b9c7b5";
+  ctx.font = "700 10px Segoe UI, Arial";
+  const progressLabel = getObjectiveCardStatusLabel(view, progress);
+  ctx.fillText(progressLabel, x + width - 10, startY + 18);
+  ctx.textAlign = "left";
+  drawProgressRail(ctx, x + 10, startY + 27, width - 20, 5, progress.ratio, accent);
+
+  let rowY = startY + 43;
+  visibleObjectives.forEach((objective, index) => {
+    const target = Math.max(0, Number(objective.required) || 0);
+    const value = Math.max(0, Number(objective.current) || 0);
+    const current = target > 0 ? Math.min(value, target) : value;
+    const complete = target <= 0 || value >= target;
+    const active = index === progress.activeIndex && !complete && view.mode !== "offer";
+    const rowAccent = complete ? "#a4de8c" : active ? "#f1d786" : "#71867a";
+
+    ctx.strokeStyle = rowAccent;
+    ctx.lineWidth = active ? 2 : 1;
+    ctx.strokeRect(Math.round(x + 11) + 0.5, Math.round(rowY + 1) + 0.5, 10, 10);
+    if (complete) {
+      ctx.strokeStyle = "#eaffd8";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x + 13, rowY + 6);
+      ctx.lineTo(x + 16, rowY + 9);
+      ctx.lineTo(x + 21, rowY + 3);
+      ctx.stroke();
+    }
+    ctx.lineWidth = 1;
+
+    ctx.fillStyle = complete ? "#a4de8c" : active ? "#fff1c6" : "#d7e4cf";
+    ctx.font = layout.compact ? "11px Segoe UI, Arial" : "12px Segoe UI, Arial";
+    ctx.fillText(shortenText(objective.label, layout.compact ? 52 : 72), x + 30, rowY + 12);
+    ctx.textAlign = "right";
+    ctx.fillStyle = complete ? "#d8ffd1" : "#b9c7b5";
+    ctx.font = "700 10px Segoe UI, Arial";
+    ctx.fillText(`${current}/${objective.required}`, x + width - 12, rowY + 12);
+    ctx.textAlign = "left";
+    drawProgressRail(ctx, x + 30, rowY + 19, width - 74, 4, getObjectiveRatio(objective), rowAccent);
+    rowY += rowHeight;
+  });
+
+  if (hiddenCount > 0) {
+    ctx.fillStyle = "#9db09a";
+    ctx.font = "10px Segoe UI, Arial";
+    ctx.fillText(`+${hiddenCount} more objective${hiddenCount > 1 ? "s" : ""}`, x + 10, rowY + 10);
+  }
+
+  return startY + height + 12;
+}
+
+function getObjectiveProgress(view) {
+  const source = view.objectiveProgress;
+  if (source) {
+    return {
+      completed: source.completed || 0,
+      total: source.total || 0,
+      current: source.current || 0,
+      required: source.required || 0,
+      activeIndex: Number.isInteger(source.activeIndex) ? source.activeIndex : 0,
+      ratio: Math.max(0, Math.min(1, source.percent || 0)),
+    };
+  }
+
+  const objectives = view.objectives || [];
+  let completed = 0;
+  let current = 0;
+  let required = 0;
+  let activeIndex = -1;
+  objectives.forEach((objective, index) => {
+    const target = Math.max(0, Number(objective.required) || 0);
+    const value = Math.max(0, Number(objective.current) || 0);
+    current += target > 0 ? Math.min(value, target) : value;
+    required += target;
+    if (target <= 0 || value >= target) {
+      completed += 1;
+    } else if (activeIndex < 0) {
+      activeIndex = index;
+    }
+  });
+  if (activeIndex < 0 && objectives.length > 0) activeIndex = objectives.length - 1;
+  return {
+    completed,
+    total: objectives.length,
+    current,
+    required,
+    activeIndex,
+    ratio: required > 0 ? Math.max(0, Math.min(1, current / required)) : 0,
+  };
+}
+
+function drawProgressRail(ctx, x, y, width, height, ratio, accent) {
+  const clamped = Math.max(0, Math.min(1, ratio || 0));
+  ctx.fillStyle = "rgba(2, 7, 7, 0.66)";
+  ctx.fillRect(Math.round(x), Math.round(y), Math.round(width), Math.round(height));
+  ctx.fillStyle = accent;
+  ctx.fillRect(Math.round(x), Math.round(y), Math.round(width * clamped), Math.round(height));
+  ctx.fillStyle = "rgba(255, 255, 255, 0.16)";
+  ctx.fillRect(Math.round(x), Math.round(y), Math.round(width * clamped), 1);
+}
+
+function getObjectiveRatio(objective) {
+  const target = Math.max(0, Number(objective.required) || 0);
+  if (target <= 0) return 1;
+  return Math.max(0, Math.min(1, (Number(objective.current) || 0) / target));
+}
+
+function shortenText(value, max) {
+  const text = String(value || "");
+  if (text.length <= max) return text;
+  return `${text.slice(0, Math.max(1, max - 3))}...`;
+}
+
+function getObjectiveCardStatusLabel(view, progress) {
+  if (view.mode === "turn-in") return "READY";
+  if (progress.total > 1 && progress.completed === 0 && progress.current > 0 && progress.required > 0) {
+    return `${progress.current}/${progress.required} PROGRESS`;
+  }
+  if (progress.total > 1) {
+    return `${progress.completed}/${progress.total} COMPLETE`;
+  }
+  return `${progress.current}/${progress.required}`;
 }
 
 function formatRewardLines(rewards) {

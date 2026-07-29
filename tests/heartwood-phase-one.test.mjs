@@ -88,10 +88,34 @@ test("quest entries expose readable HUD step labels", () => {
       first_moonleaf: "active",
     },
   });
-  assert.equal(
-    getActiveQuestEntries(moonleaf).find((quest) => quest.id === "first_moonleaf")?.stepLabel,
-    "TEND"
+  const moonleafEntry = getActiveQuestEntries(moonleaf).find((quest) => quest.id === "first_moonleaf");
+  assert.equal(moonleafEntry?.stepLabel, "TEND");
+  assert.deepEqual(
+    {
+      completed: moonleafEntry?.objectiveProgress.completed,
+      total: moonleafEntry?.objectiveProgress.total,
+      current: moonleafEntry?.objectiveProgress.current,
+      required: moonleafEntry?.objectiveProgress.required,
+      percent: moonleafEntry?.objectiveProgress.percent,
+      activeIndex: moonleafEntry?.objectiveProgress.activeIndex,
+    },
+    {
+      completed: 0,
+      total: 4,
+      current: 0,
+      required: 4,
+      percent: 0,
+      activeIndex: 0,
+    }
   );
+
+  moonleaf.questCounters.moonleafPlanted = 1;
+  moonleaf.questCounters.moonleafWatered = 1;
+  const tendedMoonleafEntry = getActiveQuestEntries(moonleaf).find((quest) => quest.id === "first_moonleaf");
+  assert.equal(tendedMoonleafEntry?.objectiveProgress.completed, 2);
+  assert.equal(tendedMoonleafEntry?.objectiveProgress.current, 2);
+  assert.equal(tendedMoonleafEntry?.objectiveProgress.percent, 0.5);
+  assert.equal(tendedMoonleafEntry?.objectiveProgress.activeIndex, 2);
 
   const gate = createProgression({
     questStates: {

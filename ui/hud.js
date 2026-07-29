@@ -37,6 +37,7 @@ import {
   drawForestCloseButton,
   drawForestFrame,
   drawForestPanel,
+  drawForestPill,
   drawForestSubpanel,
 } from "./forestChrome.js";
 import { getQuestPanelHoverTarget, renderQuestPanel } from "./questPanel.js";
@@ -1018,10 +1019,12 @@ function drawQuestTracker(ctx, state) {
         ? getQuestTurnInLabel(quest)
         : getQuestObjectiveLabel(quest);
     const noteLines = toWrappedLines(ctx, note, width - 34).slice(0, 2);
+    const progress = getQuestProgressSummary(quest);
     return {
       quest,
       noteLines,
-      height: 32 + noteLines.length * 14,
+      progress,
+      height: 43 + noteLines.length * 14 + (progress.total > 1 ? 6 : 0),
     };
   });
   const height = 28 + rows.reduce((sum, row) => sum + row.height, 0);
@@ -1065,7 +1068,21 @@ function drawQuestTracker(ctx, state) {
       ctx.fillText(line, x + 12, cursorY);
       cursorY += 14;
     });
-    cursorY += 5;
+    drawQuestProgressRail(
+      ctx,
+      x + 12,
+      cursorY + 1,
+      width - 24,
+      5,
+      row.progress.ratio,
+      quest.status === "complete" ? "#d7b866" : "#80bd79"
+    );
+    cursorY += 11;
+    if (row.progress.total > 1) {
+      drawQuestStepPips(ctx, x + 12, cursorY, width - 24, row.progress, quest.status === "complete" ? "#d7b866" : "#80bd79");
+      cursorY += 9;
+    }
+    cursorY += 4;
   }
 }
 
@@ -1138,25 +1155,225 @@ function drawTrainingPanel(ctx, state) {
 }
 
 function getQuestProgressSummary(quest) {
+  const progress = getQuestObjectiveProgress(quest);
   if (quest.status === "complete") {
-    return { label: "READY", ready: true };
+    return { ...progress, label: "READY", ready: true, ratio: 1 };
   }
 
   const objectives = quest.objectives || [];
   if (objectives.length === 0) {
-    return { label: "TRACKED", ready: false };
+    return { ...progress, label: "TRACKED", ready: false };
   }
 
-  const completed = objectives.filter((entry) => entry.current >= entry.required).length;
   if (objectives.length > 1) {
-    return { label: `${completed}/${objectives.length} STEPS`, ready: false };
+    return { ...progress, label: `${progress.completed}/${progress.total} STEPS`, ready: false };
   }
 
   const objective = objectives[0];
   return {
+    ...progress,
     label: `${Math.min(objective.current, objective.required)}/${objective.required}`,
     ready: false,
   };
+}
+
+function getQuestObjectiveProgress(quest) {
+  const source = quest.objectiveProgress;
+  if (source) {
+    return {
+      completed: source.completed || 0,
+      total: source.total || 0,
+      current: source.current || 0,
+      required: source.required || 0,
+      activeIndex: Number.isInteger(source.activeIndex) ? source.activeIndex : 0,
+      ratio: Math.max(0, Math.min(1, source.percent || 0)),
+    };
+  }
+
+  const objectives = quest.objectives || [];
+  let completed = 0;
+  let current = 0;
+  let required = 0;
+  let activeIndex = -1;
+  objectives.forEach((objective, index) => {
+    const target = Math.max(0, Number(objective.required) || 0);
+    const value = Math.max(0, Number(objective.current) || 0);
+    current += target > 0 ? Math.min(value, target) : value;
+    required += target;
+    if (target <= 0 || value >= target) {
+      completed += 1;
+    } else if (activeIndex < 0) {
+      activeIndex = index;
+    }
+  });
+  if (activeIndex < 0 && objectives.length > 0) activeIndex = objectives.length - 1;
+  const ratio =
+    quest.status === "complete" || quest.status === "done"
+      ? 1
+      : required > 0
+        ? current / required
+        : objectives.length > 0 && completed >= objectives.length
+          ? 1
+          : 0;
+  return {
+    completed,
+    total: objectives.length,
+    current,
+    required,
+    activeIndex,
+    ratio: Math.max(0, Math.min(1, ratio)),
+  };
+}
+
+function drawQuestProgressRail(ctx, x, y, width, height, ratio, accent) {
+  const clamped = Math.max(0, Math.min(1, ratio || 0));
+  ctx.fillStyle = "rgba(2, 7, 7, 0.66)";
+  ctx.fillRect(Math.round(x), Math.round(y), Math.round(width), Math.round(height));
+  ctx.fillStyle = accent;
+  ctx.fillRect(Math.round(x), Math.round(y), Math.round(width * clamped), Math.round(height));
+  ctx.fillStyle = "rgba(255, 255, 255, 0.16)";
+  ctx.fillRect(Math.round(x), Math.round(y), Math.round(width * clamped), 1);
+}
+
+function drawQuestStepPips(ctx, x, y, width, progress, accent) {
+  if (!progress || progress.total <= 1) return;
+  const gap = 4;
+  const pipWidth = Math.max(7, Math.min(20, (width - gap * (progress.total - 1)) / progress.total));
+  for (let index = 0; index < progress.total; index += 1) {
+    const pipX = x + index * (pipWidth + gap);
+    const complete = index < progress.completed;
+    const current = index === progress.activeIndex && !complete;
+    ctx.fillStyle = complete
+      ? accent
+      : current
+        ? "rgba(241, 215, 134, 0.42)"
+        : "rgba(255, 255, 255, 0.12)";
+    ctx.fillRect(Math.round(pipX), Math.round(y), Math.round(pipWidth), 4);
+    if (current) {
+      ctx.strokeStyle = "#f1d786";
+      ctx.strokeRect(Math.round(pipX) + 0.5, Math.round(y) + 0.5, Math.round(pipWidth) - 1, 3);
+    }
+  }
+}
+
+function drawQuestObjectiveCard(ctx, quest, x, y, width, compact = false) {
+  const objectives = quest.objectives || [];
+  if (objectives.length === 0) {
+    return y;
+  }
+
+  const progress = getQuestProgressSummary(quest);
+  const accent = quest.status === "complete" ? "#d7b866" : "#80bd79";
+  const rowHeight = compact ? 27 : 30;
+  const height = 38 + objectives.length * rowHeight + 11;
+
+  drawForestSubpanel(ctx, x, y, width, height, {
+    accent,
+    fill: "rgba(12, 24, 18, 0.62)",
+    footerAccent: accent,
+  });
+
+  ctx.fillStyle = "#fff2d5";
+  ctx.font = "700 11px Segoe UI, Arial";
+  ctx.fillText("OBJECTIVES", x + 10, y + 18);
+  ctx.textAlign = "right";
+  ctx.fillStyle = progress.ready ? "#ffe4a8" : "#b9c7b5";
+  ctx.font = "700 10px Segoe UI, Arial";
+  const statusLabel = getObjectiveCardStatusLabel(progress);
+  ctx.fillText(statusLabel, x + width - 10, y + 18);
+  ctx.textAlign = "left";
+  drawQuestProgressRail(ctx, x + 10, y + 27, width - 20, 5, progress.ratio, accent);
+
+  let rowY = y + 43;
+  objectives.forEach((objective, index) => {
+    const target = Math.max(0, Number(objective.required) || 0);
+    const value = Math.max(0, Number(objective.current) || 0);
+    const current = target > 0 ? Math.min(value, target) : value;
+    const complete = target <= 0 || value >= target;
+    const active = index === progress.activeIndex && !complete && quest.status !== "available";
+    const rowAccent = complete ? "#9de1a3" : active ? "#f1d786" : "#71867a";
+    const rowText = complete ? "#aee6a2" : active ? "#fff1c6" : "#d8e6d4";
+
+    ctx.strokeStyle = rowAccent;
+    ctx.lineWidth = active ? 2 : 1;
+    ctx.strokeRect(Math.round(x + 11) + 0.5, Math.round(rowY + 1) + 0.5, 10, 10);
+    if (complete) {
+      ctx.strokeStyle = "#eaffd8";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x + 13, rowY + 6);
+      ctx.lineTo(x + 16, rowY + 9);
+      ctx.lineTo(x + 21, rowY + 3);
+      ctx.stroke();
+    }
+    ctx.lineWidth = 1;
+
+    ctx.fillStyle = rowText;
+    ctx.font = "11px Segoe UI, Arial";
+    ctx.fillText(shorten(objective.label, compact ? 52 : 76), x + 30, rowY + 11);
+    ctx.textAlign = "right";
+    ctx.fillStyle = complete ? "#d8ffd1" : "#b9c7b5";
+    ctx.font = "700 10px Segoe UI, Arial";
+    ctx.fillText(`${current}/${objective.required}`, x + width - 12, rowY + 11);
+    ctx.textAlign = "left";
+    drawQuestProgressRail(
+      ctx,
+      x + 30,
+      rowY + 18,
+      width - 74,
+      4,
+      getObjectiveRatio(objective),
+      rowAccent
+    );
+    rowY += rowHeight;
+  });
+
+  return y + height + 10;
+}
+
+function drawQuestFieldLeadCard(ctx, selectedNavigation, x, y, width, compact = false) {
+  const lines = toWrappedLines(
+    ctx,
+    selectedNavigation.routeNote || selectedNavigation.hint,
+    width - 20
+  ).slice(0, compact ? 2 : 3);
+  const height = 38 + lines.length * 14;
+
+  drawForestSubpanel(ctx, x, y, width, height, {
+    accent: "#d6bf76",
+    fill: "rgba(26, 31, 20, 0.7)",
+    footerAccent: "#d6bf76",
+  });
+  const label = selectedNavigation.leadLabel || "FIELD LEAD";
+  const pillWidth = Math.min(128, Math.max(86, Math.ceil(ctx.measureText(label).width) + 24));
+  drawForestPill(ctx, x + 10, y + 8, pillWidth, 20, label, "#d6bf76", {
+    font: "700 9px Segoe UI, Arial",
+    fill: "rgba(41, 46, 25, 0.84)",
+    textColor: "#fff1bd",
+  });
+  ctx.fillStyle = "#d8e6d4";
+  ctx.font = "11px Segoe UI, Arial";
+  lines.forEach((line, index) => {
+    ctx.fillText(line, x + 10, y + 43 + index * 14);
+  });
+  return y + height + 10;
+}
+
+function getObjectiveRatio(objective) {
+  const target = Math.max(0, Number(objective.required) || 0);
+  if (target <= 0) return 1;
+  return Math.max(0, Math.min(1, (Number(objective.current) || 0) / target));
+}
+
+function getObjectiveCardStatusLabel(progress) {
+  if (progress.ready) return "READY";
+  if (progress.total > 1 && progress.completed === 0 && progress.current > 0 && progress.required > 0) {
+    return `${progress.current}/${progress.required} PROGRESS`;
+  }
+  if (progress.total > 1) {
+    return `${progress.completed}/${progress.total} COMPLETE`;
+  }
+  return `${progress.current}/${progress.required}`;
 }
 
 function drawQuestLogOverlay(ctx, state) {
@@ -1207,6 +1424,16 @@ function drawQuestLogOverlay(ctx, state) {
       row.rect.x + 10,
       row.rect.y + 34
     );
+    const rowProgress = getQuestProgressSummary(row.quest);
+    drawQuestProgressRail(
+      ctx,
+      row.rect.x + 10,
+      row.rect.y + row.rect.height - 8,
+      row.rect.width - 20,
+      4,
+      rowProgress.ratio,
+      row.quest.status === "complete" ? "#d7b866" : "#80bd79"
+    );
   });
 
   drawForestSubpanel(ctx, detailRect.x, detailRect.y, detailRect.width, detailRect.height, {
@@ -1239,40 +1466,11 @@ function drawQuestLogOverlay(ctx, state) {
   });
   cursorY += 8;
 
-  ctx.fillStyle = "#fff2d5";
-  ctx.font = "700 12px Segoe UI, Arial";
-  ctx.fillText("OBJECTIVES", bodyX, cursorY);
-  cursorY += 18;
-  ctx.font = "11px Segoe UI, Arial";
-  for (const objective of selectedQuest.objectives) {
-    const complete = objective.current >= objective.required;
-    ctx.fillStyle = complete ? "#9de1a3" : "#d8e6d4";
-    ctx.fillText(
-      `${complete ? "[DONE]" : "[ ]"} ${objective.label}: ${Math.min(objective.current, objective.required)}/${objective.required}`,
-      bodyX,
-      cursorY
-    );
-    cursorY += 15;
-  }
+  cursorY = drawQuestObjectiveCard(ctx, selectedQuest, bodyX, cursorY, bodyWidth, panel.compact);
 
   const selectedNavigation = state.selectedQuestNavigation;
   if (selectedNavigation?.questId === selectedQuest.id && selectedQuest.status !== "done") {
-    cursorY += 8;
-    ctx.fillStyle = "#f1d786";
-    ctx.font = "700 11px Segoe UI, Arial";
-    ctx.fillText(selectedNavigation.leadLabel || "FIELD LEAD", bodyX, cursorY);
-    cursorY += 15;
-    ctx.fillStyle = "#d8e6d4";
-    ctx.font = "11px Segoe UI, Arial";
-    toWrappedLines(
-      ctx,
-      selectedNavigation.routeNote || selectedNavigation.hint,
-      bodyWidth,
-      2
-    ).forEach((line) => {
-      ctx.fillText(line, bodyX, cursorY);
-      cursorY += 14;
-    });
+    cursorY = drawQuestFieldLeadCard(ctx, selectedNavigation, bodyX, cursorY + 8, bodyWidth, panel.compact);
   }
 
   const rewardText = getQuestRewardSummary(selectedQuest.rewards);
@@ -3397,7 +3595,7 @@ function getQuestLogPanelData(state) {
         contentHeight
       );
   const selectedIndex = Math.max(0, Math.min(quests.length - 1, state.ui.selectedQuestIndex || 0));
-  const rowHeight = 42;
+  const rowHeight = 50;
   const visibleCount = Math.max(1, Math.floor((listRect.height - 12) / rowHeight));
   const startIndex = Math.max(
     0,

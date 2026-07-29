@@ -441,7 +441,51 @@ function buildQuestEntry(progression, quest, extra = {}) {
 
   return {
     ...entry,
+    objectiveProgress: summarizeQuestObjectiveProgress(entry),
     stepLabel: getQuestStepLabel(entry),
+  };
+}
+
+export function summarizeQuestObjectiveProgress(quest) {
+  const objectives = Array.isArray(quest?.objectives) ? quest.objectives : [];
+  let completed = 0;
+  let current = 0;
+  let required = 0;
+  let activeIndex = -1;
+
+  objectives.forEach((objective, index) => {
+    const target = Math.max(0, Number(objective.required) || 0);
+    const value = Math.max(0, Number(objective.current) || 0);
+    const capped = target > 0 ? Math.min(value, target) : value;
+    current += capped;
+    required += target;
+    if (target <= 0 || value >= target) {
+      completed += 1;
+    } else if (activeIndex < 0) {
+      activeIndex = index;
+    }
+  });
+
+  if (activeIndex < 0 && objectives.length > 0) {
+    activeIndex = objectives.length - 1;
+  }
+
+  const percent =
+    quest?.status === "complete" || quest?.status === "done"
+      ? 1
+      : required > 0
+        ? Math.max(0, Math.min(1, current / required))
+        : objectives.length > 0 && completed >= objectives.length
+          ? 1
+          : 0;
+
+  return {
+    completed,
+    total: objectives.length,
+    current,
+    required,
+    percent,
+    activeIndex,
   };
 }
 
@@ -789,15 +833,22 @@ function resolveQuestPanelTopicState(state, npcDef, topic) {
     ...objective,
     current: getQuestCounter(state.progression, objective.key),
   }));
+  const questView = {
+    ...quest,
+    status,
+    objectives,
+  };
+  const objectiveProgress = summarizeQuestObjectiveProgress(questView);
 
   if (status === "available") {
     return {
       mode: "offer",
-      quest,
+      quest: questView,
       title: quest.title,
       statusLabel: "Available Quest",
       bodyLines: [quest.description, ...getQuestDialogueLines(quest, "intro", npcDef)],
       objectives,
+      objectiveProgress,
       rewardSummary: describeRewards(quest.rewards),
       actions: [
         { id: "accept-quest", label: "Accept Quest", accent: "#98d18a" },
@@ -809,11 +860,12 @@ function resolveQuestPanelTopicState(state, npcDef, topic) {
   if (status === "complete") {
     return {
       mode: "turn-in",
-      quest,
+      quest: questView,
       title: quest.title,
       statusLabel: "Ready to Turn In",
       bodyLines: getQuestDialogueLines(quest, "complete", npcDef),
       objectives,
+      objectiveProgress,
       rewardSummary: describeRewards(quest.rewards),
       actions: [
         { id: "complete-quest", label: "Complete Quest", accent: "#e6c57e" },
@@ -824,11 +876,12 @@ function resolveQuestPanelTopicState(state, npcDef, topic) {
 
   return {
     mode: "progress",
-    quest,
+    quest: questView,
     title: quest.title,
     statusLabel: "In Progress",
     bodyLines: getQuestDialogueLines(quest, "progress", npcDef),
     objectives,
+    objectiveProgress,
     rewardSummary: describeRewards(quest.rewards),
     actions: [{ id: "close-panel", label: "Close", accent: "#86b8d8" }],
   };

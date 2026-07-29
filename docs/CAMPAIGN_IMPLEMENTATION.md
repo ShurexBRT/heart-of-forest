@@ -1395,6 +1395,30 @@ beskonacnu kupovinu talent poena.
 - Segment ne menja enemy windup duration, recover duration, damage, AI odluke,
   projectile brzine, collision radius, spawn table, loot ili quest progression.
 
+### Faza 8AF
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: podici quest presentation da igrac odmah vidi sta je sledeci korak,
+  koliko je objektiva gotovo i gde treba da ide, bez menjanja quest uslova.
+- `systems/story.js` sada uz svaki active/journal/NPC quest view vraca
+  `objectiveProgress` (`completed`, `total`, `current`, `required`, `percent`,
+  `activeIndex`) kao jedinstven UI ugovor.
+- `ui/hud.js` quest tracker dobija mini progress rail i step pipove, a Field
+  Journal detalj dobija objective card sa checkboxovima, current-step akcentom,
+  per-objective trakom i stilizovanim `FIELD LEAD` route blokom.
+- `ui/questPanel.js` sada prihvatanje/progress/turn-in quest prozore crta istim
+  objective card jezikom kao Journal, da NPC razgovor i log ne deluju kao dva
+  odvojena sistema.
+- Dodata je regresija za `First Moonleaf` da quest entry izbacuje tacan
+  multi-step progress kroz tutorial ritam.
+- QA: syntax check za `systems/story.js`, `ui/hud.js` i `ui/questPanel.js`,
+  targeted `heartwood-phase-one/quest-flow` testovi, puna regresija
+  `node --test tests\*.test.mjs` i browser screenshots za Journal i NPC quest
+  panel.
+- Segment ne menja tekst questova, quest gating, counters, navigation targete,
+  NPC pozicije, input hotkeye ili combat/progression brojeve.
+
 ## Van trenutnog scopea
 
 - Durability i repair.
