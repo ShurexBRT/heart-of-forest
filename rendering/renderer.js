@@ -1712,7 +1712,7 @@ function drawNpc(ctx, npc, state, origin) {
   const palette = NPC_DEFS[npc.id]?.palette || npc.palette;
   drawNpcFocusMarker(ctx, npc, state, origin, palette);
   drawNpcSilhouetteBase(ctx, point.x, point.y, palette);
-  drawPixelSprite(ctx, getActorSprite(palette, "down", 0, "npc"), point.x, point.y);
+  drawPixelSprite(ctx, getActorSprite(palette, "down", 0, `npc:${npc.id}`), point.x, point.y);
 }
 
 function drawAfterImage(ctx, image, origin) {

@@ -1016,6 +1016,28 @@ beskonacnu kupovinu talent poena.
   rate-limit, charging ultimate i locked Pulse slucajeve; runtime screenshot je
   proverio stvarni right-click input bez projektila i bez fatal browser errora.
 
+### Faza 8O
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: podici kvalitet Ayle i NPC-jeva bez uvodjenja novog rizicnog bitmap
+  spritesheet pipeline-a u sredini gameplay polish faze.
+- Ayla proceduralni sprite sada bolje prati dogovoreni nacrt: svetliji hood,
+  cistije lice u senci, vidljiviji zeleni sash, vise vine/leaf detalja i
+  jaci spirit akcenat na staff vrhu tokom cast/idle varijanti.
+- NPC renderer vise ne trazi jedan genericki `npc` sprite, vec prosledjuje
+  `npc:<id>`, tako da svaki kljucni lik dobija svoj vizuelni potpis.
+- Rowan dobija elder staff i svetliji beard/shoulder trim, Lysa training baton,
+  Nettle reed charm, Halen road badge, Tamsin apothecary satchel, Orras relic
+  tablet, Garrick ember gauntlet, Vesper frost scarf, Bram ranger pack, Selka
+  heart lantern, a Mara lantern-tender detalje.
+- Postojeci Ayla atlas ostaje referenca, ali nije ponovo ukljucen jer i dalje
+  nosi concept-sheet/label artefakte. Sledeci art segment moze biti cisto
+  generisanje production bitmap sheet-a ako zelimo veci skok od proceduralnog
+  pass-a.
+- Segment ne menja koliziju, AI, quest state, NPC pozicije, hitboxe, combat
+  vrednosti ili item pickup logiku.
+
 ## Van trenutnog scopea
 
 - Durability i repair.

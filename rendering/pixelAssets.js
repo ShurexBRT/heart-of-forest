@@ -234,23 +234,54 @@ function buildGroundTexture(ground, theme) {
   return canvas;
 }
 
+const NPC_ACTOR_PROFILES = {
+  elder_rowan: { accessory: "elder_staff", trim: "#d6bb73", glow: "#fff1b5" },
+  lysa: { accessory: "training_baton", trim: "#91e2ff", glow: "#c9f5ff" },
+  nettle: { accessory: "reed_charm", trim: "#d6c39b", glow: "#b9e58f" },
+  halen: { accessory: "road_badge", trim: "#e7cf87", glow: "#ffe5a3" },
+  tamsin: { accessory: "apothecary_satchel", trim: "#f0b87b", glow: "#c6ffe3" },
+  orras: { accessory: "relic_tablet", trim: "#ece39e", glow: "#fff1aa" },
+  garrick: { accessory: "ember_gauntlet", trim: "#ffbb7d", glow: "#ff8d5a" },
+  vesper: { accessory: "frost_scarf", trim: "#d7f4ff", glow: "#f2fdff" },
+  bram: { accessory: "ranger_pack", trim: "#bf876d", glow: "#e0aa7d" },
+  selka: { accessory: "heart_lantern", trim: "#f0dd92", glow: "#fff1a8" },
+  mara: { accessory: "lantern_tender", trim: "#8de0c8", glow: "#a8fff0" },
+};
+
+function getActorKind(style) {
+  return typeof style === "string" && style.startsWith("npc:") ? "npc" : style;
+}
+
+function getNpcActorProfile(style) {
+  if (typeof style !== "string" || !style.startsWith("npc:")) return null;
+  return NPC_ACTOR_PROFILES[style.slice(4)] || null;
+}
+
+function getActorPaletteColor(palette, key, fallback) {
+  return palette?.[key] || fallback;
+}
+
 function buildActorSprite(palette, facing, frame, style, pose) {
   const canvas = createCanvas(56, 64);
   const ctx = canvas.getContext("2d");
   ctx.imageSmoothingEnabled = false;
 
-  const outline = "#231c19";
-  const hoodShade = "#d6d7d2";
-  const hoodLight = "#f5f1e8";
-  const trimDark = darkenColor(palette.cloak, -20);
-  const trimLight = palette.cloak;
-  const accent = palette.accent;
+  const actorKind = getActorKind(style);
+  const npcProfile = getNpcActorProfile(style);
+  const hoodBase = getActorPaletteColor(palette, "hood", actorKind === "ayla" ? "#f6f4ef" : "#eee7db");
+  const cloakBase = getActorPaletteColor(palette, "cloak", actorKind === "ayla" ? "#7aa466" : "#6e7f5e");
+  const accent = getActorPaletteColor(palette, "accent", actorKind === "ayla" ? "#86d4a7" : "#d6bb73");
+  const outline = actorKind === "ayla" ? "#1f1916" : "#231c19";
+  const hoodShade = darkenColor(hoodBase, actorKind === "ayla" ? -20 : -24);
+  const hoodLight = actorKind === "ayla" ? "#f8f5ec" : hoodBase;
+  const trimDark = darkenColor(cloakBase, -24);
+  const trimLight = cloakBase;
   const leather = "#7b5638";
   const leatherDark = "#513726";
-  const bark = style === "ayla" ? "#6a432b" : "#684837";
-  const barkLight = style === "ayla" ? "#9a6a49" : "#92644a";
+  const bark = actorKind === "ayla" ? "#6a432b" : "#684837";
+  const barkLight = actorKind === "ayla" ? "#9a6a49" : "#92644a";
   const vine = "#6db45b";
-  const hasStaff = style === "ayla";
+  const hasStaff = actorKind === "ayla";
   const backFacing = facing === "up";
   const sideFacing = facing === "left" || facing === "right";
   const step = [0, 1, 0, -1][frame % 4];
@@ -332,6 +363,8 @@ function buildActorSprite(palette, facing, frame, style, pose) {
     px(ctx, 41 + leanX, 18 + staffTilt, 8, 2, barkDark);
     px(ctx, 46 + leanX, 10 + staffTilt, 3, 10, bark);
     px(ctx, 45 + leanX, 9 + staffTilt, 6, 2, bark);
+    px(ctx, 44 + leanX, 8 + staffTilt, 8, 3, "#c7eec1");
+    px(ctx, 47 + leanX, 6 + staffTilt, 3, 3, pose === "cast" ? "#dffcf5" : "#f5f0b2");
     px(ctx, 43 + leanX, 14 + staffTilt, 2, 2, vine);
     px(ctx, 48 + leanX, 12 + staffTilt, 2, 2, vine);
     px(ctx, 46 + leanX, 24 + staffTilt, 2, 2, vine);
@@ -342,19 +375,35 @@ function buildActorSprite(palette, facing, frame, style, pose) {
     px(ctx, 8 + leanX, 18 + staffTilt, 8, 2, barkDark);
     px(ctx, 7 + leanX, 10 + staffTilt, 3, 10, bark);
     px(ctx, 5 + leanX, 9 + staffTilt, 6, 2, bark);
+    px(ctx, 4 + leanX, 8 + staffTilt, 8, 3, "#c7eec1");
+    px(ctx, 6 + leanX, 6 + staffTilt, 3, 3, pose === "cast" ? "#dffcf5" : "#f5f0b2");
     px(ctx, 8 + leanX, 14 + staffTilt, 2, 2, vine);
     px(ctx, 3 + leanX, 12 + staffTilt, 2, 2, vine);
     px(ctx, 7 + leanX, 24 + staffTilt, 2, 2, vine);
   }
 
-  if (style === "ayla") {
-    px(ctx, 19 + leanX, 13 + hoodLift, 6, 2, hoodLight);
+  if (actorKind === "ayla") {
+    const castGlow = pose === "cast" ? "#dffcf5" : "#f5f0b2";
+    px(ctx, 18 + leanX, 13 + hoodLift, 7, 2, "#fffdf4");
+    px(ctx, 30 + leanX, 12 + hoodLift, 4, 2, "#d9e4cb");
+    px(ctx, 20 + leanX, 24, 2, 8, "#e4dfd2");
+    px(ctx, 34 + leanX, 25, 2, 7, "#ffffff");
+    px(ctx, 25 + leanX, 28, 2, 19 - hemLift, "#5c9a58");
+    px(ctx, 29 + leanX, 32, 2, 16 - hemLift, "#afe38f");
+    px(ctx, 24 + leanX, 35, 8, 2, "#476f45");
+    px(ctx, 22 + leanX, 25, 3, 2, vine);
     px(ctx, 31 + leanX, 30, 2, 2, vine);
     px(ctx, 23 + leanX, 43, 2, 2, vine);
     px(ctx, 30 + leanX, 46 - hemLift, 2, 2, vine);
+    px(ctx, 31 + leanX, 19 + hoodLift, 2, 2, castGlow);
+    if (pose === "dash") {
+      px(ctx, 13 + leanX, 47 - hemLift, 8, 2, "#9ce7cf");
+      px(ctx, 35 + leanX, 48 - hemLift, 7, 2, "#dffcf5");
+    }
   }
 
-  if (style === "npc") {
+  if (actorKind === "npc") {
+    const npcTrim = npcProfile?.trim || accent;
     px(ctx, 16 + leanX, 37, 24, 3, leatherDark);
     px(ctx, 19 + leanX, 25, 3, 22 - hemLift, trimDark);
     px(ctx, 34 + leanX, 26, 3, 20 - hemLift, trimDark);
@@ -362,6 +411,17 @@ function buildActorSprite(palette, facing, frame, style, pose) {
     px(ctx, 33 + leanX, 43, 9, 5, leather);
     px(ctx, 26 + leanX, 35, 4, 4, accent);
     px(ctx, 27 + leanX, 36, 2, 2, "#fff1bb");
+    px(ctx, 18 + leanX, 24, 20, 2, npcTrim);
+    px(ctx, 20 + leanX, 50 - hemLift, 16, 2, darkenColor(npcTrim, -28));
+    drawNpcSignatureDetails(ctx, npcProfile, leanX, hoodLift, hemLift, {
+      accent,
+      glow: npcProfile?.glow || accent,
+      hoodLight,
+      leather,
+      leatherDark,
+      npcTrim,
+      trimDark,
+    });
   }
 
   if (facing === "down") {
@@ -376,6 +436,112 @@ function buildActorSprite(palette, facing, frame, style, pose) {
   }
 
   return { canvas, anchorX: 28, anchorY: 58 };
+}
+
+function drawNpcSignatureDetails(ctx, profile, leanX, hoodLift, hemLift, colors) {
+  if (!profile) {
+    px(ctx, 25 + leanX, 41, 6, 3, colors.npcTrim);
+    return;
+  }
+
+  const { accessory } = profile;
+  if (accessory === "elder_staff") {
+    px(ctx, 10 + leanX, 24, 3, 30, "#684837");
+    px(ctx, 9 + leanX, 22, 7, 3, colors.npcTrim);
+    px(ctx, 23 + leanX, 24 + hoodLift, 10, 6, "#d9d2c4");
+    px(ctx, 25 + leanX, 30, 6, 5, "#efe9dd");
+    px(ctx, 17 + leanX, 26, 3, 12, colors.npcTrim);
+    px(ctx, 36 + leanX, 27, 3, 12, colors.npcTrim);
+    return;
+  }
+
+  if (accessory === "training_baton") {
+    px(ctx, 13 + leanX, 32, 30, 3, "#425064");
+    px(ctx, 14 + leanX, 31, 8, 1, colors.glow);
+    px(ctx, 33 + leanX, 35, 7, 3, colors.npcTrim);
+    px(ctx, 20 + leanX, 41, 16, 2, colors.npcTrim);
+    return;
+  }
+
+  if (accessory === "reed_charm") {
+    px(ctx, 14 + leanX, 24, 2, 18, "#66824f");
+    px(ctx, 12 + leanX, 25, 5, 2, "#b9d58a");
+    px(ctx, 39 + leanX, 26, 2, 16, "#6f8d54");
+    px(ctx, 36 + leanX, 27, 5, 2, "#d6c39b");
+    px(ctx, 27 + leanX, 40, 3, 7, colors.npcTrim);
+    return;
+  }
+
+  if (accessory === "road_badge") {
+    px(ctx, 20 + leanX, 26, 4, 5, "#58422d");
+    px(ctx, 23 + leanX, 31, 4, 5, "#58422d");
+    px(ctx, 27 + leanX, 36, 4, 5, "#58422d");
+    px(ctx, 31 + leanX, 41, 4, 5, "#58422d");
+    px(ctx, 30 + leanX, 34, 5, 5, colors.npcTrim);
+    px(ctx, 31 + leanX, 35, 3, 3, colors.glow);
+    return;
+  }
+
+  if (accessory === "apothecary_satchel") {
+    px(ctx, 12 + leanX, 39, 10, 10, colors.leather);
+    px(ctx, 14 + leanX, 40, 6, 2, "#c58c5a");
+    px(ctx, 36 + leanX, 38, 4, 8, "#7cdab7");
+    px(ctx, 37 + leanX, 39, 2, 5, colors.glow);
+    px(ctx, 24 + leanX, 31, 3, 12, colors.npcTrim);
+    return;
+  }
+
+  if (accessory === "relic_tablet") {
+    px(ctx, 22 + leanX, 39, 12, 10, "#6e684f");
+    px(ctx, 24 + leanX, 40, 8, 2, colors.npcTrim);
+    px(ctx, 26 + leanX, 43, 2, 2, colors.glow);
+    px(ctx, 29 + leanX, 45, 2, 2, colors.glow);
+    px(ctx, 18 + leanX, 28, 3, 14, "#505b40");
+    return;
+  }
+
+  if (accessory === "ember_gauntlet") {
+    px(ctx, 35 + leanX, 39, 8, 7, "#6b3428");
+    px(ctx, 37 + leanX, 40, 4, 3, colors.glow);
+    px(ctx, 20 + leanX, 23 + hoodLift, 16, 2, "#c76a3e");
+    px(ctx, 29 + leanX, 22 + hoodLift, 4, 3, "#ffc06c");
+    px(ctx, 17 + leanX, 43, 5, 3, colors.npcTrim);
+    return;
+  }
+
+  if (accessory === "frost_scarf") {
+    px(ctx, 18 + leanX, 24 + hoodLift, 20, 4, colors.glow);
+    px(ctx, 34 + leanX, 27 + hoodLift, 5, 12, "#9bcbe3");
+    px(ctx, 35 + leanX, 38, 3, 4, colors.npcTrim);
+    px(ctx, 21 + leanX, 47 - hemLift, 14, 2, "#e9fbff");
+    return;
+  }
+
+  if (accessory === "ranger_pack") {
+    px(ctx, 12 + leanX, 29, 8, 19, "#4b3529");
+    px(ctx, 14 + leanX, 31, 4, 13, "#6b4a35");
+    px(ctx, 21 + leanX, 29, 3, 17, "#4a3428");
+    px(ctx, 32 + leanX, 29, 3, 17, "#4a3428");
+    px(ctx, 38 + leanX, 25, 3, 18, "#5f3f2e");
+    return;
+  }
+
+  if (accessory === "heart_lantern") {
+    px(ctx, 27 + leanX, 39, 5, 7, "#5d4b35");
+    px(ctx, 28 + leanX, 40, 3, 4, colors.glow);
+    px(ctx, 26 + leanX, 35, 7, 2, colors.npcTrim);
+    px(ctx, 24 + leanX, 29, 2, 2, "#d5b9ff");
+    px(ctx, 34 + leanX, 30, 2, 2, "#fff0b0");
+    return;
+  }
+
+  if (accessory === "lantern_tender") {
+    px(ctx, 38 + leanX, 35, 8, 12, "#4e3a28");
+    px(ctx, 39 + leanX, 37, 6, 7, colors.glow);
+    px(ctx, 40 + leanX, 34, 4, 2, colors.npcTrim);
+    px(ctx, 24 + leanX, 31, 8, 3, "#67a99a");
+    px(ctx, 26 + leanX, 40, 5, 5, colors.glow);
+  }
 }
 
 const ENEMY_ARCHETYPES = {
