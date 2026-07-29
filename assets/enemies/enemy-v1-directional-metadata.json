@@ -1,0 +1,1117 @@
+{
+  "cellSize": 128,
+  "columns": [
+    "down",
+    "right",
+    "left",
+    "up"
+  ],
+  "rows": [
+    "thornling",
+    "barkling",
+    "wisp_archer",
+    "root_stalker",
+    "mire_brute",
+    "mire_spitter",
+    "bog_lurker",
+    "ash_brute",
+    "cinder_imp",
+    "icebound_guardian",
+    "frost_wisp",
+    "blight_hound",
+    "thorn_weaver",
+    "rot_weaver",
+    "relic_sentinel",
+    "starbound_archer"
+  ],
+  "frames": [
+    {
+      "type": "thornling",
+      "facing": "down",
+      "trim": {
+        "x": 83,
+        "y": 58,
+        "w": 183,
+        "h": 201
+      },
+      "dest": {
+        "x": 41,
+        "y": 70,
+        "w": 46,
+        "h": 50
+      },
+      "scale": 0.2488
+    },
+    {
+      "type": "thornling",
+      "facing": "right",
+      "trim": {
+        "x": 86,
+        "y": 76,
+        "w": 160,
+        "h": 188
+      },
+      "dest": {
+        "x": 171,
+        "y": 70,
+        "w": 43,
+        "h": 50
+      },
+      "scale": 0.266
+    },
+    {
+      "type": "thornling",
+      "facing": "left",
+      "trim": {
+        "x": 66,
+        "y": 76,
+        "w": 160,
+        "h": 188
+      },
+      "dest": {
+        "x": 299,
+        "y": 70,
+        "w": 43,
+        "h": 50
+      },
+      "scale": 0.266
+    },
+    {
+      "type": "thornling",
+      "facing": "up",
+      "trim": {
+        "x": 47,
+        "y": 65,
+        "w": 177,
+        "h": 187
+      },
+      "dest": {
+        "x": 425,
+        "y": 70,
+        "w": 47,
+        "h": 50
+      },
+      "scale": 0.2674
+    },
+    {
+      "type": "barkling",
+      "facing": "down",
+      "trim": {
+        "x": 51,
+        "y": 18,
+        "w": 243,
+        "h": 296
+      },
+      "dest": {
+        "x": 40,
+        "y": 190,
+        "w": 48,
+        "h": 58
+      },
+      "scale": 0.1959
+    },
+    {
+      "type": "barkling",
+      "facing": "right",
+      "trim": {
+        "x": 68,
+        "y": 18,
+        "w": 183,
+        "h": 241
+      },
+      "dest": {
+        "x": 170,
+        "y": 190,
+        "w": 44,
+        "h": 58
+      },
+      "scale": 0.2407
+    },
+    {
+      "type": "barkling",
+      "facing": "left",
+      "trim": {
+        "x": 69,
+        "y": 22,
+        "w": 173,
+        "h": 230
+      },
+      "dest": {
+        "x": 298,
+        "y": 190,
+        "w": 44,
+        "h": 58
+      },
+      "scale": 0.2522
+    },
+    {
+      "type": "barkling",
+      "facing": "up",
+      "trim": {
+        "x": 20,
+        "y": 21,
+        "w": 242,
+        "h": 293
+      },
+      "dest": {
+        "x": 424,
+        "y": 190,
+        "w": 48,
+        "h": 58
+      },
+      "scale": 0.198
+    },
+    {
+      "type": "wisp_archer",
+      "facing": "down",
+      "trim": {
+        "x": 58,
+        "y": 0,
+        "w": 216,
+        "h": 314
+      },
+      "dest": {
+        "x": 41,
+        "y": 304,
+        "w": 47,
+        "h": 68
+      },
+      "scale": 0.2166
+    },
+    {
+      "type": "wisp_archer",
+      "facing": "right",
+      "trim": {
+        "x": 48,
+        "y": 0,
+        "w": 235,
+        "h": 314
+      },
+      "dest": {
+        "x": 167,
+        "y": 304,
+        "w": 51,
+        "h": 68
+      },
+      "scale": 0.2166
+    },
+    {
+      "type": "wisp_archer",
+      "facing": "left",
+      "trim": {
+        "x": 28,
+        "y": 0,
+        "w": 234,
+        "h": 314
+      },
+      "dest": {
+        "x": 295,
+        "y": 304,
+        "w": 51,
+        "h": 68
+      },
+      "scale": 0.2166
+    },
+    {
+      "type": "wisp_archer",
+      "facing": "up",
+      "trim": {
+        "x": 39,
+        "y": 0,
+        "w": 215,
+        "h": 314
+      },
+      "dest": {
+        "x": 425,
+        "y": 304,
+        "w": 47,
+        "h": 68
+      },
+      "scale": 0.2166
+    },
+    {
+      "type": "root_stalker",
+      "facing": "down",
+      "trim": {
+        "x": 58,
+        "y": 0,
+        "w": 214,
+        "h": 246
+      },
+      "dest": {
+        "x": 32,
+        "y": 430,
+        "w": 64,
+        "h": 74
+      },
+      "scale": 0.3008
+    },
+    {
+      "type": "root_stalker",
+      "facing": "right",
+      "trim": {
+        "x": 51,
+        "y": 0,
+        "w": 207,
+        "h": 245
+      },
+      "dest": {
+        "x": 161,
+        "y": 430,
+        "w": 63,
+        "h": 74
+      },
+      "scale": 0.302
+    },
+    {
+      "type": "root_stalker",
+      "facing": "left",
+      "trim": {
+        "x": 53,
+        "y": 0,
+        "w": 207,
+        "h": 244
+      },
+      "dest": {
+        "x": 289,
+        "y": 430,
+        "w": 63,
+        "h": 74
+      },
+      "scale": 0.3033
+    },
+    {
+      "type": "root_stalker",
+      "facing": "up",
+      "trim": {
+        "x": 40,
+        "y": 0,
+        "w": 215,
+        "h": 248
+      },
+      "dest": {
+        "x": 416,
+        "y": 430,
+        "w": 64,
+        "h": 74
+      },
+      "scale": 0.2984
+    },
+    {
+      "type": "mire_brute",
+      "facing": "down",
+      "trim": {
+        "x": 39,
+        "y": 32,
+        "w": 261,
+        "h": 270
+      },
+      "dest": {
+        "x": 23,
+        "y": 548,
+        "w": 83,
+        "h": 86
+      },
+      "scale": 0.3185
+    },
+    {
+      "type": "mire_brute",
+      "facing": "right",
+      "trim": {
+        "x": 89,
+        "y": 41,
+        "w": 181,
+        "h": 265
+      },
+      "dest": {
+        "x": 163,
+        "y": 548,
+        "w": 59,
+        "h": 86
+      },
+      "scale": 0.3245
+    },
+    {
+      "type": "mire_brute",
+      "facing": "left",
+      "trim": {
+        "x": 54,
+        "y": 41,
+        "w": 179,
+        "h": 265
+      },
+      "dest": {
+        "x": 291,
+        "y": 548,
+        "w": 58,
+        "h": 86
+      },
+      "scale": 0.3245
+    },
+    {
+      "type": "mire_brute",
+      "facing": "up",
+      "trim": {
+        "x": 13,
+        "y": 41,
+        "w": 256,
+        "h": 260
+      },
+      "dest": {
+        "x": 406,
+        "y": 548,
+        "w": 85,
+        "h": 86
+      },
+      "scale": 0.3308
+    },
+    {
+      "type": "mire_spitter",
+      "facing": "down",
+      "trim": {
+        "x": 49,
+        "y": 31,
+        "w": 243,
+        "h": 248
+      },
+      "dest": {
+        "x": 36,
+        "y": 702,
+        "w": 57,
+        "h": 58
+      },
+      "scale": 0.2339
+    },
+    {
+      "type": "mire_spitter",
+      "facing": "right",
+      "trim": {
+        "x": 58,
+        "y": 31,
+        "w": 235,
+        "h": 254
+      },
+      "dest": {
+        "x": 165,
+        "y": 702,
+        "w": 54,
+        "h": 58
+      },
+      "scale": 0.2283
+    },
+    {
+      "type": "mire_spitter",
+      "facing": "left",
+      "trim": {
+        "x": 19,
+        "y": 31,
+        "w": 236,
+        "h": 255
+      },
+      "dest": {
+        "x": 293,
+        "y": 702,
+        "w": 54,
+        "h": 58
+      },
+      "scale": 0.2275
+    },
+    {
+      "type": "mire_spitter",
+      "facing": "up",
+      "trim": {
+        "x": 26,
+        "y": 41,
+        "w": 227,
+        "h": 238
+      },
+      "dest": {
+        "x": 421,
+        "y": 702,
+        "w": 55,
+        "h": 58
+      },
+      "scale": 0.2437
+    },
+    {
+      "type": "bog_lurker",
+      "facing": "down",
+      "trim": {
+        "x": 50,
+        "y": 15,
+        "w": 240,
+        "h": 299
+      },
+      "dest": {
+        "x": 43,
+        "y": 835,
+        "w": 43,
+        "h": 54
+      },
+      "scale": 0.1806
+    },
+    {
+      "type": "bog_lurker",
+      "facing": "right",
+      "trim": {
+        "x": 46,
+        "y": 37,
+        "w": 225,
+        "h": 277
+      },
+      "dest": {
+        "x": 170,
+        "y": 835,
+        "w": 44,
+        "h": 54
+      },
+      "scale": 0.1949
+    },
+    {
+      "type": "bog_lurker",
+      "facing": "left",
+      "trim": {
+        "x": 32,
+        "y": 37,
+        "w": 231,
+        "h": 277
+      },
+      "dest": {
+        "x": 298,
+        "y": 835,
+        "w": 45,
+        "h": 54
+      },
+      "scale": 0.1949
+    },
+    {
+      "type": "bog_lurker",
+      "facing": "up",
+      "trim": {
+        "x": 28,
+        "y": 15,
+        "w": 213,
+        "h": 299
+      },
+      "dest": {
+        "x": 429,
+        "y": 835,
+        "w": 38,
+        "h": 54
+      },
+      "scale": 0.1806
+    },
+    {
+      "type": "ash_brute",
+      "facing": "down",
+      "trim": {
+        "x": 30,
+        "y": 0,
+        "w": 274,
+        "h": 252
+      },
+      "dest": {
+        "x": 16,
+        "y": 930,
+        "w": 96,
+        "h": 88
+      },
+      "scale": 0.3492
+    },
+    {
+      "type": "ash_brute",
+      "facing": "right",
+      "trim": {
+        "x": 67,
+        "y": 0,
+        "w": 197,
+        "h": 260
+      },
+      "dest": {
+        "x": 159,
+        "y": 930,
+        "w": 67,
+        "h": 88
+      },
+      "scale": 0.3385
+    },
+    {
+      "type": "ash_brute",
+      "facing": "left",
+      "trim": {
+        "x": 41,
+        "y": 0,
+        "w": 273,
+        "h": 260
+      },
+      "dest": {
+        "x": 274,
+        "y": 930,
+        "w": 92,
+        "h": 88
+      },
+      "scale": 0.3385
+    },
+    {
+      "type": "ash_brute",
+      "facing": "up",
+      "trim": {
+        "x": 0,
+        "y": 0,
+        "w": 276,
+        "h": 254
+      },
+      "dest": {
+        "x": 400,
+        "y": 930,
+        "w": 96,
+        "h": 88
+      },
+      "scale": 0.3465
+    },
+    {
+      "type": "cinder_imp",
+      "facing": "down",
+      "trim": {
+        "x": 56,
+        "y": 45,
+        "w": 218,
+        "h": 269
+      },
+      "dest": {
+        "x": 42,
+        "y": 1091,
+        "w": 44,
+        "h": 54
+      },
+      "scale": 0.2007
+    },
+    {
+      "type": "cinder_imp",
+      "facing": "right",
+      "trim": {
+        "x": 66,
+        "y": 53,
+        "w": 199,
+        "h": 261
+      },
+      "dest": {
+        "x": 172,
+        "y": 1091,
+        "w": 41,
+        "h": 54
+      },
+      "scale": 0.2069
+    },
+    {
+      "type": "cinder_imp",
+      "facing": "left",
+      "trim": {
+        "x": 54,
+        "y": 53,
+        "w": 198,
+        "h": 227
+      },
+      "dest": {
+        "x": 297,
+        "y": 1091,
+        "w": 47,
+        "h": 54
+      },
+      "scale": 0.2379
+    },
+    {
+      "type": "cinder_imp",
+      "facing": "up",
+      "trim": {
+        "x": 31,
+        "y": 53,
+        "w": 199,
+        "h": 261
+      },
+      "dest": {
+        "x": 428,
+        "y": 1091,
+        "w": 41,
+        "h": 54
+      },
+      "scale": 0.2069
+    },
+    {
+      "type": "icebound_guardian",
+      "facing": "down",
+      "trim": {
+        "x": 44,
+        "y": 0,
+        "w": 252,
+        "h": 274
+      },
+      "dest": {
+        "x": 25,
+        "y": 1188,
+        "w": 79,
+        "h": 86
+      },
+      "scale": 0.3139
+    },
+    {
+      "type": "icebound_guardian",
+      "facing": "right",
+      "trim": {
+        "x": 84,
+        "y": 0,
+        "w": 163,
+        "h": 277
+      },
+      "dest": {
+        "x": 167,
+        "y": 1188,
+        "w": 51,
+        "h": 86
+      },
+      "scale": 0.3105
+    },
+    {
+      "type": "icebound_guardian",
+      "facing": "left",
+      "trim": {
+        "x": 52,
+        "y": 2,
+        "w": 262,
+        "h": 277
+      },
+      "dest": {
+        "x": 280,
+        "y": 1188,
+        "w": 81,
+        "h": 86
+      },
+      "scale": 0.3105
+    },
+    {
+      "type": "icebound_guardian",
+      "facing": "up",
+      "trim": {
+        "x": 0,
+        "y": 0,
+        "w": 248,
+        "h": 277
+      },
+      "dest": {
+        "x": 410,
+        "y": 1188,
+        "w": 77,
+        "h": 86
+      },
+      "scale": 0.3105
+    },
+    {
+      "type": "frost_wisp",
+      "facing": "down",
+      "trim": {
+        "x": 64,
+        "y": 14,
+        "w": 250,
+        "h": 274
+      },
+      "dest": {
+        "x": 32,
+        "y": 1326,
+        "w": 64,
+        "h": 70
+      },
+      "scale": 0.2555
+    },
+    {
+      "type": "frost_wisp",
+      "facing": "right",
+      "trim": {
+        "x": 49,
+        "y": 17,
+        "w": 253,
+        "h": 266
+      },
+      "dest": {
+        "x": 159,
+        "y": 1326,
+        "w": 67,
+        "h": 70
+      },
+      "scale": 0.2632
+    },
+    {
+      "type": "frost_wisp",
+      "facing": "left",
+      "trim": {
+        "x": 3,
+        "y": 22,
+        "w": 255,
+        "h": 258
+      },
+      "dest": {
+        "x": 286,
+        "y": 1326,
+        "w": 69,
+        "h": 70
+      },
+      "scale": 0.2713
+    },
+    {
+      "type": "frost_wisp",
+      "facing": "up",
+      "trim": {
+        "x": 15,
+        "y": 17,
+        "w": 207,
+        "h": 273
+      },
+      "dest": {
+        "x": 422,
+        "y": 1326,
+        "w": 53,
+        "h": 70
+      },
+      "scale": 0.2564
+    },
+    {
+      "type": "blight_hound",
+      "facing": "down",
+      "trim": {
+        "x": 48,
+        "y": 14,
+        "w": 214,
+        "h": 223
+      },
+      "dest": {
+        "x": 37,
+        "y": 1473,
+        "w": 54,
+        "h": 56
+      },
+      "scale": 0.2511
+    },
+    {
+      "type": "blight_hound",
+      "facing": "right",
+      "trim": {
+        "x": 15,
+        "y": 46,
+        "w": 253,
+        "h": 193
+      },
+      "dest": {
+        "x": 156,
+        "y": 1473,
+        "w": 73,
+        "h": 56
+      },
+      "scale": 0.2902
+    },
+    {
+      "type": "blight_hound",
+      "facing": "left",
+      "trim": {
+        "x": 30,
+        "y": 50,
+        "w": 253,
+        "h": 189
+      },
+      "dest": {
+        "x": 283,
+        "y": 1473,
+        "w": 75,
+        "h": 56
+      },
+      "scale": 0.2963
+    },
+    {
+      "type": "blight_hound",
+      "facing": "up",
+      "trim": {
+        "x": 33,
+        "y": 15,
+        "w": 202,
+        "h": 233
+      },
+      "dest": {
+        "x": 424,
+        "y": 1473,
+        "w": 49,
+        "h": 56
+      },
+      "scale": 0.2403
+    },
+    {
+      "type": "thorn_weaver",
+      "facing": "down",
+      "trim": {
+        "x": 46,
+        "y": 27,
+        "w": 268,
+        "h": 287
+      },
+      "dest": {
+        "x": 29,
+        "y": 1581,
+        "w": 71,
+        "h": 76
+      },
+      "scale": 0.2648
+    },
+    {
+      "type": "thorn_weaver",
+      "facing": "right",
+      "trim": {
+        "x": 0,
+        "y": 27,
+        "w": 297,
+        "h": 282
+      },
+      "dest": {
+        "x": 152,
+        "y": 1581,
+        "w": 80,
+        "h": 76
+      },
+      "scale": 0.2695
+    },
+    {
+      "type": "thorn_weaver",
+      "facing": "left",
+      "trim": {
+        "x": 69,
+        "y": 27,
+        "w": 201,
+        "h": 283
+      },
+      "dest": {
+        "x": 293,
+        "y": 1581,
+        "w": 54,
+        "h": 76
+      },
+      "scale": 0.2686
+    },
+    {
+      "type": "thorn_weaver",
+      "facing": "up",
+      "trim": {
+        "x": 25,
+        "y": 26,
+        "w": 249,
+        "h": 288
+      },
+      "dest": {
+        "x": 415,
+        "y": 1581,
+        "w": 66,
+        "h": 76
+      },
+      "scale": 0.2639
+    },
+    {
+      "type": "rot_weaver",
+      "facing": "down",
+      "trim": {
+        "x": 44,
+        "y": 30,
+        "w": 270,
+        "h": 261
+      },
+      "dest": {
+        "x": 24,
+        "y": 1707,
+        "w": 81,
+        "h": 78
+      },
+      "scale": 0.2989
+    },
+    {
+      "type": "rot_weaver",
+      "facing": "right",
+      "trim": {
+        "x": 0,
+        "y": 27,
+        "w": 298,
+        "h": 267
+      },
+      "dest": {
+        "x": 149,
+        "y": 1707,
+        "w": 87,
+        "h": 78
+      },
+      "scale": 0.2921
+    },
+    {
+      "type": "rot_weaver",
+      "facing": "left",
+      "trim": {
+        "x": 43,
+        "y": 29,
+        "w": 231,
+        "h": 262
+      },
+      "dest": {
+        "x": 286,
+        "y": 1707,
+        "w": 69,
+        "h": 78
+      },
+      "scale": 0.2977
+    },
+    {
+      "type": "rot_weaver",
+      "facing": "up",
+      "trim": {
+        "x": 26,
+        "y": 30,
+        "w": 235,
+        "h": 262
+      },
+      "dest": {
+        "x": 413,
+        "y": 1707,
+        "w": 70,
+        "h": 78
+      },
+      "scale": 0.2977
+    },
+    {
+      "type": "relic_sentinel",
+      "facing": "down",
+      "trim": {
+        "x": 64,
+        "y": 7,
+        "w": 219,
+        "h": 307
+      },
+      "dest": {
+        "x": 35,
+        "y": 1832,
+        "w": 58,
+        "h": 82
+      },
+      "scale": 0.2671
+    },
+    {
+      "type": "relic_sentinel",
+      "facing": "right",
+      "trim": {
+        "x": 85,
+        "y": 10,
+        "w": 154,
+        "h": 304
+      },
+      "dest": {
+        "x": 171,
+        "y": 1832,
+        "w": 42,
+        "h": 82
+      },
+      "scale": 0.2697
+    },
+    {
+      "type": "relic_sentinel",
+      "facing": "left",
+      "trim": {
+        "x": 78,
+        "y": 10,
+        "w": 153,
+        "h": 304
+      },
+      "dest": {
+        "x": 300,
+        "y": 1832,
+        "w": 41,
+        "h": 82
+      },
+      "scale": 0.2697
+    },
+    {
+      "type": "relic_sentinel",
+      "facing": "up",
+      "trim": {
+        "x": 34,
+        "y": 15,
+        "w": 209,
+        "h": 299
+      },
+      "dest": {
+        "x": 420,
+        "y": 1832,
+        "w": 57,
+        "h": 82
+      },
+      "scale": 0.2742
+    },
+    {
+      "type": "starbound_archer",
+      "facing": "down",
+      "trim": {
+        "x": 56,
+        "y": 0,
+        "w": 217,
+        "h": 270
+      },
+      "dest": {
+        "x": 35,
+        "y": 1964,
+        "w": 58,
+        "h": 72
+      },
+      "scale": 0.2667
+    },
+    {
+      "type": "starbound_archer",
+      "facing": "right",
+      "trim": {
+        "x": 55,
+        "y": 0,
+        "w": 228,
+        "h": 253
+      },
+      "dest": {
+        "x": 160,
+        "y": 1964,
+        "w": 65,
+        "h": 72
+      },
+      "scale": 0.2846
+    },
+    {
+      "type": "starbound_archer",
+      "facing": "left",
+      "trim": {
+        "x": 29,
+        "y": 0,
+        "w": 233,
+        "h": 253
+      },
+      "dest": {
+        "x": 287,
+        "y": 1964,
+        "w": 66,
+        "h": 72
+      },
+      "scale": 0.2846
+    },
+    {
+      "type": "starbound_archer",
+      "facing": "up",
+      "trim": {
+        "x": 37,
+        "y": 0,
+        "w": 215,
+        "h": 270
+      },
+      "dest": {
+        "x": 420,
+        "y": 1964,
+        "w": 57,
+        "h": 72
+      },
+      "scale": 0.2667
+    }
+  ]
+}

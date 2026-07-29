@@ -9,6 +9,7 @@ import { NPC_DEFS } from "../data/storyData.js";
 import {
   drawAylaAtlasSprite,
   drawBiomeProp,
+  drawEnemyAtlasSprite,
   getAtlasRevision,
 } from "./atlasAssets.js";
 import {
@@ -1803,11 +1804,19 @@ function drawEnemy(ctx, enemy, state, origin) {
   }
 
   const frame = Math.floor(enemy.animTime) % 4;
+  const facing = resolveFacing(enemy.facing);
   drawEnemyGrounding(ctx, enemy, state, origin, point);
-  drawPixelSprite(ctx, getEnemySprite(enemy.type, resolveFacing(enemy.facing), frame, enemy.pose), point.x, point.y, {
-    tint: enemy.hitFlash > 0 ? "#ffe0c9" : null,
-    tintAlpha: 0.82,
-  });
+  if (
+    !drawEnemyAtlasSprite(ctx, point.x, point.y, enemy.type, facing, frame, enemy.pose, {
+      tint: enemy.hitFlash > 0 ? "#ffe0c9" : null,
+      tintAlpha: 0.82,
+    })
+  ) {
+    drawPixelSprite(ctx, getEnemySprite(enemy.type, facing, frame, enemy.pose), point.x, point.y, {
+      tint: enemy.hitFlash > 0 ? "#ffe0c9" : null,
+      tintAlpha: 0.82,
+    });
+  }
   if (enemy.hitFlash > 0) {
     drawActorHitSpark(ctx, point.x, point.y, enemy.radius, getDamageReadColor(enemy.config.damageType));
   }

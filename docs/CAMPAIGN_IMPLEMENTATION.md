@@ -1220,6 +1220,34 @@ beskonacnu kupovinu talent poena.
 - Segment ne menja player radius, brzinu, damage, cooldown-e, enemy art,
   collision, quest uslove ili item pickup logiku.
 
+### Faza 8X
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: preneti Ayla v3 directional pipeline na neprijatelje i zameniti
+  proceduralni enemy read pravim bitmap atlasom inspirisanim prihvacenim
+  enemy concept sheetom.
+- `assets/enemies/enemy-v1-concept-source.png` cuva prihvaceni 16-enemy
+  concept board koji definise finalne siluete.
+- Cetiri AI-generisana directional source sheet-a cuvaju grupe neprijatelja:
+  Heartwood, Marsh/Ember, Ember/Frost/Blight i Scarroot/Rootlight.
+- `assets/enemies/enemy-v1-directional-game-sheet.png` je normalizovani engine
+  atlas: 16 enemy rows x 4 facings, fixed 128x128 cells, columns
+  down/right/left/up.
+- `assets/enemies/enemy-v1-directional-metadata.json` belezi source trim i
+  destination podatke za svaku celiju, da sledeci recut ne bude slepo seckanje.
+- `rendering/atlasAssets.js` sada ucitava `enemyV1`, gradi enemy frame bucket-e
+  po tipu i facingu i izvlaci mali renderer-side bob/windup/stun pose offset.
+- `rendering/renderer.js` prvo crta `drawEnemyAtlasSprite`, a proceduralni
+  `getEnemySprite` ostaje fallback ako atlas nije spreman ili neki tip nije
+  mapiran.
+- QA: syntax check za `rendering/atlasAssets.js` i `rendering/renderer.js`,
+  puna regresija `node --test tests\*.test.mjs` sa `82/82` prolaza, browser
+  smoke u `Whispering Woods` bez console/page errora i runtime showcase svih
+  16 enemy tipova sa `enemy-v1-runtime-showcase.png`.
+- Segment ne menja enemy HP, AI, radius, collision, damage, spawn table, loot,
+  projectile brzine, quest uslove, boss art ili combat brojeve.
+
 ## Van trenutnog scopea
 
 - Durability i repair.

@@ -2,6 +2,7 @@ const ATLAS_PATHS = {
   ayla: "./assets/atlases/ayla-sprite.png",
   aylaV3: "./assets/characters/ayla-v3-directional-game-sheet.png",
   aylaV2: "./assets/characters/ayla-v2-game-sheet.png",
+  enemyV1: "./assets/enemies/enemy-v1-directional-game-sheet.png",
   "blighted-woods": "./assets/atlases/blighted-woods.png",
   "ember-hollow": "./assets/atlases/ember-hollow.png",
   "frostpine-tundra": "./assets/atlases/frostpine-tundra.png",
@@ -250,6 +251,7 @@ const atlasState = {
   terrainFloors: {},
   aylaFrames: null,
   aylaPortrait: null,
+  enemyFrames: null,
 };
 
 const AYLA_FRAME_RECTS = {
@@ -303,6 +305,26 @@ const AYLA_FIXED_FRAME_RECTS = {
   hurt: [buildAylaFixedCell(4, 3)],
   death: [buildAylaFixedCell(4, 4)],
 };
+const ENEMY_FIXED_FRAME_SIZE = 128;
+const ENEMY_FIXED_FACINGS = ["down", "right", "left", "up"];
+const ENEMY_FIXED_TYPES = [
+  "thornling",
+  "barkling",
+  "wisp_archer",
+  "root_stalker",
+  "mire_brute",
+  "mire_spitter",
+  "bog_lurker",
+  "ash_brute",
+  "cinder_imp",
+  "icebound_guardian",
+  "frost_wisp",
+  "blight_hound",
+  "thorn_weaver",
+  "rot_weaver",
+  "relic_sentinel",
+  "starbound_archer",
+];
 
 if (typeof window !== "undefined" && typeof Image !== "undefined") {
   loadAtlases();
@@ -387,6 +409,25 @@ export function drawAylaAtlasSprite(ctx, x, y, facing, frame, pose, options = {}
   return true;
 }
 
+export function drawEnemyAtlasSprite(ctx, x, y, type, facing, frame, pose, options = {}) {
+  if (!atlasState.enemyFrames) return false;
+
+  const frameCanvas = pickEnemyFrame(type, facing);
+  if (!frameCanvas) return false;
+
+  const bob = pose === "windup" ? 1 : pose === "stun" ? 2 : [0, 1, 0, -1][frame % 4];
+  const poseScale = pose === "windup" ? 1.04 : pose === "stun" ? 0.98 : 1;
+  drawSpriteCanvas(ctx, frameCanvas, x, y + bob, {
+    anchorX: 0.5,
+    anchorY: 0.96,
+    scale: (options.scale || 1) * poseScale,
+    alpha: options.alpha ?? 1,
+    tint: options.tint || null,
+    tintAlpha: options.tintAlpha ?? 0.7,
+  });
+  return true;
+}
+
 export function drawBiomeProp(ctx, sceneStyle, type, x, y, options = {}) {
   if (!ATLAS_WORLD_ART_ENABLED) return false;
   const atlasKey = SCENE_ATLAS_KEYS[sceneStyle];
@@ -454,6 +495,7 @@ function loadAtlases() {
         buildFixedAylaFrames(atlasState.images.aylaV3) ||
         buildFixedAylaFrames(atlasState.images.aylaV2) ||
         buildAylaFrames(atlasState.images.ayla);
+      atlasState.enemyFrames = buildFixedEnemyFrames(atlasState.images.enemyV1);
       atlasState.aylaPortrait = extractSprite(atlasState.images.ayla, AYLA_FRAME_RECTS.portrait, {
         trim: true,
         component: "cluster",
@@ -573,6 +615,29 @@ function buildFixedAylaFrames(image) {
     hurt: AYLA_FIXED_FRAME_RECTS.hurt.map((rect) => extractFixedAylaFrame(image, rect)),
     death: AYLA_FIXED_FRAME_RECTS.death.map((rect) => extractFixedAylaFrame(image, rect)),
   };
+}
+
+function buildFixedEnemyFrames(image) {
+  if (!image) return null;
+  const frames = {};
+  for (let row = 0; row < ENEMY_FIXED_TYPES.length; row += 1) {
+    const type = ENEMY_FIXED_TYPES[row];
+    frames[type] = {};
+    for (let col = 0; col < ENEMY_FIXED_FACINGS.length; col += 1) {
+      const facing = ENEMY_FIXED_FACINGS[col];
+      frames[type][facing] = extractSprite(
+        image,
+        {
+          x: col * ENEMY_FIXED_FRAME_SIZE,
+          y: row * ENEMY_FIXED_FRAME_SIZE,
+          w: ENEMY_FIXED_FRAME_SIZE,
+          h: ENEMY_FIXED_FRAME_SIZE,
+        },
+        { trim: false, padding: 0 }
+      );
+    }
+  }
+  return frames;
 }
 
 function buildBiomeArt(image, atlasKey) {
@@ -1101,4 +1166,10 @@ function pickAylaFrame(facing, frame, pose) {
   }
 
   return atlasState.aylaFrames.walkDown[frame % atlasState.aylaFrames.walkDown.length];
+}
+
+function pickEnemyFrame(type, facing) {
+  const bucket = atlasState.enemyFrames?.[type];
+  if (!bucket) return null;
+  return bucket[facing] || bucket.down || null;
 }

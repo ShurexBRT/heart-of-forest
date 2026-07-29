@@ -33,14 +33,17 @@ Heart of Forest enemies should read by gameplay role first and biome identity se
 
 ## Current Implementation
 
-- The current production pass is procedural in `rendering/pixelAssets.js`, with
-  each roster enemy drawn from its own accepted concept profile.
+- The production pass now uses `assets/enemies/enemy-v1-directional-game-sheet.png`
+  for all 16 roster enemy types, loaded through `rendering/atlasAssets.js`.
+- The sheet follows the fixed 128x128 cell lesson from Ayla v3: 16 rows by
+  enemy type, 4 columns for down/right/left/up.
+- The AI concept sources are preserved in `assets/enemies/` as the original
+  full roster concept plus four grouped directional source sheets.
+- `rendering/pixelAssets.js` remains the deterministic procedural fallback if
+  the bitmap atlas is unavailable.
 - No combat numbers, AI, radius, damage, spawn rules, or quest progression are changed.
-- A later bitmap pass should start from the accepted in-game procedural frame, generate one full strip per archetype, normalize to fixed anchors, then preview in-engine before replacing procedural sprites.
-- Directional enemy sheets should follow the Ayla v3 lesson: prove distinct
-  down/right/left/up reads in a sheet preview first, then wire them into runtime
-  facing. Mirroring can be used only when it does not break weapon, bow, staff or
-  body-plan readability.
+- Future animation passes can add extra walk/windup frames per facing, but must
+  preserve the same row/type and facing order unless the loader is updated.
 
 ## Accepted Concept Translation
 
