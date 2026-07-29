@@ -775,221 +775,338 @@ function buildEnemySprite(type, facing, frame, pose) {
 }
 
 function buildThornlingSprite(facing, frame, pose, visual = ENEMY_VISUALS.thornling) {
-  const canvas = createCanvas(42, 34);
+  const canvas = createCanvas(46, 38);
   const ctx = canvas.getContext("2d");
   const bob = [0, 1, 0, -1][frame % 4];
   const outline = visual.outline || "#231517";
   const lean = facing === "left" ? -1 : facing === "right" ? 1 : 0;
   const crouch = pose === "windup" ? 2 : pose === "stun" ? 1 : 0;
   const flare = pose === "rooted" ? "#b8ef87" : visual.accent || "#88b34f";
-  const hound = visual.shape === "hound";
-  const bark = visual.shape === "bark";
+  const shape = visual.shape || "thorn";
+  const lift = bob + crouch;
 
-  px(ctx, 10 + lean, 9 + crouch + bob, 22, 16, outline);
-  px(ctx, 12 + lean, 11 + crouch + bob, 18, 12, visual.body || "#5a2130");
-  px(ctx, 15 + lean, 13 + crouch + bob, 12, 8, pose === "windup" ? visual.windup || "#b44b5d" : visual.core || "#8f3646");
-  px(ctx, 18 + lean, 15 + crouch + bob, 6, 4, visual.light || "#d86a71");
-  px(ctx, facing === "left" ? 17 : 22, 15 + crouch + bob, 2, 2, "#fff0c7");
-  px(ctx, facing === "left" ? 21 : 26, 15 + crouch + bob, 2, 2, "#fff0c7");
-  px(ctx, 8 + lean, 15 + crouch + bob, 4, 2, visual.dark || "#793544");
-  px(ctx, 30 + lean, 15 + crouch + bob, 4, 2, visual.dark || "#793544");
-  px(ctx, 9 + lean, 7 + crouch + bob, 4, 4, flare);
-  px(ctx, 28 + lean, 7 + crouch + bob, 5, 4, flare);
-  px(ctx, 6 + lean, 12 + crouch + bob, 4, 5, visual.limb || "#6f9d3f");
-  px(ctx, 31 + lean, 12 + crouch + bob, 4, 5, visual.limb || "#6f9d3f");
-  px(ctx, 11 + lean, 25 + Math.max(0, -bob), 4, hound ? 3 : 4, visual.limb || "#6f9d3f");
-  px(ctx, 27 + lean, 25 + Math.max(0, bob), 4, hound ? 3 : 4, visual.limb || "#6f9d3f");
-  if (hound) {
-    px(ctx, 6 + lean, 16 + crouch + bob, 30, 9, outline);
-    px(ctx, 8 + lean, 17 + crouch + bob, 26, 7, visual.body || "#4a1f32");
-    px(ctx, 30 + lean, 14 + crouch + bob, 8, 5, outline);
-    px(ctx, 31 + lean, 15 + crouch + bob, 6, 3, visual.light || "#d36f8a");
-    px(ctx, 5 + lean, 13 + crouch + bob, 5, 4, visual.dark || "#2a1421");
-    px(ctx, 12 + lean, 10 + crouch + bob, 5, 3, visual.accent || "#c78bff");
-    px(ctx, 23 + lean, 9 + crouch + bob, 5, 3, visual.accent || "#c78bff");
-    px(ctx, 6 + lean, 19 + crouch + bob, 5, 3, outline);
-    px(ctx, 31 + lean, 19 + crouch + bob, 5, 3, visual.light || "#d86a71");
-    px(ctx, 13 + lean, 25 + Math.max(0, -bob), 3, 5, visual.limb || "#71304a");
-    px(ctx, 29 + lean, 25 + Math.max(0, bob), 3, 5, visual.limb || "#71304a");
-    px(ctx, 35 + lean, 17 + crouch + bob, 2, 2, "#fff0c7");
-  } else if (bark) {
-    px(ctx, 11 + lean, 8 + crouch + bob, 20, 18, visual.plateDark || "#463322");
-    px(ctx, 13 + lean, 9 + crouch + bob, 16, 15, visual.body || "#594129");
-    px(ctx, 14 + lean, 10 + crouch + bob, 4, 12, visual.plate || "#9a754c");
-    px(ctx, 24 + lean, 10 + crouch + bob, 4, 11, visual.plateDark || "#4d3929");
-    px(ctx, 17 + lean, 8 + crouch + bob, 8, 3, visual.accent || "#99c469");
-    px(ctx, 15 + lean, 19 + crouch + bob, 12, 2, visual.light || "#c09957");
-    px(ctx, 7 + lean, 24 + Math.max(0, -bob), 7, 4, "#3a2b20");
-    px(ctx, 28 + lean, 24 + Math.max(0, bob), 7, 4, "#3a2b20");
-  } else {
-    px(ctx, 13 + lean, 6 + crouch + bob, 4, 6, flare);
-    px(ctx, 25 + lean, 6 + crouch + bob, 4, 6, flare);
-    px(ctx, 20 + lean, 6 + crouch + bob, 3, 3, visual.light || "#d86a71");
-    px(ctx, 16 + lean, 19 + crouch + bob, 3, 3, flare);
-    px(ctx, 24 + lean, 19 + crouch + bob, 3, 3, flare);
-    px(ctx, 20 + lean, 22 + crouch + bob, 3, 2, visual.dark || "#793544");
+  if (shape === "hound") {
+    px(ctx, 5 + lean, 17 + lift, 34, 11, outline);
+    px(ctx, 8 + lean, 18 + lift, 27, 8, visual.body || "#4a1f32");
+    px(ctx, 31 + lean, 13 + lift, 10, 8, outline);
+    px(ctx, 32 + lean, 14 + lift, 7, 5, visual.light || "#d36f8a");
+    px(ctx, 35 + lean, 18 + lift, 7, 3, outline);
+    px(ctx, 38 + lean, 19 + lift, 3, 2, "#dff9a7");
+    px(ctx, 4 + lean, 14 + lift, 8, 4, visual.dark || "#2a1421");
+    px(ctx, 2 + lean, 12 + lift, 5, 3, visual.accent || "#c78bff");
+    px(ctx, 11 + lean, 12 + lift, 6, 4, visual.accent || "#c78bff");
+    px(ctx, 23 + lean, 10 + lift, 6, 4, visual.accent || "#c78bff");
+    px(ctx, 18 + lean, 20 + lift, 9, 3, visual.core || "#8c334f");
+    px(ctx, 11 + lean, 27 + Math.max(0, -bob), 4, 6, visual.limb || "#71304a");
+    px(ctx, 19 + lean, 27 + Math.max(0, bob), 4, 6, visual.limb || "#71304a");
+    px(ctx, 29 + lean, 27 + Math.max(0, -bob), 4, 5, visual.limb || "#71304a");
+    px(ctx, 35 + lean, 27 + Math.max(0, bob), 3, 5, visual.limb || "#71304a");
+    px(ctx, 6 + lean, 29, 10, 2, outline);
+    px(ctx, 29 + lean, 29, 10, 2, outline);
+    return { canvas, anchorX: 23, anchorY: 34 };
   }
-  return { canvas, anchorX: 21, anchorY: 30 };
+
+  if (shape === "bark") {
+    px(ctx, 12 + lean, 8 + lift, 23, 22, outline);
+    px(ctx, 14 + lean, 6 + lift, 19, 7, visual.plateDark || "#463322");
+    px(ctx, 15 + lean, 7 + lift, 17, 5, visual.plate || "#a47c4f");
+    px(ctx, 17 + lean, 5 + lift, 13, 3, flare);
+    px(ctx, 14 + lean, 12 + lift, 19, 16, visual.body || "#594129");
+    px(ctx, 16 + lean, 13 + lift, 4, 14, visual.plate || "#a47c4f");
+    px(ctx, 25 + lean, 12 + lift, 4, 15, visual.plateDark || "#463322");
+    px(ctx, 20 + lean, 15 + lift, 3, 3, "#cfff9b");
+    px(ctx, 27 + lean, 15 + lift, 3, 3, "#cfff9b");
+    px(ctx, 20 + lean, 22 + lift, 9, 2, visual.dark || "#3a2b20");
+    px(ctx, 9 + lean, 18 + lift, 5, 4, visual.dark || "#3a2b20");
+    px(ctx, 33 + lean, 18 + lift, 5, 4, visual.dark || "#3a2b20");
+    px(ctx, 8 + lean, 29 + Math.max(0, -bob), 9, 4, visual.dark || "#3a2b20");
+    px(ctx, 28 + lean, 29 + Math.max(0, bob), 9, 4, visual.dark || "#3a2b20");
+    px(ctx, 17 + lean, 27 + lift, 3, 3, visual.accent || "#99c469");
+    px(ctx, 30 + lean, 25 + lift, 3, 3, visual.accent || "#99c469");
+    return { canvas, anchorX: 23, anchorY: 34 };
+  }
+
+  px(ctx, 9 + lean, 10 + lift, 27, 20, outline);
+  px(ctx, 11 + lean, 12 + lift, 23, 16, visual.body || "#5a2130");
+  px(ctx, 14 + lean, 14 + lift, 16, 11, pose === "windup" ? visual.windup || "#b44b5d" : visual.core || "#8f3646");
+  px(ctx, 18 + lean, 16 + lift, 8, 5, visual.light || "#d86a71");
+  px(ctx, facing === "left" ? 18 + lean : 23 + lean, 15 + lift, 3, 3, "#fff0c7");
+  px(ctx, facing === "left" ? 23 + lean : 29 + lean, 15 + lift, 3, 3, "#fff0c7");
+  px(ctx, 12 + lean, 22 + lift, 4, 3, visual.dark || "#793544");
+  px(ctx, 29 + lean, 22 + lift, 4, 3, visual.dark || "#793544");
+  px(ctx, 8 + lean, 8 + lift, 5, 5, flare);
+  px(ctx, 17 + lean, 5 + lift, 4, 7, flare);
+  px(ctx, 27 + lean, 5 + lift, 4, 7, flare);
+  px(ctx, 34 + lean, 9 + lift, 5, 5, flare);
+  px(ctx, 6 + lean, 18 + lift, 5, 4, flare);
+  px(ctx, 34 + lean, 18 + lift, 5, 4, flare);
+  px(ctx, 13 + lean, 28 + Math.max(0, -bob), 5, 5, visual.limb || "#6f9d3f");
+  px(ctx, 28 + lean, 28 + Math.max(0, bob), 5, 5, visual.limb || "#6f9d3f");
+  px(ctx, 22 + lean, 26 + lift, 4, 3, visual.dark || "#793544");
+  return { canvas, anchorX: 23, anchorY: 34 };
 }
 
 function buildMireBruteSprite(facing, frame, pose, visual = ENEMY_VISUALS.mire_brute) {
-  const canvas = createCanvas(56, 52);
+  const canvas = createCanvas(62, 58);
   const ctx = canvas.getContext("2d");
   const bob = [0, 1, 0, -1][frame % 4];
   const outline = visual.outline || "#261513";
   const lean = pose === "windup" ? (facing === "left" ? -2 : 2) : facing === "left" ? -1 : facing === "right" ? 1 : 0;
   const crouch = pose === "windup" ? 3 : pose === "stun" ? 1 : 0;
-  const lurker = visual.shape === "lurker";
+  const shape = visual.shape || "mire";
+  const lift = bob + crouch;
 
-  px(ctx, 12 + lean, (lurker ? 13 : 8) + bob + crouch, 32, lurker ? 11 : 14, outline);
-  px(ctx, 8 + lean, (lurker ? 23 : 20) + bob + crouch, 40, lurker ? 15 : 18, outline);
-  px(ctx, 14 + lean, (lurker ? 15 : 10) + bob + crouch, 28, lurker ? 9 : 12, visual.head || "#553126");
-  px(ctx, 10 + lean, (lurker ? 25 : 22) + bob + crouch, 36, lurker ? 11 : 14, visual.body || "#6f4130");
-  px(ctx, 16 + lean, (lurker ? 20 : 16) + bob + crouch, 24, 10, pose === "rooted" ? "#9abb62" : visual.core || "#8d6b48");
-  px(ctx, 18 + lean, (lurker ? 27 : 24) + bob + crouch, 20, 12, visual.plate || "#88a05a");
-  px(ctx, 20 + lean, (lurker ? 31 : 28) + bob + crouch, 16, 6, visual.dark || "#5c712f");
-  px(ctx, facing === "left" ? 22 + lean : 26 + lean, 14 + bob + crouch, 4, 4, visual.eye || "#efc97e");
-  px(ctx, facing === "left" ? 30 + lean : 34 + lean, 14 + bob + crouch, 4, 4, visual.eye || "#efc97e");
-  px(ctx, 2 + lean, 23 + crouch, 12, 10, visual.arm || "#4c2c23");
-  px(ctx, 42 + lean, 23 + crouch, 12, 10, visual.arm || "#4c2c23");
-  px(ctx, 6 + lean, 26 + crouch + Math.max(0, -bob), 8, 8, visual.hand || "#76563a");
-  px(ctx, 42 + lean, 26 + crouch + Math.max(0, bob), 8, 8, visual.hand || "#76563a");
-  px(ctx, 18 + lean, 38 + crouch + Math.max(0, -bob), 8, 8, visual.foot || "#6c4b34");
-  px(ctx, 30 + lean, 38 + crouch + Math.max(0, bob), 8, 8, visual.foot || "#6c4b34");
-  px(ctx, 13 + lean, 7 + bob + crouch, 8, 3, visual.accent || visual.eye || "#efc97e");
-  px(ctx, 35 + lean, 7 + bob + crouch, 8, 3, visual.accent || visual.eye || "#efc97e");
-  if (visual.shape === "guardian") {
-    px(ctx, 13 + lean, 20 + bob + crouch, 8, 13, "#b7d7e8");
-    px(ctx, 35 + lean, 20 + bob + crouch, 8, 13, "#486276");
-    px(ctx, 21 + lean, 5 + bob + crouch, 14, 4, visual.light || "#e8f8ff");
-    px(ctx, 25 + lean, 1 + bob + crouch, 6, 5, visual.accent || "#bfe9ff");
-    px(ctx, 18 + lean, 35 + crouch, 20, 3, visual.light || "#f3fbff");
-  } else if (visual.shape === "sentinel") {
-    px(ctx, 15 + lean, 20 + bob + crouch, 26, 15, "#6f6245");
-    px(ctx, 23 + lean, 11 + bob + crouch, 10, 2, visual.light || "#f5e3a7");
-    px(ctx, 27 + lean, 5 + bob + crouch, 2, 8, visual.light || "#f5e3a7");
-    px(ctx, 21 + lean, 24 + bob + crouch, 14, 2, visual.light || "#f4dfa1");
-    px(ctx, 27 + lean, 24 + bob + crouch, 2, 9, visual.light || "#f4dfa1");
-  } else if (visual.shape === "ember") {
-    px(ctx, 16 + lean, 11 + bob + crouch, 24, 2, "#ff8c4c");
-    px(ctx, 18 + lean, 20 + bob + crouch, 20, 12, "#55261d");
-    px(ctx, 25 + lean, 25 + bob + crouch, 6, 5, "#ffb16c");
-    px(ctx, 27 + lean, 22 + bob + crouch, 2, 10, "#fff0b5");
-    px(ctx, 15 + lean, 7 + bob + crouch, 5, 5, "#ff9a5f");
-    px(ctx, 36 + lean, 7 + bob + crouch, 5, 5, "#ff9a5f");
-  } else if (lurker) {
-    px(ctx, 7 + lean, 27 + bob + crouch, 42, 4, visual.dark || "#304b3b");
-    px(ctx, 14 + lean, 12 + bob + crouch, 5, 8, "#6d8f60");
-    px(ctx, 36 + lean, 12 + bob + crouch, 5, 8, "#6d8f60");
-    px(ctx, 10 + lean, 34 + Math.max(0, -bob), 10, 3, visual.accent || "#8de0c8");
-    px(ctx, 36 + lean, 34 + Math.max(0, bob), 10, 3, visual.accent || "#8de0c8");
-  } else {
-    px(ctx, 16 + lean, 11 + bob + crouch, 4, 6, visual.plate || "#88a05a");
-    px(ctx, 36 + lean, 11 + bob + crouch, 4, 6, visual.plate || "#88a05a");
+  if (shape === "lurker") {
+    px(ctx, 8 + lean, 21 + lift, 46, 20, outline);
+    px(ctx, 11 + lean, 22 + lift, 40, 16, visual.body || "#456d57");
+    px(ctx, 28 + lean, 14 + lift, 20, 13, outline);
+    px(ctx, 30 + lean, 15 + lift, 16, 10, visual.head || "#365140");
+    px(ctx, 38 + lean, 18 + lift, 4, 3, visual.eye || "#c7efd0");
+    px(ctx, 44 + lean, 19 + lift, 3, 2, visual.eye || "#c7efd0");
+    px(ctx, 14 + lean, 26 + lift, 26, 7, pose === "rooted" ? "#9abb62" : visual.core || "#74a878");
+    px(ctx, 8 + lean, 31 + lift, 45, 4, visual.dark || "#304b3b");
+    px(ctx, 15 + lean, 15 + lift, 6, 9, visual.plate || "#6d8f60");
+    px(ctx, 26 + lean, 13 + lift, 5, 8, visual.plate || "#6d8f60");
+    px(ctx, 6 + lean, 36 + Math.max(0, -bob), 12, 4, visual.accent || "#8de0c8");
+    px(ctx, 37 + lean, 37 + Math.max(0, bob), 13, 4, visual.accent || "#8de0c8");
+    px(ctx, 47 + lean, 25 + lift, 7, 3, visual.light || "#a5e3be");
+    return { canvas, anchorX: 31, anchorY: 52 };
   }
-  return { canvas, anchorX: 28, anchorY: 48 };
+
+  if (shape === "guardian") {
+    px(ctx, 14 + lean, 9 + lift, 34, 16, outline);
+    px(ctx, 9 + lean, 24 + lift, 44, 20, outline);
+    px(ctx, 16 + lean, 10 + lift, 30, 13, visual.head || "#48667d");
+    px(ctx, 12 + lean, 25 + lift, 38, 17, visual.body || "#6e92ad");
+    px(ctx, 18 + lean, 21 + lift, 26, 12, pose === "rooted" ? "#9abb62" : visual.core || "#9cbfd9");
+    px(ctx, 11 + lean, 23 + lift, 10, 16, visual.plate || "#b7d7e8");
+    px(ctx, 41 + lean, 23 + lift, 10, 16, visual.dark || "#486276");
+    px(ctx, 23 + lean, 5 + lift, 5, 7, visual.accent || "#cfefff");
+    px(ctx, 30 + lean, 2 + lift, 5, 10, visual.light || "#f3fbff");
+    px(ctx, 37 + lean, 5 + lift, 5, 7, visual.accent || "#cfefff");
+    px(ctx, 23 + lean, 15 + lift, 4, 4, visual.eye || "#f5fdff");
+    px(ctx, 35 + lean, 15 + lift, 4, 4, visual.eye || "#f5fdff");
+    px(ctx, 4 + lean, 29 + crouch, 12, 11, visual.arm || "#2c4056");
+    px(ctx, 46 + lean, 29 + crouch, 12, 11, visual.arm || "#2c4056");
+    px(ctx, 19 + lean, 43 + Math.max(0, -bob), 10, 7, visual.foot || "#4e6f89");
+    px(ctx, 34 + lean, 43 + Math.max(0, bob), 10, 7, visual.foot || "#4e6f89");
+    px(ctx, 20 + lean, 36 + lift, 23, 3, visual.light || "#f3fbff");
+    return { canvas, anchorX: 31, anchorY: 52 };
+  }
+
+  if (shape === "sentinel") {
+    px(ctx, 18 + lean, 7 + lift, 26, 16, outline);
+    px(ctx, 13 + lean, 21 + lift, 36, 25, outline);
+    px(ctx, 20 + lean, 8 + lift, 22, 13, visual.head || "#5f543e");
+    px(ctx, 16 + lean, 22 + lift, 30, 22, visual.body || "#776543");
+    px(ctx, 20 + lean, 24 + lift, 22, 16, visual.dark || "#4c402c");
+    px(ctx, 23 + lean, 11 + lift, 16, 2, visual.light || "#f4dfa1");
+    px(ctx, 30 + lean, 6 + lift, 3, 9, visual.light || "#f4dfa1");
+    px(ctx, 24 + lean, 29 + lift, 16, 2, visual.light || "#f4dfa1");
+    px(ctx, 31 + lean, 25 + lift, 2, 13, visual.light || "#f4dfa1");
+    px(ctx, 28 + lean, 17 + lift, 6, 4, visual.eye || "#fff0bf");
+    px(ctx, 6 + lean, 26 + crouch, 12, 15, visual.arm || "#3d3427");
+    px(ctx, 45 + lean, 26 + crouch, 12, 15, visual.arm || "#3d3427");
+    px(ctx, 17 + lean, 45 + Math.max(0, -bob), 12, 6, visual.foot || "#564733");
+    px(ctx, 35 + lean, 45 + Math.max(0, bob), 12, 6, visual.foot || "#564733");
+    px(ctx, 16 + lean, 19 + lift, 30, 2, visual.plate || "#c2a260");
+    return { canvas, anchorX: 31, anchorY: 53 };
+  }
+
+  if (shape === "ember") {
+    px(ctx, 13 + lean, 8 + lift, 36, 17, outline);
+    px(ctx, 8 + lean, 24 + lift, 46, 21, outline);
+    px(ctx, 15 + lean, 10 + lift, 32, 14, visual.head || "#5c2c23");
+    px(ctx, 11 + lean, 26 + lift, 40, 17, visual.body || "#8a3f2d");
+    px(ctx, 18 + lean, 22 + lift, 28, 13, visual.dark || "#55261d");
+    px(ctx, 24 + lean, 26 + lift, 14, 9, pose === "rooted" ? "#9abb62" : visual.core || "#b75f39");
+    px(ctx, 30 + lean, 23 + lift, 3, 13, "#fff0b5");
+    px(ctx, 20 + lean, 12 + lift, 4, 4, visual.eye || "#ffd07d");
+    px(ctx, 38 + lean, 12 + lift, 4, 4, visual.eye || "#ffd07d");
+    px(ctx, 14 + lean, 5 + lift, 7, 7, visual.accent || "#ff9a5f");
+    px(ctx, 42 + lean, 5 + lift, 7, 7, visual.accent || "#ff9a5f");
+    px(ctx, 5 + lean, 29 + crouch, 13, 12, visual.arm || "#3d1d18");
+    px(ctx, 46 + lean, 29 + crouch, 13, 12, visual.arm || "#3d1d18");
+    px(ctx, 7 + lean, 35 + Math.max(0, -bob), 10, 8, visual.hand || "#a65b37");
+    px(ctx, 47 + lean, 35 + Math.max(0, bob), 10, 8, visual.hand || "#a65b37");
+    px(ctx, 21 + lean, 44 + Math.max(0, -bob), 10, 7, visual.foot || "#603020");
+    px(ctx, 35 + lean, 44 + Math.max(0, bob), 10, 7, visual.foot || "#603020");
+    return { canvas, anchorX: 31, anchorY: 53 };
+  }
+
+  px(ctx, 13 + lean, 9 + lift, 36, 16, outline);
+  px(ctx, 8 + lean, 24 + lift, 46, 21, outline);
+  px(ctx, 16 + lean, 11 + lift, 30, 12, visual.head || "#553126");
+  px(ctx, 11 + lean, 26 + lift, 40, 16, visual.body || "#6f4130");
+  px(ctx, 17 + lean, 20 + lift, 28, 12, pose === "rooted" ? "#9abb62" : visual.core || "#8d6b48");
+  px(ctx, 20 + lean, 28 + lift, 23, 12, visual.plate || "#88a05a");
+  px(ctx, 22 + lean, 33 + lift, 18, 6, visual.dark || "#5c712f");
+  px(ctx, 21 + lean, 14 + lift, 4, 4, visual.eye || "#efc97e");
+  px(ctx, 36 + lean, 14 + lift, 4, 4, visual.eye || "#efc97e");
+  px(ctx, 12 + lean, 7 + lift, 9, 5, visual.plate || "#88a05a");
+  px(ctx, 40 + lean, 7 + lift, 9, 5, visual.plate || "#88a05a");
+  px(ctx, 4 + lean, 29 + crouch, 13, 12, visual.arm || "#4c2c23");
+  px(ctx, 46 + lean, 29 + crouch, 13, 12, visual.arm || "#4c2c23");
+  px(ctx, 7 + lean, 35 + Math.max(0, -bob), 10, 8, visual.hand || "#76563a");
+  px(ctx, 46 + lean, 35 + Math.max(0, bob), 10, 8, visual.hand || "#76563a");
+  px(ctx, 21 + lean, 44 + Math.max(0, -bob), 10, 7, visual.foot || "#6c4b34");
+  px(ctx, 35 + lean, 44 + Math.max(0, bob), 10, 7, visual.foot || "#6c4b34");
+  px(ctx, 14 + lean, 31 + lift, 4, 8, visual.accent || "#8de0c8");
+  px(ctx, 43 + lean, 31 + lift, 4, 8, visual.accent || "#8de0c8");
+  return { canvas, anchorX: 31, anchorY: 53 };
 }
 
 function buildWispArcherSprite(facing, frame, pose, visual = ENEMY_VISUALS.wisp_archer) {
-  const canvas = createCanvas(48, 44);
+  const canvas = createCanvas(54, 50);
   const ctx = canvas.getContext("2d");
   const bob = [0, 1, 0, -1][frame % 4];
   const outline = visual.outline || "#182433";
   const lean = pose === "windup" ? (facing === "left" ? -3 : 3) : facing === "left" ? -1 : facing === "right" ? 1 : 0;
   const hoodLift = pose === "windup" ? -1 : 0;
   const bowLift = pose === "windup" ? -3 : pose === "release" ? 2 : 0;
-  const spitter = visual.shape === "spitter";
+  const shape = visual.shape || "wisp";
+  const lift = bob + hoodLift;
 
-  px(ctx, 15 + lean, 8 + bob + hoodLift, 18, 10, outline);
-  px(ctx, 13 + lean, 18 + bob, 22, 14, outline);
-  px(ctx, 17 + lean, 10 + bob + hoodLift, 14, 8, visual.hood || "#50627f");
-  px(ctx, 19 + lean, 11 + bob + hoodLift, 10, 6, visual.face || "#dff5ff");
-  px(ctx, facing === "left" ? 18 + lean : 24 + lean, 14 + bob, 4, 3, "#161b22");
-  px(ctx, 14 + lean, 19 + bob, 20, 11, pose === "rooted" ? "#a9d8ee" : visual.cloak || "#7da8d6");
-  px(ctx, 18 + lean, 20 + bob, 12, 10, visual.core || "#cce5ff");
-  px(ctx, 20 + lean, 30 + Math.max(0, bob), 8, 5, visual.face || "#dff5ff");
-  if (spitter) {
-    px(ctx, 31 + lean, 20 + bob + bowLift, 11, 5, visual.bow || "#9ce8db");
-    px(ctx, 35 + lean, 18 + bob + bowLift, 4, 13, visual.string || "#4d8d7a");
-    px(ctx, 39 + lean, 22 + bob + bowLift, 5, 6, visual.projectile || "#8de3d4");
-    px(ctx, 16 + lean, 26 + bob, 15, 6, "#2f6d62");
-    px(ctx, 19 + lean, 25 + bob, 8, 3, visual.core || "#92e7d4");
-    px(ctx, 15 + lean, 8 + bob + hoodLift, 4, 8, "#6fae78");
-    px(ctx, 30 + lean, 8 + bob + hoodLift, 4, 8, "#6fae78");
+  if (shape === "spitter") {
+    px(ctx, 12 + lean, 13 + lift, 23, 13, outline);
+    px(ctx, 10 + lean, 24 + bob, 29, 14, outline);
+    px(ctx, 14 + lean, 15 + lift, 18, 9, visual.hood || "#34736a");
+    px(ctx, 17 + lean, 16 + lift, 11, 6, visual.face || "#e8fff8");
+    px(ctx, facing === "left" ? 17 + lean : 24 + lean, 18 + lift, 3, 2, "#14322f");
+    px(ctx, 12 + lean, 25 + bob, 25, 11, visual.cloak || "#4d8d7a");
+    px(ctx, 16 + lean, 27 + bob, 16, 8, visual.core || "#92e7d4");
+    px(ctx, 32 + lean, 24 + bob + bowLift, 13, 5, visual.bow || "#9ce8db");
+    px(ctx, 40 + lean, 22 + bob + bowLift, 5, 9, visual.projectile || "#8de3d4");
+    px(ctx, 43 + lean, 25 + bob + bowLift, 6, 3, "#e8fff8");
+    px(ctx, 13 + lean, 10 + lift, 5, 8, "#6fae78");
+    px(ctx, 31 + lean, 10 + lift, 5, 8, "#6fae78");
+    px(ctx, 18 + lean, 37 + Math.max(0, bob), 8, 4, "#2f6d62");
+    px(ctx, 29 + lean, 37 + Math.max(0, -bob), 8, 4, "#2f6d62");
+    return { canvas, anchorX: 27, anchorY: 44 };
+  }
+
+  if (shape === "imp") {
+    px(ctx, 16 + lean, 11 + lift, 19, 11, outline);
+    px(ctx, 14 + lean, 21 + bob, 23, 14, outline);
+    px(ctx, 18 + lean, 12 + lift, 15, 8, visual.hood || "#8e422c");
+    px(ctx, 20 + lean, 14 + lift, 11, 6, visual.face || "#ffe0ad");
+    px(ctx, 15 + lean, 9 + lift, 6, 4, visual.core || "#ff9a5f");
+    px(ctx, 30 + lean, 8 + lift, 6, 5, visual.core || "#ff9a5f");
+    px(ctx, 16 + lean, 23 + bob, 19, 10, visual.cloak || "#b75f39");
+    px(ctx, 20 + lean, 29 + bob, 11, 6, "#ff7f4f");
+    px(ctx, 38 + lean, 18 + bob + bowLift, 7, 7, visual.projectile || "#ffb16c");
+    px(ctx, 41 + lean, 16 + bob + bowLift, 3, 3, "#fff0b5");
+    px(ctx, 10 + lean, 25 + bob, 7, 3, "#a6492f");
+    px(ctx, 18 + lean, 36 + Math.max(0, bob), 6, 4, "#54231a");
+    px(ctx, 30 + lean, 36 + Math.max(0, -bob), 6, 4, "#54231a");
+    return { canvas, anchorX: 27, anchorY: 43 };
+  }
+
+  px(ctx, 16 + lean, 9 + lift, 22, 12, outline);
+  px(ctx, 13 + lean, 20 + bob, 27, 16, outline);
+  px(ctx, 18 + lean, 11 + lift, 18, 9, visual.hood || "#50627f");
+  px(ctx, 21 + lean, 12 + lift, 12, 7, visual.face || "#dff5ff");
+  px(ctx, facing === "left" ? 20 + lean : 28 + lean, 15 + lift, 4, 3, "#161b22");
+  px(ctx, 15 + lean, 22 + bob, 23, 10, pose === "rooted" ? "#a9d8ee" : visual.cloak || "#7da8d6");
+  px(ctx, 13 + lean, 25 + bob, 7, 9, visual.cloak || "#7da8d6");
+  px(ctx, 34 + lean, 25 + bob, 6, 8, visual.cloak || "#7da8d6");
+  px(ctx, 20 + lean, 24 + bob, 13, 8, visual.core || "#cce5ff");
+  px(ctx, 23 + lean, 25 + bob, 7, 4, visual.face || "#dff5ff");
+  px(ctx, 19 + lean, 34 + Math.max(0, bob), 13, 3, visual.face || "#dff5ff");
+  px(ctx, 22 + lean, 38 + Math.max(0, bob), 8, 3, visual.cloak || "#7da8d6");
+  px(ctx, 34 + lean, 20 + bob + bowLift, 3, 20, visual.bow || "#c5dfff");
+  px(ctx, 37 + lean, 19 + bob + bowLift, 7, 3, visual.bow || "#c5dfff");
+  px(ctx, 37 + lean, 36 + bob + bowLift, 7, 3, visual.bow || "#c5dfff");
+  px(ctx, 41 + lean, 23 + bob + bowLift, 2, 12, visual.string || "#89a7cf");
+  px(ctx, 43 + lean, 28 + bob + bowLift, 5, 5, visual.projectile || visual.core || "#cce5ff");
+
+  if (shape === "frost") {
+    px(ctx, 18 + lean, 7 + lift, 18, 3, "#f5fdff");
+    px(ctx, 24 + lean, 3 + lift, 5, 6, "#bfe9ff");
+    px(ctx, 16 + lean, 33 + bob, 19, 3, "#e7fbff");
+    px(ctx, 22 + lean, 38 + bob, 8, 5, "#bfe9ff");
+  } else if (shape === "star") {
+    px(ctx, 18 + lean, 8 + lift, 18, 2, "#f3e1a4");
+    px(ctx, 26 + lean, 3 + lift, 3, 8, "#f3e1a4");
+    px(ctx, 14 + lean, 22 + bob, 24, 2, "#f3e1a4");
+    px(ctx, 25 + lean, 20 + bob, 3, 18, "#f3e1a4");
+    px(ctx, 9 + lean, 18 + bob, 3, 3, "#fff4b8");
+    px(ctx, 45 + lean, 15 + bob, 3, 3, "#fff4b8");
   } else {
-    px(ctx, 34 + lean, 18 + bob + bowLift, 2, 16, visual.bow || "#c5dfff");
-    px(ctx, 36 + lean, 17 + bob + bowLift, 5, 2, visual.bow || "#c5dfff");
-    px(ctx, 36 + lean, 31 + bob + bowLift, 5, 2, visual.bow || "#c5dfff");
-    px(ctx, 38 + lean, 20 + bob + bowLift, 2, 10, visual.string || "#89a7cf");
-    px(ctx, 40 + lean, 24 + bob + bowLift, 4, 4, visual.projectile || visual.core || "#cce5ff");
+    px(ctx, 18 + lean, 33 + bob, 18, 2, "#dff5ff");
+    px(ctx, 21 + lean, 38 + bob, 10, 4, visual.cloak || "#7da8d6");
+    px(ctx, 11 + lean, 24 + bob, 5, 7, visual.core || "#cce5ff");
+    px(ctx, 17 + lean, 20 + bob, 3, 3, "#6fbf8c");
+    px(ctx, 32 + lean, 21 + bob, 3, 3, "#6fbf8c");
   }
-  if (visual.shape === "imp") {
-    px(ctx, 14 + lean, 7 + bob + hoodLift, 5, 3, "#ff9a5f");
-    px(ctx, 29 + lean, 7 + bob + hoodLift, 5, 3, "#ff9a5f");
-    px(ctx, 18 + lean, 29 + bob, 12, 4, "#ff7f4f");
-    px(ctx, 20 + lean, 33 + bob, 8, 3, "#ffd27a");
-  } else if (visual.shape === "frost") {
-    px(ctx, 16 + lean, 6 + bob + hoodLift, 16, 3, "#f5fdff");
-    px(ctx, 22 + lean, 3 + bob + hoodLift, 5, 4, "#bfe9ff");
-    px(ctx, 17 + lean, 30 + bob, 14, 3, "#e7fbff");
-    px(ctx, 21 + lean, 33 + bob, 6, 4, "#bfe9ff");
-  } else if (visual.shape === "star") {
-    px(ctx, 16 + lean, 7 + bob + hoodLift, 16, 2, "#f3e1a4");
-    px(ctx, 23 + lean, 3 + bob + hoodLift, 3, 7, "#f3e1a4");
-    px(ctx, 15 + lean, 20 + bob, 18, 2, "#f3e1a4");
-    px(ctx, 23 + lean, 18 + bob, 2, 16, "#f3e1a4");
-  } else if (visual.shape === "wisp") {
-    px(ctx, 16 + lean, 29 + bob, 16, 2, "#dff5ff");
-    px(ctx, 19 + lean, 33 + bob, 10, 3, visual.cloak || "#7da8d6");
-    px(ctx, 11 + lean, 22 + bob, 4, 6, visual.core || "#cce5ff");
-  }
-  return { canvas, anchorX: 24, anchorY: 39 };
+
+  return { canvas, anchorX: 27, anchorY: 44 };
 }
 
 function buildThornWeaverSprite(facing, frame, pose, visual = ENEMY_VISUALS.thorn_weaver) {
-  const canvas = createCanvas(48, 46);
+  const canvas = createCanvas(54, 52);
   const ctx = canvas.getContext("2d");
   const bob = [0, 1, 0, -1][frame % 4];
   const lean = facing === "left" ? -1 : facing === "right" ? 1 : 0;
   const outline = visual.outline || "#17151f";
   const castLift = pose === "windup" ? -2 : 0;
+  const shape = visual.shape || "thorn";
+  const lift = bob;
+  const aura = pose === "rooted" ? "#a7dd84" : visual.cloak || "#7d5d92";
 
-  px(ctx, 14 + lean, 8 + bob, 20, 10, outline);
-  px(ctx, 12 + lean, 18 + bob, 24, 14, outline);
-  px(ctx, 16 + lean, 10 + bob, 16, 8, visual.hood || "#4f395d");
-  px(ctx, 18 + lean, 11 + bob, 12, 6, visual.face || "#e9e8ef");
-  px(ctx, facing === "left" ? 18 + lean : 24 + lean, 14 + bob, 4, 3, "#13131a");
-  px(ctx, 14 + lean, 19 + bob, 20, 12, pose === "rooted" ? "#a7dd84" : visual.cloak || "#7d5d92");
-  px(ctx, 18 + lean, 21 + bob, 12, 10, visual.core || "#c1a3d5");
-  px(ctx, 22 + lean, 31 + Math.max(0, bob), 4, 6, visual.face || "#f0e8ff");
-  px(ctx, 34 + lean, 16 + bob + castLift, 3, 18, visual.staff || "#705139");
-  px(ctx, 36 + lean, 14 + bob + castLift, 6, 4, visual.staff || "#705139");
-  px(ctx, 38 + lean, 12 + bob + castLift, 4, 2, visual.accent || "#82d174");
-  px(ctx, 39 + lean, 20 + bob + castLift, 3, 3, visual.accent || "#82d174");
-  px(ctx, 8 + lean, 21 + bob + castLift, 4, 12, visual.face || "#e9e8ef");
-  px(ctx, 10 + lean, 23 + bob + castLift, 2, 10, visual.core || "#c1a3d5");
-  px(ctx, 36 + lean, 10 + bob + castLift, 8, 3, visual.orb || visual.accent || "#82d174");
-  if (visual.shape === "rot") {
-    px(ctx, 12 + lean, 18 + bob, 4, 14, "#4d2238");
-    px(ctx, 32 + lean, 18 + bob, 4, 13, "#4d2238");
-    px(ctx, 15 + lean, 7 + bob, 5, 4, "#de9cff");
-    px(ctx, 28 + lean, 7 + bob, 5, 4, "#a64bc7");
-    px(ctx, 18 + lean, 28 + bob, 12, 3, "#f0b35e");
-    px(ctx, 38 + lean, 8 + bob + castLift, 5, 5, visual.orb || "#f0b35e");
-  } else if (visual.shape === "root") {
-    px(ctx, 12 + lean, 18 + bob, 4, 14, "#6f8d4d");
-    px(ctx, 32 + lean, 18 + bob, 4, 13, "#6f8d4d");
-    px(ctx, 15 + lean, 8 + bob, 5, 4, "#a7e27c");
-    px(ctx, 28 + lean, 8 + bob, 5, 4, "#6f9d50");
-    px(ctx, 18 + lean, 29 + bob, 12, 3, "#6c4f34");
-    px(ctx, 6 + lean, 24 + bob + castLift, 5, 4, "#a7e27c");
+  px(ctx, 15 + lean, 10 + lift, 24, 12, outline);
+  px(ctx, 12 + lean, 22 + lift, 29, 16, outline);
+  px(ctx, 18 + lean, 12 + lift, 18, 9, visual.hood || "#4f395d");
+  px(ctx, 20 + lean, 13 + lift, 13, 7, visual.face || "#e9e8ef");
+  px(ctx, facing === "left" ? 19 + lean : 28 + lean, 16 + lift, 4, 3, "#13131a");
+  px(ctx, 15 + lean, 23 + lift, 23, 12, aura);
+  px(ctx, 12 + lean, 27 + lift, 6, 12, aura);
+  px(ctx, 36 + lean, 27 + lift, 5, 11, aura);
+  px(ctx, 20 + lean, 26 + lift, 13, 8, visual.core || "#c1a3d5");
+  px(ctx, 23 + lean, 27 + lift, 7, 4, visual.face || "#f0e8ff");
+  px(ctx, 22 + lean, 36 + Math.max(0, bob), 8, 7, visual.face || "#f0e8ff");
+  px(ctx, 39 + lean, 17 + lift + castLift, 3, 24, visual.staff || "#705139");
+  px(ctx, 41 + lean, 15 + lift + castLift, 7, 4, visual.staff || "#705139");
+  px(ctx, 43 + lean, 12 + lift + castLift, 4, 4, visual.accent || "#82d174");
+  px(ctx, 43 + lean, 23 + lift + castLift, 3, 3, visual.accent || "#82d174");
+  px(ctx, 8 + lean, 24 + lift + castLift, 5, 13, visual.face || "#e9e8ef");
+  px(ctx, 10 + lean, 26 + lift + castLift, 3, 11, visual.core || "#c1a3d5");
+  px(ctx, 41 + lean, 9 + lift + castLift, 8, 7, visual.orb || visual.accent || "#82d174");
+
+  if (shape === "rot") {
+    px(ctx, 15 + lean, 7 + lift, 8, 6, "#de9cff");
+    px(ctx, 28 + lean, 6 + lift, 9, 7, "#a64bc7");
+    px(ctx, 11 + lean, 24 + lift, 5, 16, "#4d2238");
+    px(ctx, 36 + lean, 24 + lift, 5, 15, "#4d2238");
+    px(ctx, 18 + lean, 34 + lift, 16, 3, visual.orb || "#f0b35e");
+    px(ctx, 42 + lean, 7 + lift + castLift, 7, 7, visual.orb || "#f0b35e");
+    px(ctx, 16 + lean, 42 + Math.max(0, bob), 7, 4, "#5b2f43");
+    px(ctx, 30 + lean, 42 + Math.max(0, -bob), 7, 4, "#5b2f43");
+    px(ctx, 22 + lean, 40 + lift, 3, 5, "#a64bc7");
+    px(ctx, 28 + lean, 41 + lift, 3, 5, "#de9cff");
+  } else if (shape === "root") {
+    px(ctx, 13 + lean, 23 + lift, 5, 16, "#6f8d4d");
+    px(ctx, 36 + lean, 23 + lift, 5, 15, "#6f8d4d");
+    px(ctx, 16 + lean, 9 + lift, 7, 5, "#a7e27c");
+    px(ctx, 30 + lean, 9 + lift, 7, 5, "#6f9d50");
+    px(ctx, 18 + lean, 35 + lift, 16, 3, visual.staff || "#6c4f34");
+    px(ctx, 5 + lean, 27 + lift + castLift, 6, 5, "#a7e27c");
+    px(ctx, 41 + lean, 8 + lift + castLift, 7, 6, visual.orb || "#e3f2a0");
+    px(ctx, 18 + lean, 42 + Math.max(0, bob), 5, 5, "#5c3d2a");
+    px(ctx, 30 + lean, 42 + Math.max(0, -bob), 5, 5, "#5c3d2a");
+    px(ctx, 24 + lean, 38 + lift, 3, 7, "#6c4f34");
   } else {
-    px(ctx, 12 + lean, 9 + bob, 5, 3, visual.accent || "#82d174");
-    px(ctx, 31 + lean, 9 + bob, 5, 3, visual.accent || "#82d174");
-    px(ctx, 15 + lean, 28 + bob, 18, 2, "#4f395d");
-    px(ctx, 37 + lean, 8 + bob + castLift, 5, 5, visual.orb || "#d8f1a0");
+    px(ctx, 13 + lean, 10 + lift, 6, 3, visual.accent || "#82d174");
+    px(ctx, 34 + lean, 10 + lift, 6, 3, visual.accent || "#82d174");
+    px(ctx, 16 + lean, 36 + lift, 21, 2, "#4f395d");
+    px(ctx, 41 + lean, 7 + lift + castLift, 7, 7, visual.orb || "#d8f1a0");
+    px(ctx, 10 + lean, 20 + lift, 4, 4, visual.accent || "#82d174");
+    px(ctx, 38 + lean, 21 + lift, 4, 4, visual.accent || "#82d174");
+    px(ctx, 15 + lean, 41 + Math.max(0, bob), 8, 4, "#281c30");
+    px(ctx, 31 + lean, 41 + Math.max(0, -bob), 8, 4, "#281c30");
   }
-  return { canvas, anchorX: 24, anchorY: 41 };
+
+  return { canvas, anchorX: 27, anchorY: 47 };
 }
 
 function buildBossSprite(frame, pose) {

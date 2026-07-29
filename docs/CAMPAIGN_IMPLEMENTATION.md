@@ -1080,6 +1080,27 @@ beskonacnu kupovinu talent poena.
 - Segment ne menja enemy HP, damage, radius, AI, spawn table, quest uslove,
   projectile brzine, cooldown-e ili loot.
 
+### Faza 8R
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: prevesti prihvaceni enemy concept sheet u citljiv in-game sprite pass.
+- `rendering/pixelAssets.js` sada crta produkcionije profile za svih 16 enemy
+  tipova, umesto da se vecina razlika oslanja na mali overlay tint.
+- Thornling je spiked seed skirmisher, Barkling stump/root creature, a Blight
+  Hound niska corrupted hound silueta sa purple spike akcentima.
+- Mire Brute, Bog Lurker, Ash Brute, Icebound Guardian i Relic Sentinel dobijaju
+  razlicite body planove: marsh hulk, low lurker, ember hulk, ice golem i stone
+  idol sentinel.
+- Wisp Archer, Mire Spitter, Cinder Imp, Frost Wisp i Starbound Archer sada
+  jasnije pokazuju ranged alat ili projectile source u samom sprite-u.
+- Root Stalker, Thorn Weaver i Rot Weaver dobijaju jaci support caster read
+  kroz staff, orb, root/thorn/fungal detalje.
+- Renderer vise ne nanosi stari normal-state sprite tint na neprijatelje, jer
+  enemy profil sada sam nosi biome paletu; hit flash ostaje nepromenjen.
+- Segment ne menja enemy HP, damage, radius, AI, spawn table, quest uslove,
+  projectile brzine, cooldown-e, loot ili collision.
+
 ## Van trenutnog scopea
 
 - Durability i repair.

@@ -33,6 +33,21 @@ Heart of Forest enemies should read by gameplay role first and biome identity se
 
 ## Current Implementation
 
-- The first production pass is procedural in `rendering/pixelAssets.js`.
+- The current production pass is procedural in `rendering/pixelAssets.js`, with
+  each roster enemy drawn from its own accepted concept profile.
 - No combat numbers, AI, radius, damage, spawn rules, or quest progression are changed.
 - A later bitmap pass should start from the accepted in-game procedural frame, generate one full strip per archetype, normalize to fixed anchors, then preview in-engine before replacing procedural sprites.
+
+## Accepted Concept Translation
+
+- Thornling, Barkling and Blight Hound now keep different small-enemy
+  silhouettes: spiked seed, stump creature and long corrupted hound.
+- Mire Brute, Bog Lurker, Ash Brute, Icebound Guardian and Relic Sentinel now
+  read as separate body plans instead of one recolored brute.
+- Wisp Archer, Mire Spitter, Cinder Imp, Frost Wisp and Starbound Archer now
+  show their ranged tool clearly: bow, toxin spit, fire orb, frost bow or
+  astral bow.
+- Root Stalker, Thorn Weaver and Rot Weaver now carry a staff/orb support
+  language with root, thorn or fungal details.
+- Runtime tint overlays should not recolor normal enemy sprites once the
+  sprite profile already owns the biome palette; hit flash remains renderer-side.

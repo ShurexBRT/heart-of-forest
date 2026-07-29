@@ -1783,8 +1783,8 @@ function drawEnemy(ctx, enemy, state, origin) {
   const frame = Math.floor(enemy.animTime) % 4;
   drawEnemyGrounding(ctx, enemy, state, origin, point);
   drawPixelSprite(ctx, getEnemySprite(enemy.type, resolveFacing(enemy.facing), frame, enemy.pose), point.x, point.y, {
-    tint: enemy.hitFlash > 0 ? "#ffe0c9" : enemy.config.spriteTint || null,
-    tintAlpha: enemy.hitFlash > 0 ? 0.82 : enemy.config.spriteTintAlpha || 0.22,
+    tint: enemy.hitFlash > 0 ? "#ffe0c9" : null,
+    tintAlpha: 0.82,
   });
   if (enemy.hitFlash > 0) {
     drawActorHitSpark(ctx, point.x, point.y, enemy.radius, getDamageReadColor(enemy.config.damageType));
