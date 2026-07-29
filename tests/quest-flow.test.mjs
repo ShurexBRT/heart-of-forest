@@ -198,6 +198,9 @@ test("collectable quest objects use the collect audio cue", () => {
   assert.ok(flower);
   assert.equal(beginInteraction(state, { kind: "object", data: flower }), true);
   assert.equal(state.audio.queue.at(-1)?.cue, "collect");
+  assert.equal(state.combatText.at(-1)?.reward, true);
+  assert.match(state.combatText.at(-1)?.text || "", /secured/i);
+  assert.ok(state.particles.length > 0);
 });
 
 test("Ember restores only after the totems, guardian, ember recovery, and Garrick return", () => {

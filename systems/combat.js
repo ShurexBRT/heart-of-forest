@@ -19,6 +19,7 @@ import {
 import { collidesWithObstacle } from "./collision.js";
 import { queueAudio } from "./audio.js";
 import { spawnBurst } from "./particles.js";
+import { pushRewardFeedback } from "./rewardFeedback.js";
 import { recordTrainingDamage } from "./training.js";
 
 const STAFF_RANGE = 68;
@@ -976,6 +977,18 @@ function damageHostile(state, target, amount, sourceX, sourceY, knockback, stun)
       ...(eliteBonus?.items || []),
     ];
     const silverLoot = (lootResult?.silver || 0) + (eliteBonus?.silver || 0);
+    if (combinedLoot.length > 0 || silverLoot > 0) {
+      pushRewardFeedback(
+        state,
+        target.x,
+        target.y,
+        { items: combinedLoot, silver: silverLoot },
+        {
+          boss: target.isBoss,
+          count: target.isBoss ? 28 : target.elite ? 16 : 9,
+        }
+      );
+    }
     if (combinedLoot.length > 0 && (target.isBoss || target.elite || combinedLoot.some((entry) => entry.itemId.includes("potion")))) {
       const lead = combinedLoot[0];
       const extraItemCount = combinedLoot.reduce((total, entry) => total + Math.max(0, entry.amount || 0), 0) - (lead.amount || 0);

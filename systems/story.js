@@ -13,6 +13,7 @@ import {
 import { queueAudio } from "./audio.js";
 import { openServiceUi } from "./services.js";
 import { syncCampaignProgress } from "./campaign.js";
+import { pushRewardFeedback } from "./rewardFeedback.js";
 
 const THORNLING_QUEST_TYPES = new Set(["thornling", "barkling", "blight_hound"]);
 const WISP_QUEST_TYPES = new Set(["wisp_archer", "mire_spitter", "cinder_imp", "frost_wisp", "starbound_archer"]);
@@ -590,6 +591,13 @@ function useInteractable(state, interactable) {
 
   if (interactable.collectKey) {
     state.storyEvents.push({ type: "collect", key: interactable.collectKey, amount: 1 });
+    pushRewardFeedback(
+      state,
+      interactable.x,
+      interactable.y,
+      { label: `${interactable.name} secured` },
+      { color: "#dfffa4", count: 12 }
+    );
   }
 
   if (interactable.dialogueLines) {
@@ -633,6 +641,18 @@ function finalizeQuest(state, quest) {
     progression.journal.push(quest.id);
   }
   const rewardSummary = awardRewards(progression, quest.rewards);
+  pushRewardFeedback(
+    state,
+    state.player?.x ?? 0,
+    state.player?.y ?? 0,
+    {
+      items: rewardSummary.items,
+      silver: rewardSummary.gainedSilver,
+      xp: rewardSummary.gainedXp,
+      label: rewardSummary.levelsGained > 0 ? `Level ${progression.level}` : "",
+    },
+    { color: rewardSummary.levelsGained > 0 ? "#fff1a6" : undefined, count: rewardSummary.levelsGained > 0 ? 18 : 12 }
+  );
   for (const flag of quest.completeFlags || []) {
     setWorldFlag(progression, flag, true);
   }

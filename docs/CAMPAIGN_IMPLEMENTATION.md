@@ -951,6 +951,31 @@ beskonacnu kupovinu talent poena.
   `rendering/pixelAssets.js`; puna regresija `node --test tests\*.test.mjs`
   prolazi sa `75/75`.
 
+### Faza 8L
+
+- Datum: 2026-07-29
+- Status: zavrseno
+- Cilj: poboljsati feedback za loot, quest collectable i quest reward bez
+  uvodjenja fizickih dropova na podu i bez novih collision rizika.
+- Dodat je `systems/rewardFeedback.js`, mali zajednicki helper koji inicijalizuje
+  `particles`/`combatText`, crta kratki reward burst i dodaje floating reward
+  label za vec dodeljene nagrade.
+- Enemy loot sada na smrti prikazuje kratku potvrdu prvog dobitka (`+1 Ironbark`,
+  `+1 Relic Shard`, itd.) i mali particle burst, dok postojece velike toast
+  poruke ostaju rezervisane za boss/elite/vazne potion dropove.
+- Quest collectable objekti sada daju lokalni `secured` reward label pored
+  objekta, pa igrac jasnije vidi da je mali field objective stvarno pokupljen.
+- Quest completion reward sada daje floating label kod Ayla-e za prvi reward,
+  silver/XP ili level-up, bez menjanja quest nagrada ili ekonomije.
+- Renderer razlikuje reward label od damage brojeva kroz mali pixel pill stil,
+  pa reward feedback cita kao loot/UI signal, ne kao hit broj.
+- Ovaj pass namerno ne uvodi item drop entitete, magnetizam, drop collision ili
+  nove pickup hitboxove; time ne pravi nove situacije gde igrac ne moze da
+  pridje itemu.
+- QA: provereno screenshotom u Ember Hollow sceni i regresijom
+  `node --test tests\*.test.mjs`; reward label se cita bez zaklanjanja HUD-a ili
+  centralne borbe.
+
 ## Van trenutnog scopea
 
 - Durability i repair.

@@ -2160,6 +2160,11 @@ function drawCombatText(ctx, state, origin) {
     ctx.globalAlpha = alpha;
     ctx.textAlign = "center";
     ctx.font = `800 ${Math.round(14 * scale)}px Segoe UI, Arial`;
+    if (entry.reward) {
+      drawRewardTextPill(ctx, entry, point, scale);
+      ctx.restore();
+      continue;
+    }
     ctx.lineWidth = entry.heavy ? 5 : 4;
     ctx.strokeStyle = "rgba(16, 12, 10, 0.88)";
     ctx.strokeText(entry.text, point.x, point.y);
@@ -2171,6 +2176,24 @@ function drawCombatText(ctx, state, origin) {
     }
     ctx.restore();
   }
+}
+
+function drawRewardTextPill(ctx, entry, point, scale) {
+  const textWidth = Math.ceil(ctx.measureText(entry.text).width);
+  const width = Math.max(58, textWidth + 18);
+  const height = Math.round(18 * scale);
+  const x = point.x - width / 2;
+  const y = point.y - height + 3;
+
+  pixelRect(ctx, x - 2, y - 2, width + 4, height + 4, "rgba(7, 10, 9, 0.78)");
+  pixelRect(ctx, x, y, width, height, "rgba(18, 27, 24, 0.94)");
+  pixelRect(ctx, x + 4, y + 2, width - 8, 1, "rgba(255, 246, 208, 0.28)");
+  pixelRect(ctx, x + 3, y + 3, 4, height - 6, entry.color || "#dfffa4");
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = "rgba(8, 10, 9, 0.92)";
+  ctx.strokeText(entry.text, point.x + 2, point.y);
+  ctx.fillStyle = "#fff8d8";
+  ctx.fillText(entry.text, point.x + 2, point.y);
 }
 
 function drawSceneAtmosphere(ctx, state) {
