@@ -52,6 +52,13 @@ export function createShellGamepadNavigation({
     ).filter((element) => !element.hidden && element.offsetParent !== null);
   }
 
+  function focusPrimary(panel) {
+    const preferred = panel?.querySelector(
+      '.save-slot-card, input:not([disabled]), button:not(.shell-panel-close):not([disabled])'
+    );
+    preferred?.focus?.({ preventScroll: true });
+  }
+
   function moveFocus(panel, delta) {
     const entries = focusables(panel);
     if (!entries.length) return;
@@ -176,8 +183,9 @@ function openDefaultPanel(toggleId, panelId) {
     if (other) other.hidden = true;
     panel.hidden = false;
     document.body.dataset.shellPanelOpen = "true";
-    panel.querySelector("button, input")?.focus?.({ preventScroll: true });
   }
+
+  requestAnimationFrame(() => focusPrimary(panel));
 }
 
 function closeDefaultPanels() {
