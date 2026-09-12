@@ -4,15 +4,17 @@ import {
   readdirSync,
   statSync,
 } from "node:fs";
-import { dirname, join, normalize, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 
 const ROOT = process.cwd();
 const SOURCE_ROOTS = ["core", "data", "entities", "rendering", "systems", "ui", "world"];
+const SKIP_DIRECTORIES = new Set([".git", "node_modules"]);
 const errors = [];
 
 function collectFiles(dir, predicate, result = []) {
   if (!existsSync(dir)) return result;
   for (const entry of readdirSync(dir)) {
+    if (SKIP_DIRECTORIES.has(entry)) continue;
     const full = join(dir, entry);
     const stat = statSync(full);
     if (stat.isDirectory()) {
@@ -106,9 +108,7 @@ for (const file of jsFiles) {
   for (const asset of extractAssetStrings(source)) checkReference(file, asset);
 }
 
-const cssFiles = collectFiles(ROOT, (file) =>
-  file.endsWith(".css") && !file.includes(`${normalize(".git")}${process.platform === "win32" ? "\\" : "/"}`)
-);
+const cssFiles = collectFiles(ROOT, (file) => file.endsWith(".css"));
 for (const file of cssFiles) {
   const source = readFileSync(file, "utf8");
   for (const ref of extractCssUrls(source)) {
