@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  classifyAudioHaptic,
   classifyCombatHaptic,
   pickStrongestHaptic,
 } from "../systems/runtimeFeedback.js";
@@ -17,6 +18,12 @@ test("ability-denied feedback never vibrates", () => {
     classifyCombatHaptic({ text: "Need Spirit", abilityDenied: true }),
     null
   );
+});
+
+test("boss-down audio cue provides a cleanup-race-safe haptic fallback", () => {
+  assert.equal(classifyAudioHaptic("boss-down"), "bossDown");
+  assert.equal(classifyAudioHaptic("enemy-down"), null);
+  assert.equal(classifyAudioHaptic("level-up"), null);
 });
 
 test("multi-hit frames keep only the strongest haptic intent", () => {
