@@ -153,3 +153,54 @@ export function createShellGamepadNavigation({
     },
   };
 }
+
+function getDefaultOpenPanel() {
+  if (typeof document === "undefined") return null;
+  const savePanel = document.getElementById("save-slot-panel");
+  if (savePanel && !savePanel.hidden) return savePanel;
+  const accessibilityPanel = document.getElementById("accessibility-panel");
+  if (accessibilityPanel && !accessibilityPanel.hidden) return accessibilityPanel;
+  return null;
+}
+
+function openDefaultPanel(toggleId, panelId) {
+  if (typeof document === "undefined") return;
+  const toggle = document.getElementById(toggleId);
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+
+  toggle?.click?.();
+  if (panel.hidden) {
+    const otherId = panelId === "save-slot-panel" ? "accessibility-panel" : "save-slot-panel";
+    const other = document.getElementById(otherId);
+    if (other) other.hidden = true;
+    panel.hidden = false;
+    document.body.dataset.shellPanelOpen = "true";
+    panel.querySelector("button, input")?.focus?.({ preventScroll: true });
+  }
+}
+
+function closeDefaultPanels() {
+  if (typeof document === "undefined") return;
+  for (const id of ["save-slot-panel", "accessibility-panel"]) {
+    const panel = document.getElementById(id);
+    if (panel) panel.hidden = true;
+  }
+  document.body.dataset.shellPanelOpen = "false";
+  document.getElementById("game")?.focus?.({ preventScroll: true });
+}
+
+if (
+  typeof window !== "undefined" &&
+  typeof document !== "undefined" &&
+  !window.__heartOfForestShellGamepad
+) {
+  window.__heartOfForestShellGamepad = createShellGamepadNavigation({
+    getState: () => window.__heartOfForestDebug?.getState?.() || null,
+    getOpenPanel: getDefaultOpenPanel,
+    openSaveSlots: () => openDefaultPanel("save-slot-toggle", "save-slot-panel"),
+    openAccessibility: () =>
+      openDefaultPanel("accessibility-toggle", "accessibility-panel"),
+    closePanels: closeDefaultPanels,
+  });
+}
