@@ -78,6 +78,41 @@
   line-height: 1;
 }
 
+.controller-context-prompt {
+  position: absolute;
+  left: 50%;
+  bottom: max(154px, calc(env(safe-area-inset-bottom) + 142px));
+  z-index: 8;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  max-width: min(520px, calc(100vw - 40px));
+  min-height: 34px;
+  border: 1px solid rgba(137, 207, 217, 0.3);
+  padding: 7px 12px 7px 8px;
+  background:
+    linear-gradient(90deg, rgba(81, 126, 105, 0.14), transparent 62%),
+    rgba(6, 16, 13, 0.9);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
+  color: rgba(239, 239, 222, 0.92);
+  font: 650 calc(11px * var(--ui-scale)) "Segoe UI", Arial, sans-serif;
+  line-height: 1.25;
+  text-align: left;
+  pointer-events: none;
+  transform: translateX(-50%);
+  backdrop-filter: blur(5px);
+}
+
+.controller-context-prompt[hidden] {
+  display: none;
+}
+
+.controller-context-prompt .controller-glyph {
+  flex: 0 0 auto;
+  min-width: 28px;
+  height: 22px;
+}
+
 .world-event-banner {
   position: absolute;
   top: max(76px, calc(env(safe-area-inset-top) + 64px));
@@ -148,7 +183,8 @@
   line-height: 1.4;
 }
 
-html[data-contrast="high"] .controller-guide {
+html[data-contrast="high"] .controller-guide,
+html[data-contrast="high"] .controller-context-prompt {
   border-color: rgba(194, 236, 201, 0.58);
   background: rgba(2, 8, 5, 0.94);
   color: #fff;
@@ -191,6 +227,10 @@ html[data-motion="reduced"] .world-event-banner {
     display: none;
   }
 
+  .controller-context-prompt {
+    bottom: max(140px, calc(env(safe-area-inset-bottom) + 128px));
+  }
+
   .world-event-banner {
     top: max(58px, calc(env(safe-area-inset-top) + 48px));
     padding-inline: 38px;
@@ -204,6 +244,12 @@ html[data-motion="reduced"] .world-event-banner {
 @media (max-width: 620px) {
   .controller-guide {
     display: none !important;
+  }
+
+  .controller-context-prompt {
+    bottom: max(128px, calc(env(safe-area-inset-bottom) + 116px));
+    max-width: calc(100vw - 24px);
+    font-size: 10px;
   }
 
   .world-event-banner {
