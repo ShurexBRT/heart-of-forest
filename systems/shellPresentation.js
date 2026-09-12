@@ -84,27 +84,29 @@ export function createShellPresentation({
     syncControllerGuide(getState?.());
   }
 
-  function showInputDevice(device) {
-    if (!inputDeviceToast || !inputDeviceLabel) return;
+  function showStatusToast(message, { duration = 2200, type = "system" } = {}) {
+    if (!inputDeviceToast || !inputDeviceLabel || !message) return;
     window.clearTimeout(inputDeviceToastTimer);
-    const gamepad = device === "gamepad";
-    inputDeviceLabel.textContent = gamepad
-      ? "Controller active"
-      : "Keyboard & Mouse active";
-    inputDeviceToast.dataset.device = gamepad ? "gamepad" : "keyboard";
+    inputDeviceLabel.textContent = message;
+    inputDeviceToast.dataset.device = type;
     inputDeviceToast.hidden = false;
-
-    if (gamepad) {
-      showControllerGuide(7000);
-    }
-
+    inputDeviceToast.classList.remove("is-visible");
     requestAnimationFrame(() => inputDeviceToast.classList.add("is-visible"));
     inputDeviceToastTimer = window.setTimeout(() => {
       inputDeviceToast.classList.remove("is-visible");
       window.setTimeout(() => {
         inputDeviceToast.hidden = true;
       }, 180);
-    }, 1600);
+    }, Math.max(900, duration));
+  }
+
+  function showInputDevice(device) {
+    const gamepad = device === "gamepad";
+    showStatusToast(gamepad ? "Controller active" : "Keyboard & Mouse active", {
+      duration: 1600,
+      type: gamepad ? "gamepad" : "keyboard",
+    });
+    if (gamepad) showControllerGuide(7000);
   }
 
   function syncControllerGuide(state) {
@@ -256,6 +258,9 @@ export function createShellPresentation({
   return {
     showInputDevice,
     showControllerGuide,
+    showSystemNotice(message, options = {}) {
+      showStatusToast(message, { ...options, type: options.type || "system" });
+    },
     sync,
     stop() {
       window.clearTimeout(inputDeviceToastTimer);
