@@ -11,6 +11,45 @@ import { syncFrontendSaveState } from "./ui/startScreen.js";
 import { GAME_MODES } from "./core/gameMode.js";
 import { SCENES } from "./data/sceneNetwork.js";
 
+const WORLD_MILESTONES = [
+  {
+    flag: "heartwood_restored",
+    title: "Heartwood Breathes Again",
+    body: "The first roads soften. Return home and the village will remember what changed.",
+  },
+  {
+    flag: "stillwater_restored",
+    title: "Stillwater Runs Clear",
+    body: "The mire loosens its grip and the old water routes begin to answer again.",
+  },
+  {
+    flag: "ember_restored",
+    title: "Emberpine Rekindled",
+    body: "Fire becomes warmth instead of hunger. The pass belongs to living hands again.",
+  },
+  {
+    flag: "frost_restored",
+    title: "Frostveil Thaws",
+    body: "The white silence breaks. Waystones and lost paths stir beneath the snow.",
+  },
+  {
+    flag: "scarroot_restored",
+    title: "Scarroot Released",
+    body: "The oldest wound opens its hand. A deeper keeper rite now waits at home.",
+  },
+  {
+    flag: "rootlight_restored",
+    title: "Rootlight Remembers",
+    body: "The ancient network holds every restored root without forcing them into one voice.",
+  },
+  {
+    flag: "second_spring_started",
+    title: "The Second Spring Begins",
+    body: "No throne rises from the Heartseed. A new tree begins small enough to need everyone.",
+    kicker: "A New Season",
+  },
+];
+
 const root = document.documentElement;
 const bootStatus = document.getElementById("boot-status");
 const fatalPanel = document.getElementById("fatal-error");
@@ -38,6 +77,10 @@ let mainLoaded = false;
 let controllerGuideUntil = 0;
 let lastGuideSceneId = null;
 let feedbackMonitor = null;
+let trackedWorldState = null;
+let seenWorldMilestones = new Set();
+let worldEventBanner = null;
+let worldEventBannerTimer = 0;
 
 function getGameState() {
   return window.__heartOfForestDebug?.getState?.() || null;
@@ -288,6 +331,71 @@ function syncControllerGuideVisibility(state = getGameState()) {
   controllerGuide.hidden = !visible;
 }
 
+function ensureWorldEventBanner() {
+  if (worldEventBanner) return worldEventBanner;
+  const banner = document.createElement("div");
+  banner.className = "world-event-banner";
+  banner.hidden = true;
+  banner.setAttribute("role", "status");
+  banner.setAttribute("aria-live", "polite");
+  banner.innerHTML = `
+    <span class="world-event-kicker">Region Restored</span>
+    <strong></strong>
+    <p></p>
+  `;
+  document.getElementById("game-shell")?.append(banner);
+  worldEventBanner = banner;
+  return banner;
+}
+
+function showWorldEventBanner(milestone) {
+  const banner = ensureWorldEventBanner();
+  const kicker = banner.querySelector(".world-event-kicker");
+  const title = banner.querySelector("strong");
+  const body = banner.querySelector("p");
+  if (kicker) kicker.textContent = milestone.kicker || "Region Restored";
+  if (title) title.textContent = milestone.title;
+  if (body) body.textContent = milestone.body;
+
+  window.clearTimeout(worldEventBannerTimer);
+  banner.hidden = false;
+  banner.classList.remove("is-visible");
+  requestAnimationFrame(() => banner.classList.add("is-visible"));
+  feedbackMonitor?.pulse?.("level", { force: true });
+
+  worldEventBannerTimer = window.setTimeout(() => {
+    banner.classList.remove("is-visible");
+    window.setTimeout(() => {
+      banner.hidden = true;
+    }, root.dataset.motion === "reduced" ? 0 : 340);
+  }, 3300);
+}
+
+function syncWorldMilestoneFeedback(state) {
+  if (!state?.progression?.worldFlags) return;
+
+  if (state !== trackedWorldState) {
+    trackedWorldState = state;
+    seenWorldMilestones = new Set(
+      WORLD_MILESTONES
+        .filter((milestone) => state.progression.worldFlags[milestone.flag])
+        .map((milestone) => milestone.flag)
+    );
+    return;
+  }
+
+  for (const milestone of WORLD_MILESTONES) {
+    if (
+      state.progression.worldFlags[milestone.flag] &&
+      !seenWorldMilestones.has(milestone.flag)
+    ) {
+      seenWorldMilestones.add(milestone.flag);
+      showWorldEventBanner(milestone);
+      break;
+    }
+  }
+}
+
 function syncShellVisibility() {
   window.clearTimeout(shellSyncTimer);
   const state = getGameState();
@@ -310,6 +418,7 @@ function syncShellVisibility() {
   }
 
   syncControllerGuideVisibility(state);
+  syncWorldMilestoneFeedback(state);
   shellSyncTimer = window.setTimeout(syncShellVisibility, 90);
 }
 
