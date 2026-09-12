@@ -16,6 +16,10 @@ export function classifyCombatHaptic(entry) {
   return null;
 }
 
+export function classifyAudioHaptic(cue) {
+  return cue === "boss-down" ? "bossDown" : null;
+}
+
 export function pickStrongestHaptic(types = []) {
   return types
     .filter((type) => HAPTIC_PRESETS[type])
@@ -37,7 +41,13 @@ export function createRuntimeFeedbackMonitor({
   let previousLevel = null;
   let previousBossId = null;
   let previousBossDead = false;
+  let previousAudioPlayedCount = null;
   let lastPulseAt = 0;
+  let lastBossDownAt = -Infinity;
+
+  function nowMs() {
+    return typeof performance !== "undefined" ? performance.now() : Date.now();
+  }
 
   function canUseHaptics() {
     const settings = getSettings?.() || getState?.()?.settings || {};
@@ -58,7 +68,7 @@ export function createRuntimeFeedbackMonitor({
     const preset = HAPTIC_PRESETS[type];
     if (!preset || !canUseHaptics()) return false;
 
-    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const now = nowMs();
     if (!options.force && now - lastPulseAt < 24) return false;
 
     const pad = findActiveGamepad();
@@ -86,6 +96,17 @@ export function createRuntimeFeedbackMonitor({
     }
 
     return false;
+  }
+
+  function pulseBossDefeat() {
+    const now = nowMs();
+    if (now - lastBossDownAt < 500) return false;
+    lastBossDownAt = now;
+    const didPulse = pulse("bossDown", { force: true });
+    if (didPulse && typeof window !== "undefined") {
+      window.setTimeout(() => pulse("heavy", { force: true }), 190);
+    }
+    return didPulse;
   }
 
   function scanCombatText(state) {
@@ -130,10 +151,7 @@ export function createRuntimeFeedbackMonitor({
       bossDead &&
       !previousBossDead
     ) {
-      pulse("bossDown", { force: true });
-      if (typeof window !== "undefined") {
-        window.setTimeout(() => pulse("heavy", { force: true }), 190);
-      }
+      pulseBossDefeat();
     }
 
     if (bossId) {
@@ -145,6 +163,19 @@ export function createRuntimeFeedbackMonitor({
     }
   }
 
+  function scanAudio(state) {
+    const playedCount = Math.max(0, Number(state?.audio?.playedCount || 0));
+    if (previousAudioPlayedCount === null) {
+      previousAudioPlayedCount = playedCount;
+      return;
+    }
+    if (playedCount === previousAudioPlayedCount) return;
+
+    previousAudioPlayedCount = playedCount;
+    const type = classifyAudioHaptic(state?.audio?.lastCue);
+    if (type === "bossDown") pulseBossDefeat();
+  }
+
   function tick() {
     if (stopped) return;
     const state = getState?.();
@@ -153,6 +184,7 @@ export function createRuntimeFeedbackMonitor({
       scanDash(state);
       scanLevel(state);
       scanBoss(state);
+      scanAudio(state);
     }
     if (typeof requestAnimationFrame === "function") {
       frameId = requestAnimationFrame(tick);
