@@ -9,7 +9,6 @@ const GAMEPAD_BUTTON_BINDINGS = {
   1: ["Escape"],
   2: ["Digit1"],
   3: ["KeyR"],
-  4: ["KeyQ"],
   5: ["KeyE"],
   8: ["Tab"],
   9: ["Escape"],
