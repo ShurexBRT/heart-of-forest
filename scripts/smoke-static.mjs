@@ -34,15 +34,32 @@ function recordMissing(owner, specifier, resolved) {
   errors.push(`${display(owner)} -> ${specifier} (missing ${display(resolved)})`);
 }
 
-function resolveLocal(owner, specifier) {
-  const cleaned = specifier.split(/[?#]/, 1)[0];
+function stripUrlSuffix(specifier) {
+  return specifier.split(/[?#]/, 1)[0];
+}
+
+function resolveModuleReference(owner, specifier) {
+  const cleaned = stripUrlSuffix(specifier);
   if (!cleaned || /^(?:[a-z]+:|#|\/\/)/i.test(cleaned)) return null;
   if (cleaned.startsWith("/")) return resolve(ROOT, `.${cleaned}`);
   return resolve(dirname(owner), cleaned);
 }
 
-function checkReference(owner, specifier) {
-  const target = resolveLocal(owner, specifier);
+function resolveDocumentReference(specifier) {
+  const cleaned = stripUrlSuffix(specifier);
+  if (!cleaned || /^(?:[a-z]+:|#|\/\/)/i.test(cleaned)) return null;
+  if (cleaned.startsWith("/")) return resolve(ROOT, `.${cleaned}`);
+  return resolve(ROOT, cleaned);
+}
+
+function checkReference(owner, specifier, resolver = resolveModuleReference) {
+  const target = resolver(owner, specifier);
+  if (!target) return;
+  if (!existsSync(target)) recordMissing(owner, specifier, target);
+}
+
+function checkDocumentReference(owner, specifier) {
+  const target = resolveDocumentReference(specifier);
   if (!target) return;
   if (!existsSync(target)) recordMissing(owner, specifier, target);
 }
@@ -89,7 +106,9 @@ if (!existsSync(indexPath)) {
   errors.push("index.html is missing");
 } else {
   const html = readFileSync(indexPath, "utf8");
-  for (const ref of extractHtmlReferences(html)) checkReference(indexPath, ref);
+  for (const ref of extractHtmlReferences(html)) {
+    checkDocumentReference(indexPath, ref);
+  }
 }
 
 const jsFiles = SOURCE_ROOTS.flatMap((root) =>
@@ -105,7 +124,9 @@ for (const file of jsFiles) {
   for (const specifier of extractJsImports(source)) {
     if (specifier.startsWith(".")) checkReference(file, specifier);
   }
-  for (const asset of extractAssetStrings(source)) checkReference(file, asset);
+  for (const asset of extractAssetStrings(source)) {
+    checkDocumentReference(file, asset);
+  }
 }
 
 const cssFiles = collectFiles(ROOT, (file) => file.endsWith(".css"));
