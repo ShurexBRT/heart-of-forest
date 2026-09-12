@@ -81,6 +81,10 @@ export function createInput(canvas) {
     },
   };
 
+  function shellPanelOpen() {
+    return document.body?.dataset.shellPanelOpen === "true";
+  }
+
   function setActiveDevice(device) {
     if (input.activeDevice === device) return;
     input.activeDevice = device;
@@ -104,6 +108,7 @@ export function createInput(canvas) {
   }
 
   window.addEventListener("keydown", (event) => {
+    if (shellPanelOpen()) return;
     const key = event.key.toLowerCase();
 
     if (event.code === "Space" || event.code === "Digit1") {
@@ -127,9 +132,19 @@ export function createInput(canvas) {
     rebuildCombinedCodes(input);
   });
 
+  window.addEventListener("hof-settings-change", (event) => {
+    const next = event.detail?.settings || readInputPreferences();
+    const aim = Number(next.aimSensitivity);
+    input.gamepad.aimSensitivity = Number.isFinite(aim)
+      ? Math.max(0.5, Math.min(1.75, aim))
+      : 1;
+    input.gamepad.vibrationEnabled = next.controllerVibration !== false;
+  });
+
   canvas.addEventListener("mousemove", updateMousePosition);
 
   canvas.addEventListener("mousedown", (event) => {
+    if (shellPanelOpen()) return;
     updateMousePosition(event);
 
     if (event.button === 0) {
@@ -239,6 +254,19 @@ function pollGamepad(input, canvas) {
   input.gamepad.movement = getGamepadMovementFromAxes(pad.axes);
   input.gamepad.aim = getGamepadAimFromAxes(pad.axes);
 
+  if (document.body?.dataset.shellPanelOpen === "true") {
+    input.gamepad.codesDown.clear();
+    rebuildCombinedCodes(input);
+    input.mouse.leftDown = input.mouse.physicalLeftDown;
+    input.mouse.rightDown = input.mouse.physicalRightDown;
+    input.gamepad.buttonsDown = new Set(
+      pad.buttons
+        .map((button, index) => (button?.pressed || button?.value > 0.55 ? index : -1))
+        .filter((index) => index >= 0)
+    );
+    return;
+  }
+
   const nextButtonsDown = new Set();
   const nextCodesDown = new Set();
   let gamepadWasUsed =
@@ -286,15 +314,13 @@ function pollGamepad(input, canvas) {
 
   input.gamepad.buttonsDown = nextButtonsDown;
 
-  if (gamepadWasUsed) {
-    if (input.activeDevice !== "gamepad") {
-      input.activeDevice = "gamepad";
-      if (typeof document !== "undefined") {
-        document.documentElement.dataset.inputDevice = "gamepad";
-      }
-      if (typeof window !== "undefined" && typeof window.CustomEvent === "function") {
-        window.dispatchEvent(new CustomEvent("hof-input-device", { detail: { device: "gamepad" } }));
-      }
+  if (gamepadWasUsed && input.activeDevice !== "gamepad") {
+    input.activeDevice = "gamepad";
+    if (typeof document !== "undefined") {
+      document.documentElement.dataset.inputDevice = "gamepad";
+    }
+    if (typeof window !== "undefined" && typeof window.CustomEvent === "function") {
+      window.dispatchEvent(new CustomEvent("hof-input-device", { detail: { device: "gamepad" } }));
     }
   }
 
