@@ -6,6 +6,7 @@ import {
   saveSettings,
   setActiveSaveSlot,
 } from "./systems/save.js";
+import { createRuntimeFeedbackMonitor } from "./systems/runtimeFeedback.js";
 import { syncFrontendSaveState } from "./ui/startScreen.js";
 import { GAME_MODES } from "./core/gameMode.js";
 import { SCENES } from "./data/sceneNetwork.js";
@@ -16,6 +17,7 @@ const fatalPanel = document.getElementById("fatal-error");
 const fatalMessage = document.getElementById("fatal-error-message");
 const inputDeviceToast = document.getElementById("input-device-toast");
 const inputDeviceLabel = document.getElementById("input-device-label");
+const controllerGuide = document.getElementById("controller-guide");
 const shellTools = document.getElementById("shell-tools");
 const saveSlotToggle = document.getElementById("save-slot-toggle");
 const accessibilityToggle = document.getElementById("accessibility-toggle");
@@ -25,6 +27,7 @@ const accessibilityPanel = document.getElementById("accessibility-panel");
 const reducedMotionInput = document.getElementById("setting-reduced-motion");
 const highContrastInput = document.getElementById("setting-high-contrast");
 const damageNumbersInput = document.getElementById("setting-damage-numbers");
+const tutorialHintsInput = document.getElementById("setting-tutorial-hints");
 const controllerVibrationInput = document.getElementById("setting-controller-vibration");
 const aimSensitivityInput = document.getElementById("setting-aim-sensitivity");
 const aimSensitivityValue = document.getElementById("setting-aim-sensitivity-value");
@@ -32,6 +35,9 @@ const SCREEN_SHAKE_STASH_KEY = "heart-of-forest-reduced-motion-shake";
 let inputDeviceToastTimer = 0;
 let shellSyncTimer = 0;
 let mainLoaded = false;
+let controllerGuideUntil = 0;
+let lastGuideSceneId = null;
+let feedbackMonitor = null;
 
 function getGameState() {
   return window.__heartOfForestDebug?.getState?.() || null;
@@ -56,6 +62,7 @@ function persistRuntimeSettings(patch) {
     new CustomEvent("hof-settings-change", { detail: { settings: normalized } })
   );
   syncAccessibilityControls(normalized);
+  syncControllerGuideVisibility(state);
   return normalized;
 }
 
@@ -66,6 +73,10 @@ function showInputDevice(device) {
   inputDeviceLabel.textContent = gamepad ? "Controller active" : "Keyboard & Mouse active";
   inputDeviceToast.dataset.device = gamepad ? "gamepad" : "keyboard";
   inputDeviceToast.hidden = false;
+  if (gamepad) {
+    controllerGuideUntil = performance.now() + 7000;
+  }
+  syncControllerGuideVisibility(getGameState());
   requestAnimationFrame(() => inputDeviceToast.classList.add("is-visible"));
   inputDeviceToastTimer = window.setTimeout(() => {
     inputDeviceToast.classList.remove("is-visible");
@@ -148,6 +159,7 @@ function syncAccessibilityControls(settings = loadSettings()) {
   if (reducedMotionInput) reducedMotionInput.checked = Boolean(settings.reducedMotion);
   if (highContrastInput) highContrastInput.checked = Boolean(settings.highContrast);
   if (damageNumbersInput) damageNumbersInput.checked = settings.damageNumbers !== false;
+  if (tutorialHintsInput) tutorialHintsInput.checked = settings.showTutorialHints !== false;
   if (controllerVibrationInput) {
     controllerVibrationInput.checked = settings.controllerVibration !== false;
   }
@@ -202,6 +214,13 @@ function setupShellControls() {
     persistRuntimeSettings({ damageNumbers: damageNumbersInput.checked });
   });
 
+  tutorialHintsInput?.addEventListener("change", () => {
+    if (tutorialHintsInput.checked && root.dataset.inputDevice === "gamepad") {
+      controllerGuideUntil = performance.now() + 7000;
+    }
+    persistRuntimeSettings({ showTutorialHints: tutorialHintsInput.checked });
+  });
+
   controllerVibrationInput?.addEventListener("change", () => {
     persistRuntimeSettings({ controllerVibration: controllerVibrationInput.checked });
   });
@@ -234,6 +253,41 @@ function setupShellControls() {
   syncShellVisibility();
 }
 
+function syncControllerGuideVisibility(state = getGameState()) {
+  if (!controllerGuide) return;
+  if (!state) {
+    controllerGuide.hidden = true;
+    return;
+  }
+
+  if (state.currentSceneId && state.currentSceneId !== lastGuideSceneId) {
+    if (lastGuideSceneId && root.dataset.inputDevice === "gamepad") {
+      controllerGuideUntil = performance.now() + 4200;
+    }
+    lastGuideSceneId = state.currentSceneId;
+  }
+
+  const settings = state.settings || loadSettings();
+  const majorOverlayOpen = Boolean(
+    state.story?.dialogue ||
+      state.story?.questPanel ||
+      state.ui?.questLogOpen ||
+      state.ui?.menuOpen ||
+      state.ui?.worldMapOpen ||
+      isShellPanelOpen()
+  );
+  const visible = Boolean(
+    state.mode === GAME_MODES.PLAYING &&
+      !state.gameOver &&
+      root.dataset.inputDevice === "gamepad" &&
+      settings.showTutorialHints !== false &&
+      performance.now() < controllerGuideUntil &&
+      !majorOverlayOpen
+  );
+
+  controllerGuide.hidden = !visible;
+}
+
 function syncShellVisibility() {
   window.clearTimeout(shellSyncTimer);
   const state = getGameState();
@@ -255,7 +309,8 @@ function syncShellVisibility() {
     closeShellPanels();
   }
 
-  shellSyncTimer = window.setTimeout(syncShellVisibility, 180);
+  syncControllerGuideVisibility(state);
+  shellSyncTimer = window.setTimeout(syncShellVisibility, 90);
 }
 
 window.addEventListener("hof-input-device", (event) => {
@@ -270,12 +325,21 @@ window.addEventListener("unhandledrejection", (event) => {
   showFatalError(event.reason instanceof Error ? event.reason : new Error(String(event.reason)));
 });
 
+window.addEventListener("beforeunload", () => {
+  feedbackMonitor?.stop?.();
+});
+
 applyShellSettings();
 
 try {
   await import("./main.js");
   mainLoaded = true;
   setupShellControls();
+  feedbackMonitor = createRuntimeFeedbackMonitor({
+    getState: getGameState,
+    getSettings: () => getGameState()?.settings || loadSettings(),
+    getInputDevice: () => root.dataset.inputDevice || "keyboard",
+  });
   requestAnimationFrame(() => {
     document.body.classList.add("game-ready");
     if (bootStatus) bootStatus.hidden = true;
