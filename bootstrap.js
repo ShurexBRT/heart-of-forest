@@ -6,6 +6,7 @@ import {
   saveSettings,
   setActiveSaveSlot,
 } from "./systems/save.js";
+import { repairSaveSlotFromBackup } from "./systems/saveRecovery.js";
 import { createRuntimeFeedbackMonitor } from "./systems/runtimeFeedback.js";
 import { createShellPresentation } from "./systems/shellPresentation.js";
 import { syncFrontendSaveState } from "./ui/startScreen.js";
@@ -103,6 +104,17 @@ function formatSaveSlotSummary(summary) {
   return `Level ${summary.level} · Day ${summary.day} · ${sceneTitle}`;
 }
 
+function repairSelectedSlot(slot) {
+  const recovery = repairSaveSlotFromBackup(slot);
+  if (recovery.repaired) {
+    presentation?.showSystemNotice(
+      `Save Slot ${slot} restored from its automatic backup.`,
+      { duration: 4200 }
+    );
+  }
+  return recovery;
+}
+
 function renderSaveSlots() {
   if (!saveSlotList || !saveSlotToggle) return;
   const activeSlot = getActiveSaveSlot();
@@ -122,9 +134,11 @@ function renderSaveSlots() {
     `;
     button.addEventListener("click", () => {
       setActiveSaveSlot(summary.slot);
+      const recovery = repairSelectedSlot(summary.slot);
+      const saveData = recovery.save || loadSave(summary.slot);
       const state = getGameState();
       if (state?.frontend) {
-        syncFrontendSaveState(state.frontend, loadSave(summary.slot));
+        syncFrontendSaveState(state.frontend, saveData);
       }
       renderSaveSlots();
       closeShellPanels();
@@ -295,6 +309,12 @@ try {
     isShellPanelOpen,
     pulseHaptic: (type, options) => feedbackMonitor?.pulse?.(type, options),
   });
+
+  const bootRecovery = repairSelectedSlot(getActiveSaveSlot());
+  if (bootRecovery.repaired && getGameState()?.frontend) {
+    syncFrontendSaveState(getGameState().frontend, bootRecovery.save);
+  }
+
   presentation.sync(getGameState());
   requestAnimationFrame(() => {
     document.body.classList.add("game-ready");
