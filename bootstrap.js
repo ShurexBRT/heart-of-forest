@@ -81,6 +81,7 @@ let trackedWorldState = null;
 let seenWorldMilestones = new Set();
 let worldEventBanner = null;
 let worldEventBannerTimer = 0;
+let controllerContextPrompt = null;
 
 function getGameState() {
   return window.__heartOfForestDebug?.getState?.() || null;
@@ -331,6 +332,58 @@ function syncControllerGuideVisibility(state = getGameState()) {
   controllerGuide.hidden = !visible;
 }
 
+function ensureControllerContextPrompt() {
+  if (controllerContextPrompt) return controllerContextPrompt;
+  const prompt = document.createElement("div");
+  prompt.className = "controller-context-prompt";
+  prompt.hidden = true;
+  prompt.setAttribute("aria-hidden", "true");
+  prompt.innerHTML = `
+    <b class="controller-glyph">RB</b>
+    <span></span>
+  `;
+  document.getElementById("game-shell")?.append(prompt);
+  controllerContextPrompt = prompt;
+  return prompt;
+}
+
+function syncControllerContextPrompt(state) {
+  const prompt = ensureControllerContextPrompt();
+  if (!state || root.dataset.inputDevice !== "gamepad") {
+    prompt.hidden = true;
+    return;
+  }
+
+  const overlayOpen = Boolean(
+    state.story?.dialogue ||
+      state.story?.questPanel ||
+      state.ui?.questLogOpen ||
+      state.ui?.menuOpen ||
+      state.ui?.worldMapOpen ||
+      isShellPanelOpen()
+  );
+  if (state.mode !== GAME_MODES.PLAYING || state.gameOver || overlayOpen) {
+    prompt.hidden = true;
+    return;
+  }
+
+  let text = "";
+  if (state.story?.focus) {
+    text = state.story.prompt || state.story.focus.label || "Interact";
+  } else if (state.nearExit) {
+    const exit = state.nearExit;
+    const unlocked =
+      !exit.requiresFlag || Boolean(state.progression?.worldFlags?.[exit.requiresFlag]);
+    if (unlocked) {
+      text = `Hold to travel · ${exit.label || "Path"}`;
+    }
+  }
+
+  const label = prompt.querySelector("span");
+  if (label) label.textContent = text;
+  prompt.hidden = !text;
+}
+
 function ensureWorldEventBanner() {
   if (worldEventBanner) return worldEventBanner;
   const banner = document.createElement("div");
@@ -418,6 +471,7 @@ function syncShellVisibility() {
   }
 
   syncControllerGuideVisibility(state);
+  syncControllerContextPrompt(state);
   syncWorldMilestoneFeedback(state);
   shellSyncTimer = window.setTimeout(syncShellVisibility, 90);
 }
