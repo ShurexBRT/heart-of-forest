@@ -1,6 +1,6 @@
 .controller-guide {
   position: absolute;
-  top: max(72px, calc(env(safe-area-inset-top) + 58px));
+  top: max(232px, calc(env(safe-area-inset-top) + 218px));
   left: max(14px, env(safe-area-inset-left));
   z-index: 6;
   width: min(314px, calc(100vw - 28px));
@@ -301,9 +301,9 @@ html[data-motion="reduced"] .world-event-banner {
   transition: none;
 }
 
-@media (max-width: 920px), (max-height: 650px) {
+@media (max-width: 920px) {
   .controller-guide {
-    top: max(58px, calc(env(safe-area-inset-top) + 46px));
+    top: max(224px, calc(env(safe-area-inset-top) + 210px));
     width: min(270px, calc(100vw - 24px));
     padding: 8px 9px 9px;
   }
@@ -342,6 +342,12 @@ html[data-motion="reduced"] .world-event-banner {
 
   .world-event-banner strong {
     font-size: calc(18px * var(--ui-scale));
+  }
+}
+
+@media (max-height: 700px) {
+  .controller-guide {
+    display: none !important;
   }
 }
 
