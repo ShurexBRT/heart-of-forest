@@ -68,7 +68,6 @@ export function createInput(canvas) {
       buttonsDown: new Set(),
       codesDown: new Set(),
       aimSensitivity: preferences.aimSensitivity,
-      vibrationEnabled: preferences.controllerVibration,
     },
     beginFrame() {
       const blocked = shellPanelOpen();
@@ -140,7 +139,6 @@ export function createInput(canvas) {
     input.gamepad.aimSensitivity = Number.isFinite(aim)
       ? Math.max(0.5, Math.min(1.75, aim))
       : 1;
-    input.gamepad.vibrationEnabled = next.controllerVibration !== false;
   });
 
   canvas.addEventListener("mousemove", updateMousePosition);
@@ -183,41 +181,6 @@ export function createInput(canvas) {
   }
   pollGamepad(input, canvas, false);
   return input;
-}
-
-export function refreshInputPreferences(input) {
-  if (!input?.gamepad) return;
-  const preferences = readInputPreferences();
-  input.gamepad.aimSensitivity = preferences.aimSensitivity;
-  input.gamepad.vibrationEnabled = preferences.controllerVibration;
-}
-
-export function pulseGamepad(input, { duration = 60, weak = 0.35, strong = 0.6 } = {}) {
-  if (!input?.gamepad?.connected || !input.gamepad.vibrationEnabled) return false;
-  const pads = typeof navigator !== "undefined" && navigator.getGamepads
-    ? navigator.getGamepads()
-    : [];
-  const pad = pads?.[input.gamepad.index];
-  const actuator = pad?.vibrationActuator || pad?.hapticActuators?.[0];
-  if (!actuator) return false;
-
-  if (typeof actuator.playEffect === "function") {
-    const result = actuator.playEffect("dual-rumble", {
-      duration,
-      weakMagnitude: Math.max(0, Math.min(1, weak)),
-      strongMagnitude: Math.max(0, Math.min(1, strong)),
-    });
-    result?.catch?.(() => {});
-    return true;
-  }
-
-  if (typeof actuator.pulse === "function") {
-    const result = actuator.pulse(Math.max(0, Math.min(1, strong)), duration);
-    result?.catch?.(() => {});
-    return true;
-  }
-
-  return false;
 }
 
 function clearGameplayInput(input) {
@@ -352,7 +315,7 @@ function rebuildCombinedCodes(input) {
 }
 
 function readInputPreferences() {
-  const defaults = { aimSensitivity: 1, controllerVibration: true };
+  const defaults = { aimSensitivity: 1 };
   if (typeof localStorage === "undefined") return defaults;
 
   try {
@@ -360,7 +323,6 @@ function readInputPreferences() {
     const aim = Number(raw?.aimSensitivity);
     return {
       aimSensitivity: Number.isFinite(aim) ? Math.max(0.5, Math.min(1.75, aim)) : 1,
-      controllerVibration: raw?.controllerVibration !== false,
     };
   } catch {
     return defaults;
