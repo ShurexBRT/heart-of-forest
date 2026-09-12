@@ -35,7 +35,7 @@ Homestead
 - `2`, `3`, `4`: bound action slots
 - `5`: Health Potion
 - `6`: Spirit Tonic
-- `E`: interact / advance dialogue / confirm travel
+- `E`: interact / advance dialogue / hold to confirm travel
 - `L`: quest log
 - `C`: character panel
 - `I`: inventory panel
@@ -43,7 +43,7 @@ Homestead
 - `Tab`: cycle panel tabs
 - `Esc`: pause / close panel
 
-### Gamepad foundation
+### Gamepad
 
 - Left Stick: movement
 - Right Stick: aim
@@ -51,12 +51,14 @@ Homestead
 - Left Trigger: Spirit Bolt
 - `A`: Dash / confirm
 - `X`: Root Snare
-- `Y`: Signature
-- `LB` / `RB`: contextual bindings
-- D-pad: UI navigation foundation
-- Start / B: back / pause
+- `Y`: Verdant Pulse / chosen Signature
+- `RB`: interact / hold to confirm travel
+- D-pad: frontend and shell-panel navigation
+- `Start` / `B`: pause / back
+- `View / Select` on the title screen: Save Slots
+- `LB` on frontend screens: Accessibility
 
-Controller mapping is intentionally being hardened during the Golden Slice polish pass before it is treated as final release UX.
+When a gamepad becomes active, the game switches to controller-aware prompts and can show a temporary field-binding guide. Supported controllers also receive haptic feedback for hits, heavy impacts, player damage, dash, level-up and boss defeat; vibration can be disabled in Accessibility.
 
 ## Current Campaign
 
@@ -88,6 +90,7 @@ The campaign already includes the Heartwood, Stillwater, Ember, Frost, Scarroot 
 - Moonleaf farming: plant, water, grow, harvest
 - quest chains, side quests and optional dungeon content
 - regional restoration flags that alter routes, NPC placement and world access
+- restoration milestone presentation when a region changes state
 - Field Journal, Bestiary and regional navigation
 - Second Spring/postgame foundations
 
@@ -102,6 +105,7 @@ The campaign already includes the Heartwood, Stillwater, Ember, Frost, Scarroot 
 - enemy waves and elite affixes
 - boss phase transitions and telegraphs
 - preparation elixirs and regional damage counters
+- automated readability budgets for attack windups, projectile patterns and boss signature hazards
 
 ### Enemy identity
 
@@ -124,11 +128,11 @@ The runtime atlas contains a distinct visual row for every current enemy type an
 - Relic Sentinel
 - Starbound Archer
 
-Combat roles are also being separated mechanically: ranged spread patterns, support snares, brute ground threats, movement/strafe profiles and biome-specific projectile behavior.
+Combat roles are also separated mechanically through ranged spread patterns, support snares, brute ground threats, movement/strafe profiles and biome-specific projectile behavior.
 
 ### Boss identity
 
-Regional guardians share common combat foundations but now have distinct signature mechanics:
+Regional guardians share common combat foundations but have distinct signature mechanics:
 
 - Rootwarden — `Root Crown`
 - Bog Matron — `Tidewake Crown`
@@ -153,16 +157,22 @@ Regional guardians share common combat foundations but now have distinct signatu
 - stash, shop, alchemy and waystone services
 - Training Grove and DPS drills
 
-### Save & settings
+### Save & accessibility
 
-- three isolated local save slots at the persistence layer
+- three selectable local save slots
 - legacy slot-1 compatibility
 - automatic backup before overwrite
 - corrupt-primary recovery from backup
+- slot-aware Continue, New Game, autosave and reset behavior
 - settings persistence
-- reduced-motion, high-contrast, UI-scale, controller-vibration and aim-sensitivity settings model
-
-The frontend presentation for every new accessibility/save control is still part of the active polish work; backend presence is not treated as finished UX by itself.
+- Reduced Motion
+- High Contrast
+- Damage Numbers toggle
+- Tutorial Hints toggle
+- Controller Vibration toggle
+- Aim Sensitivity control
+- UI-scale settings model
+- save/accessibility panels usable by mouse, keyboard and gamepad
 
 ### Presentation
 
@@ -173,6 +183,8 @@ The frontend presentation for every new accessibility/save control is still part
 - combat particles and telegraphs
 - biome ambient VFX with a capped particle budget
 - root/seed/rune UI chrome shared by major panels
+- controller-aware contextual interaction/travel prompts
+- region-restoration milestone banners
 - production boot screen and recoverable fatal-error presentation
 
 ### Audio
@@ -199,18 +211,20 @@ http://localhost:4177/
 
 ## Verification
 
-Run the production verification helper with a modern Node.js installation:
+Run the same production verification helper used by CI:
 
 ```bash
 node scripts/verify.mjs
 ```
 
-It performs syntax checks over source modules and then runs every `tests/*.test.mjs` file.
+It syntax-checks the source modules and then runs every `tests/*.test.mjs` file.
+
+GitHub Actions runs **Verify Golden Slice** automatically for pushes to `polish/golden-slice` and pull requests targeting `main`. A green workflow is required before this production pass is considered merge-ready.
 
 ## Project Structure
 
 - `bootstrap.js`
-  - production boot shell and fatal-error presentation
+  - production boot shell, save/accessibility integration and presentation glue
 - `main.js`
   - central runtime state, transitions, input routing and high-level UI flow
 - `core/`
@@ -230,11 +244,13 @@ It performs syntax checks over source modules and then runs every `tests/*.test.
 - `ui/`
   - HUD, start/pause/options, quest panel and shared forest chrome
 - `systems/`
-  - combat, progression, saves, story, services, farming, regions, navigation, challenges, audio and postgame
+  - combat, progression, saves, story, services, farming, regions, navigation, challenges, input feedback, audio and postgame
 - `tests/`
-  - regression coverage for campaign flow, saves, combat feedback, layout/reachability, assets and progression
+  - regression coverage for campaign flow, saves, combat feedback/readability, layout/reachability, assets and progression
 - `scripts/verify.mjs`
-  - local syntax + test verification runner
+  - syntax + full test verification runner
+- `.github/workflows/verify.yml`
+  - CI quality gate for the Golden Slice branch and PRs to `main`
 
 ## Production Rule
 
