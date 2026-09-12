@@ -2,6 +2,7 @@ import { normalize } from "./math.js";
 
 const GAMEPAD_DEADZONE = 0.2;
 const AIM_STICK_RADIUS = 180;
+const SETTINGS_KEY = "heart-of-forest-settings";
 
 const GAMEPAD_BUTTON_BINDINGS = {
   0: ["Space"],
@@ -40,6 +41,7 @@ function getGamepadAimFromAxes(axes = []) {
 }
 
 export function createInput(canvas) {
+  const preferences = readInputPreferences();
   const input = {
     keys: new Set(),
     codes: new Set(),
@@ -53,6 +55,8 @@ export function createInput(canvas) {
       rightDown: false,
       leftPressed: false,
       rightPressed: false,
+      physicalLeftDown: false,
+      physicalRightDown: false,
     },
     gamepad: {
       connected: false,
@@ -61,6 +65,8 @@ export function createInput(canvas) {
       movement: { x: 0, y: 0 },
       aim: { x: 0, y: 0 },
       buttonsDown: new Set(),
+      aimSensitivity: preferences.aimSensitivity,
+      vibrationEnabled: preferences.controllerVibration,
     },
     endFrame() {
       this.keyPressed.clear();
@@ -110,11 +116,13 @@ export function createInput(canvas) {
     updateMousePosition(event);
 
     if (event.button === 0) {
+      input.mouse.physicalLeftDown = true;
       input.mouse.leftDown = true;
       input.mouse.leftPressed = true;
     }
 
     if (event.button === 2) {
+      input.mouse.physicalRightDown = true;
       input.mouse.rightDown = true;
       input.mouse.rightPressed = true;
     }
@@ -123,8 +131,14 @@ export function createInput(canvas) {
   canvas.addEventListener("mouseup", (event) => {
     updateMousePosition(event);
 
-    if (event.button === 0) input.mouse.leftDown = false;
-    if (event.button === 2) input.mouse.rightDown = false;
+    if (event.button === 0) {
+      input.mouse.physicalLeftDown = false;
+      input.mouse.leftDown = false;
+    }
+    if (event.button === 2) {
+      input.mouse.physicalRightDown = false;
+      input.mouse.rightDown = false;
+    }
   });
 
   canvas.addEventListener("contextmenu", (event) => event.preventDefault());
@@ -133,11 +147,48 @@ export function createInput(canvas) {
     input.codes.clear();
     input.mouse.leftDown = false;
     input.mouse.rightDown = false;
+    input.mouse.physicalLeftDown = false;
+    input.mouse.physicalRightDown = false;
     input.gamepad.buttonsDown.clear();
   });
 
   pollGamepad(input, canvas);
   return input;
+}
+
+export function refreshInputPreferences(input) {
+  if (!input?.gamepad) return;
+  const preferences = readInputPreferences();
+  input.gamepad.aimSensitivity = preferences.aimSensitivity;
+  input.gamepad.vibrationEnabled = preferences.controllerVibration;
+}
+
+export function pulseGamepad(input, { duration = 60, weak = 0.35, strong = 0.6 } = {}) {
+  if (!input?.gamepad?.connected || !input.gamepad.vibrationEnabled) return false;
+  const pads = typeof navigator !== "undefined" && navigator.getGamepads
+    ? navigator.getGamepads()
+    : [];
+  const pad = pads?.[input.gamepad.index];
+  const actuator = pad?.vibrationActuator || pad?.hapticActuators?.[0];
+  if (!actuator) return false;
+
+  if (typeof actuator.playEffect === "function") {
+    actuator
+      .playEffect("dual-rumble", {
+        duration,
+        weakMagnitude: Math.max(0, Math.min(1, weak)),
+        strongMagnitude: Math.max(0, Math.min(1, strong)),
+      })
+      .catch?.(() => {});
+    return true;
+  }
+
+  if (typeof actuator.pulse === "function") {
+    actuator.pulse(Math.max(0, Math.min(1, strong)), duration).catch?.(() => {});
+    return true;
+  }
+
+  return false;
 }
 
 function pollGamepad(input, canvas) {
@@ -153,6 +204,8 @@ function pollGamepad(input, canvas) {
     input.gamepad.movement = { x: 0, y: 0 };
     input.gamepad.aim = { x: 0, y: 0 };
     input.gamepad.buttonsDown.clear();
+    input.mouse.leftDown = input.mouse.physicalLeftDown;
+    input.mouse.rightDown = input.mouse.physicalRightDown;
     return;
   }
 
@@ -189,18 +242,18 @@ function pollGamepad(input, canvas) {
       return;
     }
 
+    if (!firstFrameDown) return;
     const mappedCodes = GAMEPAD_BUTTON_BINDINGS[index] || [];
     for (const code of mappedCodes) {
-      input.codes.add(code);
-      if (firstFrameDown) input.codePressed.add(code);
+      input.codePressed.add(code);
     }
   });
 
-  if (!nextButtonsDown.has(7) && input.activeDevice === "gamepad") {
-    input.mouse.leftDown = false;
+  if (!nextButtonsDown.has(7)) {
+    input.mouse.leftDown = input.mouse.physicalLeftDown;
   }
-  if (!nextButtonsDown.has(6) && input.activeDevice === "gamepad") {
-    input.mouse.rightDown = false;
+  if (!nextButtonsDown.has(6)) {
+    input.mouse.rightDown = input.mouse.physicalRightDown;
   }
 
   input.gamepad.buttonsDown = nextButtonsDown;
@@ -211,8 +264,25 @@ function pollGamepad(input, canvas) {
 
   if (input.activeDevice === "gamepad" && (input.gamepad.aim.x || input.gamepad.aim.y)) {
     const rect = canvas.getBoundingClientRect();
-    input.mouse.x = rect.width / 2 + input.gamepad.aim.x * AIM_STICK_RADIUS;
-    input.mouse.y = rect.height / 2 + input.gamepad.aim.y * AIM_STICK_RADIUS;
+    const sensitivity = Math.max(0.5, Math.min(1.75, input.gamepad.aimSensitivity || 1));
+    input.mouse.x = rect.width / 2 + input.gamepad.aim.x * AIM_STICK_RADIUS * sensitivity;
+    input.mouse.y = rect.height / 2 + input.gamepad.aim.y * AIM_STICK_RADIUS * sensitivity;
+  }
+}
+
+function readInputPreferences() {
+  const defaults = { aimSensitivity: 1, controllerVibration: true };
+  if (typeof localStorage === "undefined") return defaults;
+
+  try {
+    const raw = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null");
+    const aim = Number(raw?.aimSensitivity);
+    return {
+      aimSensitivity: Number.isFinite(aim) ? Math.max(0.5, Math.min(1.75, aim)) : 1,
+      controllerVibration: raw?.controllerVibration !== false,
+    };
+  } catch {
+    return defaults;
   }
 }
 
