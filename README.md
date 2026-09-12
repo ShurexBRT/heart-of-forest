@@ -58,7 +58,7 @@ Homestead
 - `View / Select` on the title screen: Save Slots
 - `LB` on frontend screens: Accessibility
 
-When a gamepad becomes active, the game switches to controller-aware prompts and can show a temporary field-binding guide. Supported controllers also receive haptic feedback for hits, heavy impacts, player damage, dash, level-up and boss defeat; vibration can be disabled in Accessibility.
+When a gamepad becomes active, the game switches to controller-aware prompts, shows a compact combat keyline above the Canvas HUD, and can show a temporary field-binding guide when screen space allows. The keyline reflects live cooldown, Spirit, lock and Signature-charge state. Supported controllers also receive haptic feedback for hits, heavy impacts, player damage, dash, level-up and boss defeat; vibration can be disabled in Accessibility.
 
 ## Current Campaign
 
@@ -162,7 +162,7 @@ Regional guardians share common combat foundations but have distinct signature m
 - three selectable local save slots
 - legacy slot-1 compatibility
 - automatic backup before overwrite
-- corrupt-primary recovery from backup
+- corrupt-primary self-healing from a valid backup with a recovery notice
 - slot-aware Continue, New Game, autosave and reset behavior
 - settings persistence
 - Reduced Motion
@@ -171,7 +171,7 @@ Regional guardians share common combat foundations but have distinct signature m
 - Tutorial Hints toggle
 - Controller Vibration toggle
 - Aim Sensitivity control
-- UI-scale settings model
+- UI-scale settings model reserved for a future full Canvas render + hit-test implementation
 - save/accessibility panels usable by mouse, keyboard and gamepad
 
 ### Presentation
@@ -184,6 +184,7 @@ Regional guardians share common combat foundations but have distinct signature m
 - biome ambient VFX with a capped particle budget
 - root/seed/rune UI chrome shared by major panels
 - controller-aware contextual interaction/travel prompts
+- controller combat keyline with live readiness state
 - region-restoration milestone banners
 - production boot screen and recoverable fatal-error presentation
 
@@ -217,9 +218,15 @@ Run the same production verification helper used by CI:
 node scripts/verify.mjs
 ```
 
-It syntax-checks the source modules and then runs every `tests/*.test.mjs` file.
+It performs source syntax checks, validates the local browser boot/import/asset-reference graph, and then runs every `tests/*.test.mjs` file.
 
 GitHub Actions runs **Verify Golden Slice** automatically for pushes to `polish/golden-slice` and pull requests targeting `main`. A green workflow is required before this production pass is considered merge-ready.
+
+Human acceptance is defined separately in:
+
+- `docs/PLAYTEST_CHECKLIST.md`
+
+The branch does not leave draft based on automated tests alone: the Golden Slice must also complete blind Keyboard & Mouse and controller runs, manual save-recovery validation, restoration-payoff validation and authored-audio acceptance.
 
 ## Project Structure
 
@@ -248,9 +255,11 @@ GitHub Actions runs **Verify Golden Slice** automatically for pushes to `polish/
 - `tests/`
   - regression coverage for campaign flow, saves, combat feedback/readability, layout/reachability, assets and progression
 - `scripts/verify.mjs`
-  - syntax + full test verification runner
+  - syntax + static smoke + full automated test runner
 - `.github/workflows/verify.yml`
   - CI quality gate for the Golden Slice branch and PRs to `main`
+- `docs/PLAYTEST_CHECKLIST.md`
+  - blind-run, directed QA and release-decision checklist
 
 ## Production Rule
 
