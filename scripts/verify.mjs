@@ -35,7 +35,9 @@ for (const file of jsFiles) {
   run(`syntax ${relative(process.cwd(), file)}`, process.execPath, ["--check", file]);
 }
 
+run("static browser boot/import graph", process.execPath, ["scripts/smoke-static.mjs"]);
+
 const testFiles = collectFiles("tests", (file) => file.endsWith(".test.mjs"));
 run(`${testFiles.length} test files`, process.execPath, ["--test", ...testFiles]);
 
-process.stdout.write("\n[verify] All syntax checks and tests passed.\n");
+process.stdout.write("\n[verify] All syntax checks, static smoke checks and tests passed.\n");
