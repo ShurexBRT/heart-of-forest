@@ -11,6 +11,7 @@
   />
   <title>Heart of Forest</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="shell-polish.css" />
 </head>
 <body>
   <main id="game-shell" aria-label="Heart of Forest">
@@ -23,6 +24,8 @@
 
     <p id="game-help" class="sr-only">
       Use W A S D or the left controller stick to move. Aim with the mouse or right controller stick.
+      On controller, right trigger uses Staff Strike, left trigger uses Spirit Bolt, A dashes, X casts Root Snare,
+      Y casts the signature ability, right bumper interacts, and Start pauses.
     </p>
 
     <div id="shell-tools" class="shell-tools" hidden>
@@ -68,6 +71,10 @@
           <input id="setting-damage-numbers" type="checkbox" />
         </label>
         <label class="shell-setting-row">
+          <span><strong>Tutorial Hints</strong><small>Show controller reminders when a gamepad is active.</small></span>
+          <input id="setting-tutorial-hints" type="checkbox" />
+        </label>
+        <label class="shell-setting-row">
           <span><strong>Controller Vibration</strong><small>Allow supported controllers to use haptic feedback.</small></span>
           <input id="setting-controller-vibration" type="checkbox" />
         </label>
@@ -80,6 +87,24 @@
         </label>
       </div>
     </section>
+
+    <aside id="controller-guide" class="controller-guide" aria-label="Controller controls" hidden>
+      <div class="controller-guide-header">
+        <strong>Controller</strong>
+        <span>Field bindings</span>
+      </div>
+      <div class="controller-guide-grid">
+        <span class="controller-guide-item"><b class="controller-glyph">LS</b>Move</span>
+        <span class="controller-guide-item"><b class="controller-glyph">RS</b>Aim</span>
+        <span class="controller-guide-item"><b class="controller-glyph">RT</b>Staff</span>
+        <span class="controller-guide-item"><b class="controller-glyph">LT</b>Bolt</span>
+        <span class="controller-guide-item"><b class="controller-glyph">A</b>Dash</span>
+        <span class="controller-guide-item"><b class="controller-glyph">X</b>Root</span>
+        <span class="controller-guide-item"><b class="controller-glyph">Y</b>Signature</span>
+        <span class="controller-guide-item"><b class="controller-glyph">RB</b>Interact</span>
+        <span class="controller-guide-item"><b class="controller-glyph">Start</b>Pause</span>
+      </div>
+    </aside>
 
     <div id="input-device-toast" class="input-device-toast" role="status" aria-live="polite" hidden>
       <span class="input-device-icon" aria-hidden="true">✦</span>
