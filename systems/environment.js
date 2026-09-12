@@ -1,4 +1,5 @@
 import { circleRectOverlap } from "../core/math.js";
+import { getRegionForScene } from "../data/regionData.js";
 import { damagePlayer } from "./combat.js";
 import { spawnAmbientMote, spawnBurst } from "./particles.js";
 
@@ -104,6 +105,7 @@ export function updateEnvironment(state, dt) {
 
 function updateAmbientVfx(state, dt) {
   if (!state?.player || !state?.arena || !state?.particles) return;
+  if (state.settings?.reducedMotion) return;
 
   state.environment ??= {};
   state.environment.ambientVfxTimer = Math.max(
@@ -113,11 +115,11 @@ function updateAmbientVfx(state, dt) {
   if (state.environment.ambientVfxTimer > 0) return;
 
   const preset = BIOME_AMBIENT_VFX[state.arena.biomeId] || BIOME_AMBIENT_VFX.forest;
+  const region = getRegionForScene(state.currentSceneId || state.arena.sceneId);
   const restored = Boolean(
-    state.progression?.campaign?.restoredRoots?.[state.arena.biomeId] ||
-      state.progression?.worldFlags?.[`${state.arena.biomeId}_restored`]
+    region?.restoredFlag && state.progression?.worldFlags?.[region.restoredFlag]
   );
-  const densityMultiplier = restored ? 0.78 : 1;
+  const densityMultiplier = restored ? 0.72 : 1;
   state.environment.ambientVfxTimer =
     randomRange(preset.interval[0], preset.interval[1]) * densityMultiplier;
 
