@@ -71,7 +71,9 @@ export function createInput(canvas) {
       vibrationEnabled: preferences.controllerVibration,
     },
     beginFrame() {
-      pollGamepad(this, canvas);
+      const blocked = shellPanelOpen();
+      if (blocked) clearGameplayInput(this);
+      pollGamepad(this, canvas, blocked);
     },
     endFrame() {
       this.keyPressed.clear();
@@ -174,22 +176,12 @@ export function createInput(canvas) {
   });
 
   canvas.addEventListener("contextmenu", (event) => event.preventDefault());
-  window.addEventListener("blur", () => {
-    input.keys.clear();
-    input.keyboardCodes.clear();
-    input.gamepad.codesDown.clear();
-    rebuildCombinedCodes(input);
-    input.mouse.leftDown = false;
-    input.mouse.rightDown = false;
-    input.mouse.physicalLeftDown = false;
-    input.mouse.physicalRightDown = false;
-    input.gamepad.buttonsDown.clear();
-  });
+  window.addEventListener("blur", () => clearGameplayInput(input));
 
   if (typeof document !== "undefined") {
     document.documentElement.dataset.inputDevice = input.activeDevice;
   }
-  pollGamepad(input, canvas);
+  pollGamepad(input, canvas, false);
   return input;
 }
 
@@ -228,7 +220,24 @@ export function pulseGamepad(input, { duration = 60, weak = 0.35, strong = 0.6 }
   return false;
 }
 
-function pollGamepad(input, canvas) {
+function clearGameplayInput(input) {
+  input.keys.clear();
+  input.keyboardCodes.clear();
+  input.keyPressed.clear();
+  input.codePressed.clear();
+  input.gamepad.codesDown.clear();
+  input.gamepad.movement = { x: 0, y: 0 };
+  input.gamepad.aim = { x: 0, y: 0 };
+  rebuildCombinedCodes(input);
+  input.mouse.leftDown = false;
+  input.mouse.rightDown = false;
+  input.mouse.leftPressed = false;
+  input.mouse.rightPressed = false;
+  input.mouse.physicalLeftDown = false;
+  input.mouse.physicalRightDown = false;
+}
+
+function pollGamepad(input, canvas, blocked = false) {
   const pads = typeof navigator !== "undefined" && navigator.getGamepads
     ? Array.from(navigator.getGamepads()).filter(Boolean)
     : [];
@@ -251,14 +260,14 @@ function pollGamepad(input, canvas) {
   input.gamepad.connected = true;
   input.gamepad.id = pad.id || "Gamepad";
   input.gamepad.index = pad.index;
-  input.gamepad.movement = getGamepadMovementFromAxes(pad.axes);
-  input.gamepad.aim = getGamepadAimFromAxes(pad.axes);
 
-  if (document.body?.dataset.shellPanelOpen === "true") {
+  if (blocked) {
+    input.gamepad.movement = { x: 0, y: 0 };
+    input.gamepad.aim = { x: 0, y: 0 };
     input.gamepad.codesDown.clear();
     rebuildCombinedCodes(input);
-    input.mouse.leftDown = input.mouse.physicalLeftDown;
-    input.mouse.rightDown = input.mouse.physicalRightDown;
+    input.mouse.leftDown = false;
+    input.mouse.rightDown = false;
     input.gamepad.buttonsDown = new Set(
       pad.buttons
         .map((button, index) => (button?.pressed || button?.value > 0.55 ? index : -1))
@@ -266,6 +275,9 @@ function pollGamepad(input, canvas) {
     );
     return;
   }
+
+  input.gamepad.movement = getGamepadMovementFromAxes(pad.axes);
+  input.gamepad.aim = getGamepadAimFromAxes(pad.axes);
 
   const nextButtonsDown = new Set();
   const nextCodesDown = new Set();
