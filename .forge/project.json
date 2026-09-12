@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "projectKey": "HOF",
+  "name": "Heart of Forest",
+  "repository": "ShurexBRT/heart-of-forest",
+  "defaultBranch": "main",
+  "forgeUrl": "https://shurexbrt.github.io/Forge/",
+  "ticketRequired": true,
+  "roles": ["Planner", "Builder", "Reviewer", "QA", "Browser", "Release"],
+  "branchPattern": "agent/{role}/{ticket}-{slug}",
+  "runtime": "HTML5 Canvas / vanilla JavaScript browser game",
+  "criticalSurfaces": ["combat", "quest state", "inventory/equipment", "save compatibility", "scene travel", "farming/day clock", "Canvas rendering"]
+}
