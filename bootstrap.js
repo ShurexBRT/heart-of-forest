@@ -7,56 +7,15 @@ import {
   setActiveSaveSlot,
 } from "./systems/save.js";
 import { createRuntimeFeedbackMonitor } from "./systems/runtimeFeedback.js";
+import { createShellPresentation } from "./systems/shellPresentation.js";
 import { syncFrontendSaveState } from "./ui/startScreen.js";
 import { GAME_MODES } from "./core/gameMode.js";
 import { SCENES } from "./data/sceneNetwork.js";
-
-const WORLD_MILESTONES = [
-  {
-    flag: "heartwood_restored",
-    title: "Heartwood Breathes Again",
-    body: "The first roads soften. Return home and the village will remember what changed.",
-  },
-  {
-    flag: "stillwater_restored",
-    title: "Stillwater Runs Clear",
-    body: "The mire loosens its grip and the old water routes begin to answer again.",
-  },
-  {
-    flag: "ember_restored",
-    title: "Emberpine Rekindled",
-    body: "Fire becomes warmth instead of hunger. The pass belongs to living hands again.",
-  },
-  {
-    flag: "frost_restored",
-    title: "Frostveil Thaws",
-    body: "The white silence breaks. Waystones and lost paths stir beneath the snow.",
-  },
-  {
-    flag: "scarroot_restored",
-    title: "Scarroot Released",
-    body: "The oldest wound opens its hand. A deeper keeper rite now waits at home.",
-  },
-  {
-    flag: "rootlight_restored",
-    title: "Rootlight Remembers",
-    body: "The ancient network holds every restored root without forcing them into one voice.",
-  },
-  {
-    flag: "second_spring_started",
-    title: "The Second Spring Begins",
-    body: "No throne rises from the Heartseed. A new tree begins small enough to need everyone.",
-    kicker: "A New Season",
-  },
-];
 
 const root = document.documentElement;
 const bootStatus = document.getElementById("boot-status");
 const fatalPanel = document.getElementById("fatal-error");
 const fatalMessage = document.getElementById("fatal-error-message");
-const inputDeviceToast = document.getElementById("input-device-toast");
-const inputDeviceLabel = document.getElementById("input-device-label");
-const controllerGuide = document.getElementById("controller-guide");
 const shellTools = document.getElementById("shell-tools");
 const saveSlotToggle = document.getElementById("save-slot-toggle");
 const accessibilityToggle = document.getElementById("accessibility-toggle");
@@ -71,17 +30,11 @@ const controllerVibrationInput = document.getElementById("setting-controller-vib
 const aimSensitivityInput = document.getElementById("setting-aim-sensitivity");
 const aimSensitivityValue = document.getElementById("setting-aim-sensitivity-value");
 const SCREEN_SHAKE_STASH_KEY = "heart-of-forest-reduced-motion-shake";
-let inputDeviceToastTimer = 0;
+
 let shellSyncTimer = 0;
 let mainLoaded = false;
-let controllerGuideUntil = 0;
-let lastGuideSceneId = null;
 let feedbackMonitor = null;
-let trackedWorldState = null;
-let seenWorldMilestones = new Set();
-let worldEventBanner = null;
-let worldEventBannerTimer = 0;
-let controllerContextPrompt = null;
+let presentation = null;
 
 function getGameState() {
   return window.__heartOfForestDebug?.getState?.() || null;
@@ -106,28 +59,8 @@ function persistRuntimeSettings(patch) {
     new CustomEvent("hof-settings-change", { detail: { settings: normalized } })
   );
   syncAccessibilityControls(normalized);
-  syncControllerGuideVisibility(state);
+  presentation?.sync(state);
   return normalized;
-}
-
-function showInputDevice(device) {
-  if (!inputDeviceToast || !inputDeviceLabel) return;
-  window.clearTimeout(inputDeviceToastTimer);
-  const gamepad = device === "gamepad";
-  inputDeviceLabel.textContent = gamepad ? "Controller active" : "Keyboard & Mouse active";
-  inputDeviceToast.dataset.device = gamepad ? "gamepad" : "keyboard";
-  inputDeviceToast.hidden = false;
-  if (gamepad) {
-    controllerGuideUntil = performance.now() + 7000;
-  }
-  syncControllerGuideVisibility(getGameState());
-  requestAnimationFrame(() => inputDeviceToast.classList.add("is-visible"));
-  inputDeviceToastTimer = window.setTimeout(() => {
-    inputDeviceToast.classList.remove("is-visible");
-    window.setTimeout(() => {
-      inputDeviceToast.hidden = true;
-    }, 180);
-  }, 1600);
 }
 
 function showFatalError(error) {
@@ -157,6 +90,7 @@ function setShellPanelOpen(panel) {
   } else {
     panel.querySelector("button, input")?.focus?.({ preventScroll: true });
   }
+  presentation?.sync(getGameState());
 }
 
 function closeShellPanels() {
@@ -244,7 +178,9 @@ function setupShellControls() {
       const stored = Number(localStorage.getItem(SCREEN_SHAKE_STASH_KEY));
       persistRuntimeSettings({
         reducedMotion: false,
-        screenShake: Number.isFinite(stored) ? Math.max(0, Math.min(1, stored)) : 0.65,
+        screenShake: Number.isFinite(stored)
+          ? Math.max(0, Math.min(1, stored))
+          : 0.65,
       });
       localStorage.removeItem(SCREEN_SHAKE_STASH_KEY);
     }
@@ -260,7 +196,7 @@ function setupShellControls() {
 
   tutorialHintsInput?.addEventListener("change", () => {
     if (tutorialHintsInput.checked && root.dataset.inputDevice === "gamepad") {
-      controllerGuideUntil = performance.now() + 7000;
+      presentation?.showControllerGuide(7000);
     }
     persistRuntimeSettings({ showTutorialHints: tutorialHintsInput.checked });
   });
@@ -278,7 +214,9 @@ function setupShellControls() {
   });
 
   aimSensitivityInput?.addEventListener("change", () => {
-    persistRuntimeSettings({ aimSensitivity: Number(aimSensitivityInput.value || 1) });
+    persistRuntimeSettings({
+      aimSensitivity: Number(aimSensitivityInput.value || 1),
+    });
   });
 
   window.addEventListener(
@@ -295,158 +233,6 @@ function setupShellControls() {
   );
 
   syncShellVisibility();
-}
-
-function syncControllerGuideVisibility(state = getGameState()) {
-  if (!controllerGuide) return;
-  if (!state) {
-    controllerGuide.hidden = true;
-    return;
-  }
-
-  if (state.currentSceneId && state.currentSceneId !== lastGuideSceneId) {
-    if (lastGuideSceneId && root.dataset.inputDevice === "gamepad") {
-      controllerGuideUntil = performance.now() + 4200;
-    }
-    lastGuideSceneId = state.currentSceneId;
-  }
-
-  const settings = state.settings || loadSettings();
-  const majorOverlayOpen = Boolean(
-    state.story?.dialogue ||
-      state.story?.questPanel ||
-      state.ui?.questLogOpen ||
-      state.ui?.menuOpen ||
-      state.ui?.worldMapOpen ||
-      isShellPanelOpen()
-  );
-  const visible = Boolean(
-    state.mode === GAME_MODES.PLAYING &&
-      !state.gameOver &&
-      root.dataset.inputDevice === "gamepad" &&
-      settings.showTutorialHints !== false &&
-      performance.now() < controllerGuideUntil &&
-      !majorOverlayOpen
-  );
-
-  controllerGuide.hidden = !visible;
-}
-
-function ensureControllerContextPrompt() {
-  if (controllerContextPrompt) return controllerContextPrompt;
-  const prompt = document.createElement("div");
-  prompt.className = "controller-context-prompt";
-  prompt.hidden = true;
-  prompt.setAttribute("aria-hidden", "true");
-  prompt.innerHTML = `
-    <b class="controller-glyph">RB</b>
-    <span></span>
-  `;
-  document.getElementById("game-shell")?.append(prompt);
-  controllerContextPrompt = prompt;
-  return prompt;
-}
-
-function syncControllerContextPrompt(state) {
-  const prompt = ensureControllerContextPrompt();
-  if (!state || root.dataset.inputDevice !== "gamepad") {
-    prompt.hidden = true;
-    return;
-  }
-
-  const overlayOpen = Boolean(
-    state.story?.dialogue ||
-      state.story?.questPanel ||
-      state.ui?.questLogOpen ||
-      state.ui?.menuOpen ||
-      state.ui?.worldMapOpen ||
-      isShellPanelOpen()
-  );
-  if (state.mode !== GAME_MODES.PLAYING || state.gameOver || overlayOpen) {
-    prompt.hidden = true;
-    return;
-  }
-
-  let text = "";
-  if (state.story?.focus) {
-    text = state.story.prompt || state.story.focus.label || "Interact";
-  } else if (state.nearExit) {
-    const exit = state.nearExit;
-    const unlocked =
-      !exit.requiresFlag || Boolean(state.progression?.worldFlags?.[exit.requiresFlag]);
-    if (unlocked) {
-      text = `Hold to travel · ${exit.label || "Path"}`;
-    }
-  }
-
-  const label = prompt.querySelector("span");
-  if (label) label.textContent = text;
-  prompt.hidden = !text;
-}
-
-function ensureWorldEventBanner() {
-  if (worldEventBanner) return worldEventBanner;
-  const banner = document.createElement("div");
-  banner.className = "world-event-banner";
-  banner.hidden = true;
-  banner.setAttribute("role", "status");
-  banner.setAttribute("aria-live", "polite");
-  banner.innerHTML = `
-    <span class="world-event-kicker">Region Restored</span>
-    <strong></strong>
-    <p></p>
-  `;
-  document.getElementById("game-shell")?.append(banner);
-  worldEventBanner = banner;
-  return banner;
-}
-
-function showWorldEventBanner(milestone) {
-  const banner = ensureWorldEventBanner();
-  const kicker = banner.querySelector(".world-event-kicker");
-  const title = banner.querySelector("strong");
-  const body = banner.querySelector("p");
-  if (kicker) kicker.textContent = milestone.kicker || "Region Restored";
-  if (title) title.textContent = milestone.title;
-  if (body) body.textContent = milestone.body;
-
-  window.clearTimeout(worldEventBannerTimer);
-  banner.hidden = false;
-  banner.classList.remove("is-visible");
-  requestAnimationFrame(() => banner.classList.add("is-visible"));
-  feedbackMonitor?.pulse?.("level", { force: true });
-
-  worldEventBannerTimer = window.setTimeout(() => {
-    banner.classList.remove("is-visible");
-    window.setTimeout(() => {
-      banner.hidden = true;
-    }, root.dataset.motion === "reduced" ? 0 : 340);
-  }, 3300);
-}
-
-function syncWorldMilestoneFeedback(state) {
-  if (!state?.progression?.worldFlags) return;
-
-  if (state !== trackedWorldState) {
-    trackedWorldState = state;
-    seenWorldMilestones = new Set(
-      WORLD_MILESTONES
-        .filter((milestone) => state.progression.worldFlags[milestone.flag])
-        .map((milestone) => milestone.flag)
-    );
-    return;
-  }
-
-  for (const milestone of WORLD_MILESTONES) {
-    if (
-      state.progression.worldFlags[milestone.flag] &&
-      !seenWorldMilestones.has(milestone.flag)
-    ) {
-      seenWorldMilestones.add(milestone.flag);
-      showWorldEventBanner(milestone);
-      break;
-    }
-  }
 }
 
 function syncShellVisibility() {
@@ -470,14 +256,12 @@ function syncShellVisibility() {
     closeShellPanels();
   }
 
-  syncControllerGuideVisibility(state);
-  syncControllerContextPrompt(state);
-  syncWorldMilestoneFeedback(state);
+  presentation?.sync(state);
   shellSyncTimer = window.setTimeout(syncShellVisibility, 90);
 }
 
 window.addEventListener("hof-input-device", (event) => {
-  showInputDevice(event.detail?.device || "keyboard");
+  presentation?.showInputDevice(event.detail?.device || "keyboard");
 });
 
 window.addEventListener("error", (event) => {
@@ -490,6 +274,7 @@ window.addEventListener("unhandledrejection", (event) => {
 
 window.addEventListener("beforeunload", () => {
   feedbackMonitor?.stop?.();
+  presentation?.stop?.();
 });
 
 applyShellSettings();
@@ -503,6 +288,14 @@ try {
     getSettings: () => getGameState()?.settings || loadSettings(),
     getInputDevice: () => root.dataset.inputDevice || "keyboard",
   });
+  presentation = createShellPresentation({
+    getState: getGameState,
+    getSettings: () => getGameState()?.settings || loadSettings(),
+    getInputDevice: () => root.dataset.inputDevice || "keyboard",
+    isShellPanelOpen,
+    pulseHaptic: (type, options) => feedbackMonitor?.pulse?.(type, options),
+  });
+  presentation.sync(getGameState());
   requestAnimationFrame(() => {
     document.body.classList.add("game-ready");
     if (bootStatus) bootStatus.hidden = true;
