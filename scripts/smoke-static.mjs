@@ -9,6 +9,10 @@ import { dirname, join, relative, resolve } from "node:path";
 const ROOT = process.cwd();
 const SOURCE_ROOTS = ["core", "data", "entities", "rendering", "systems", "ui", "world"];
 const SKIP_DIRECTORIES = new Set([".git", "node_modules"]);
+const REQUIRED_MODULE_ENTRIES = new Set([
+  "./bootstrap.js",
+  "./systems/shellGamepad.js",
+]);
 const errors = [];
 
 function collectFiles(dir, predicate, result = []) {
@@ -72,6 +76,17 @@ function extractHtmlReferences(html) {
   return refs;
 }
 
+function extractModuleScripts(html) {
+  const refs = new Set();
+  for (const match of html.matchAll(/<script\b[^>]*\btype=["']module["'][^>]*\bsrc=["']([^"']+)["'][^>]*><\/script>/gi)) {
+    refs.add(stripUrlSuffix(match[1]));
+  }
+  for (const match of html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*\btype=["']module["'][^>]*><\/script>/gi)) {
+    refs.add(stripUrlSuffix(match[1]));
+  }
+  return refs;
+}
+
 function extractJsImports(source) {
   const refs = new Set();
   const patterns = [
@@ -109,6 +124,13 @@ if (!existsSync(indexPath)) {
   for (const ref of extractHtmlReferences(html)) {
     checkDocumentReference(indexPath, ref);
   }
+
+  const moduleEntries = extractModuleScripts(html);
+  for (const required of REQUIRED_MODULE_ENTRIES) {
+    if (!moduleEntries.has(required)) {
+      errors.push(`index.html is missing required module entry ${required}`);
+    }
+  }
 }
 
 const jsFiles = SOURCE_ROOTS.flatMap((root) =>
@@ -144,5 +166,5 @@ if (errors.length) {
 }
 
 console.log(
-  `[smoke-static] OK: index shell, ${jsFiles.length} JS modules, imports and local asset references resolve.`
+  `[smoke-static] OK: required runtime entries, index shell, ${jsFiles.length} JS modules, imports and local asset references resolve.`
 );
