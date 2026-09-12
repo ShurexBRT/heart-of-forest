@@ -16,10 +16,15 @@ const BOSS_IDENTITY = {
     volleyColors: ["#8fdb70", "#d5e88d", "#f2d078"],
     eruptionBurstColors: ["#92df71", "#e6c86f", "#f5efb1"],
     summonPhase2: ["thornling", "barkling", "root_stalker"],
-    summonPhase3: [{ type: "thorn_weaver", elite: true, affixes: ["bulwark"] }, "barkling", "root_stalker"],
+    summonPhase3: [
+      { type: "thorn_weaver", elite: true, affixes: ["bulwark"] },
+      "barkling",
+      "root_stalker",
+    ],
     summonBanner: "The Old Roots Rise",
     phaseBanners: ["Rootwarden Stirs", "Heartwood Unbound"],
     signatureLabel: "Root Crown",
+    signatureKind: "root-crown",
     summonBurstColors: ["#9ce77a", "#e3ca73", "#d8f0a0"],
     slamTelegraphColor: "#c5e684",
     volleyTelegraphColor: "#9ddd79",
@@ -35,10 +40,15 @@ const BOSS_IDENTITY = {
     volleyColors: ["#ff9a5d", "#ffd078", "#ed6947"],
     eruptionBurstColors: ["#ff9e61", "#f06f49", "#ffd691"],
     summonPhase2: ["cinder_imp", "ash_brute", "thornling"],
-    summonPhase3: [{ type: "cinder_imp", elite: true, affixes: ["spiteful"] }, "ash_brute", "cinder_imp"],
+    summonPhase3: [
+      { type: "cinder_imp", elite: true, affixes: ["spiteful"] },
+      "ash_brute",
+      "cinder_imp",
+    ],
     summonBanner: "The Cinders Answer",
     phaseBanners: ["Firewatch Broken", "Cinderheart Fury"],
     signatureLabel: "Ashen Ring",
+    signatureKind: "ashen-ring",
     summonBurstColors: ["#ff9a5f", "#f4c875", "#e86c48"],
     slamTelegraphColor: "#ffad6c",
     volleyTelegraphColor: "#ffc679",
@@ -54,10 +64,15 @@ const BOSS_IDENTITY = {
     volleyColors: ["#bce7ff", "#dff6ff", "#83bee5"],
     eruptionBurstColors: ["#b6e5ff", "#8bc7e8", "#f2fbff"],
     summonPhase2: ["frost_wisp", "icebound_guardian", "wisp_archer"],
-    summonPhase3: [{ type: "frost_wisp", elite: true, affixes: ["swift"] }, "icebound_guardian", "frost_wisp"],
+    summonPhase3: [
+      { type: "frost_wisp", elite: true, affixes: ["swift"] },
+      "icebound_guardian",
+      "frost_wisp",
+    ],
     summonBanner: "The White Veil Falls",
     phaseBanners: ["Seraph Descends", "Winter Without End"],
     signatureLabel: "Veilfall Halo",
+    signatureKind: "veilfall-halo",
     summonBurstColors: ["#bce9ff", "#91cae8", "#f2fbff"],
     slamTelegraphColor: "#c8edff",
     volleyTelegraphColor: "#a9dcfa",
@@ -73,10 +88,15 @@ const BOSS_IDENTITY = {
     volleyColors: ["#d88cff", "#ffb868", "#8e6ce0"],
     eruptionBurstColors: ["#d88cff", "#f0b35e", "#f5e48b"],
     summonPhase2: ["blight_hound", "rot_weaver", "bog_lurker"],
-    summonPhase3: [{ type: "rot_weaver", elite: true, affixes: ["spiteful"] }, "blight_hound", "mire_brute"],
+    summonPhase3: [
+      { type: "rot_weaver", elite: true, affixes: ["spiteful"] },
+      "blight_hound",
+      "mire_brute",
+    ],
     summonBanner: "The Hollow Calls",
     phaseBanners: ["Elder Hollow Rises", "Heartwood Frenzy"],
     signatureLabel: "Single Will",
+    signatureKind: "single-will",
     summonBurstColors: ["#efc678", "#c183ff", "#d4634a"],
     slamTelegraphColor: "#f2b97c",
     volleyTelegraphColor: "#dda4ff",
@@ -92,10 +112,15 @@ const BOSS_IDENTITY = {
     volleyColors: ["#79d9f5", "#c2f1ff", "#6fa995"],
     eruptionBurstColors: ["#7fd5da", "#a9eef0", "#dffbff"],
     summonPhase2: ["mire_spitter", "bog_lurker", "thorn_weaver"],
-    summonPhase3: [{ type: "mire_spitter", elite: true, affixes: ["spiteful"] }, "bog_lurker", "mire_brute"],
+    summonPhase3: [
+      { type: "mire_spitter", elite: true, affixes: ["spiteful"] },
+      "bog_lurker",
+      "mire_brute",
+    ],
     summonBanner: "The Tides Answer",
     phaseBanners: ["Floodwake Rising", "Matron of the Mire"],
     signatureLabel: "Tidewake Crown",
+    signatureKind: "tidewake-crown",
     summonBurstColors: ["#9de9ea", "#6fbcc5", "#d6fff7"],
     slamTelegraphColor: "#9ce3ea",
     volleyTelegraphColor: "#b8f0ff",
@@ -110,10 +135,18 @@ const BOSS_IDENTITY = {
     slamColors: ["#efdca8", "#cba3ff", "#fff9e4"],
     volleyColors: ["#edd79b", "#bd9bf0", "#f7f4ff"],
     eruptionBurstColors: ["#efdca7", "#c4a4f0", "#fff8e2"],
-    summonPhase2: ["relic_sentinel", { type: "starbound_archer", elite: true, affixes: ["swift"] }],
-    summonPhase3: [{ type: "relic_sentinel", elite: true, affixes: ["bulwark"] }, "starbound_archer"],
+    summonPhase2: [
+      "relic_sentinel",
+      { type: "starbound_archer", elite: true, affixes: ["swift"] },
+    ],
+    summonPhase3: [
+      { type: "relic_sentinel", elite: true, affixes: ["bulwark"] },
+      "starbound_archer",
+    ],
     summonBanner: "Vault Echoes Stir",
     phaseBanners: ["Reliquary Stirs", "Rootbound Fury"],
+    signatureLabel: "Vault Lock",
+    signatureKind: "vault-lock",
     summonBurstColors: ["#f0ce78", "#c8aff2", "#fff4da"],
     slamTelegraphColor: "#f2d9a1",
     volleyTelegraphColor: "#d7b7ff",
@@ -129,10 +162,15 @@ const BOSS_IDENTITY = {
     volleyColors: ["#d4d9ff", "#a7cfff", "#eff8ff"],
     eruptionBurstColors: ["#c8dcff", "#e2d7ff", "#fbfcff"],
     summonPhase2: ["starbound_archer", "relic_sentinel", "thorn_weaver"],
-    summonPhase3: [{ type: "starbound_archer", elite: true, affixes: ["spiteful"] }, { type: "relic_sentinel", elite: true, affixes: ["bulwark"] }, "frost_wisp"],
+    summonPhase3: [
+      { type: "starbound_archer", elite: true, affixes: ["spiteful"] },
+      { type: "relic_sentinel", elite: true, affixes: ["bulwark"] },
+      "frost_wisp",
+    ],
     summonBanner: "The Spire Answers",
     phaseBanners: ["Starfall Awakens", "Sentinel of the Spire"],
     signatureLabel: "Sixfold Verdict",
+    signatureKind: "sixfold-verdict",
     summonBurstColors: ["#c9d9ff", "#e2d5ff", "#f7fbff"],
     slamTelegraphColor: "#d3ddff",
     volleyTelegraphColor: "#e4d8ff",
@@ -227,18 +265,17 @@ export class Boss {
   chooseAction(state, dt) {
     const playerDistance = distance(this.x, this.y, state.player.x, state.player.y);
 
-    if (playerDistance < 160 && this.cooldowns.slam <= 0) {
-      this.beginSlam(state.player.x, state.player.y);
+    if (
+      this.phase >= 2 &&
+      this.cooldowns.signature <= 0 &&
+      state.eruptions.length <= 2
+    ) {
+      this.beginSignature(state);
       return;
     }
 
-    if (
-      (this.id === "rootwarden" || this.id === "starwoken_sentinel") &&
-      this.phase >= 2 &&
-      this.cooldowns.signature <= 0 &&
-      state.eruptions.length === 0
-    ) {
-      this.beginRootCrown(state);
+    if (playerDistance < 160 && this.cooldowns.slam <= 0) {
+      this.beginSlam(state.player.x, state.player.y);
       return;
     }
 
@@ -290,7 +327,6 @@ export class Boss {
   }
 
   beginEruption(state) {
-    const hazards = [];
     const center = { x: state.player.x, y: state.player.y };
     const count = this.phase >= 2 ? 6 : 4;
     const eruptionDamage = phasePair(this.identity.eruptionDamage, this.phase);
@@ -299,19 +335,16 @@ export class Boss {
     for (let i = 0; i < count; i += 1) {
       const angle = randomRange(0, TAU);
       const distanceFromPlayer = i === 0 ? 0 : randomRange(40, this.phase >= 2 ? 140 : 118);
-      hazards.push({
+      this.pushHazard(state, {
         x: center.x + Math.cos(angle) * distanceFromPlayer,
         y: center.y + Math.sin(angle) * distanceFromPlayer,
         radius: randomRange(28, this.phase >= 2 ? 48 : 40),
         warning: 0.74 + i * 0.04,
-        active: 0.28,
         damage: eruptionDamage,
-        hitPlayer: false,
         type: eruptionType,
       });
     }
 
-    state.eruptions.push(...hazards);
     this.currentAttack = { type: "eruption", timer: this.phase >= 2 ? 0.64 : 0.82 };
     this.cooldowns.eruption = this.phase >= 2 ? 2.8 : 3.5;
     this.vx *= 0.2;
@@ -319,7 +352,7 @@ export class Boss {
 
     spawnBurst(state, this.x, this.y, {
       count: 18,
-      colors: this.identity.eruptionColors || ["#8ceb6b", "#5bbd55", "#f0cf77"],
+      colors: this.identity.eruptionColors,
       speed: 170,
       size: [2, 4],
       life: [0.14, 0.34],
@@ -331,6 +364,40 @@ export class Boss {
     this.cooldowns.summon = this.phase >= 3 ? 4 : 5.4;
     this.vx *= 0.18;
     this.vy *= 0.18;
+  }
+
+  beginSignature(state) {
+    const kind = this.identity.signatureKind;
+    state.encounter.bannerText = this.identity.signatureLabel || "Guardian Rite";
+    state.encounter.bannerTimer = 1.35;
+
+    if (kind === "root-crown") {
+      this.beginRootCrown(state);
+      return;
+    }
+
+    if (kind === "ashen-ring") {
+      this.beginAshenRing(state);
+    } else if (kind === "veilfall-halo") {
+      this.beginVeilfallHalo(state);
+    } else if (kind === "single-will") {
+      this.beginSingleWill(state);
+    } else if (kind === "tidewake-crown") {
+      this.beginTidewakeCrown(state);
+    } else if (kind === "vault-lock") {
+      this.beginVaultLock(state);
+    } else {
+      this.beginSixfoldVerdict(state);
+    }
+
+    this.currentAttack = {
+      type: "signature",
+      label: this.identity.signatureLabel,
+      timer: this.phase >= 3 ? 0.72 : 0.86,
+    };
+    this.cooldowns.signature = this.phase >= 3 ? 5.8 : 7.2;
+    this.vx *= 0.14;
+    this.vy *= 0.14;
   }
 
   beginRootCrown(state) {
@@ -345,32 +412,28 @@ export class Boss {
       const angle = (TAU * index) / ringCount;
       const delta = Math.atan2(Math.sin(angle - gapAngle), Math.cos(angle - gapAngle));
       if (Math.abs(delta) <= gapWidth) continue;
-      state.eruptions.push({
+      this.pushHazard(state, {
         x: center.x + Math.cos(angle) * ringRadius,
         y: center.y + Math.sin(angle) * ringRadius,
         radius: this.phase >= 3 ? 27 : 25,
         warning: this.phase >= 3 ? 0.66 : 0.74,
-        active: 0.36,
         damage,
-        hitPlayer: false,
         type: "thorn",
       });
     }
 
-    state.eruptions.push({
+    this.pushHazard(state, {
       x: center.x,
       y: center.y,
       radius: this.phase >= 3 ? 46 : 40,
       warning: this.phase >= 3 ? 0.98 : 1.08,
-      active: 0.32,
       damage: damage + 2,
-      hitPlayer: false,
       type: "thorn",
     });
 
     this.currentAttack = {
       type: "rootCrown",
-      label: this.identity.signatureLabel || "Root Crown",
+      label: this.identity.signatureLabel,
       timer: this.phase >= 3 ? 0.72 : 0.82,
       duration: this.phase >= 3 ? 0.72 : 0.82,
       centerX: center.x,
@@ -384,9 +447,197 @@ export class Boss {
     this.vy *= 0.14;
   }
 
+  beginAshenRing(state) {
+    const center = { x: state.player.x, y: state.player.y };
+    const damage = phasePair(this.identity.eruptionDamage, this.phase);
+    const rings = this.phase >= 3 ? [62, 112, 164] : [72, 132];
+
+    rings.forEach((radius, ringIndex) => {
+      const count = Math.max(8, Math.round(radius / 13));
+      for (let index = 0; index < count; index += 1) {
+        const angle = (TAU * index) / count + ringIndex * 0.13;
+        if ((index + ringIndex) % 5 === 0) continue;
+        this.pushHazard(state, {
+          x: center.x + Math.cos(angle) * radius,
+          y: center.y + Math.sin(angle) * radius,
+          radius: 21,
+          warning: 0.55 + ringIndex * 0.22,
+          active: 0.42,
+          damage,
+          type: "ember",
+        });
+      }
+    });
+  }
+
+  beginVeilfallHalo(state) {
+    const center = { x: state.player.x, y: state.player.y };
+    const damage = phasePair(this.identity.eruptionDamage, this.phase);
+    const spokeCount = this.phase >= 3 ? 8 : 6;
+
+    for (let spoke = 0; spoke < spokeCount; spoke += 1) {
+      const angle = (TAU * spoke) / spokeCount + Math.PI / 8;
+      for (let step = 1; step <= 4; step += 1) {
+        const radius = 42 + step * 38;
+        this.pushHazard(state, {
+          x: center.x + Math.cos(angle) * radius,
+          y: center.y + Math.sin(angle) * radius,
+          radius: 20,
+          warning: 0.52 + step * 0.08,
+          damage,
+          type: "frost",
+        });
+      }
+    }
+
+    this.pushHazard(state, {
+      x: center.x,
+      y: center.y,
+      radius: 38,
+      warning: 0.9,
+      damage: damage + 2,
+      type: "frost",
+    });
+  }
+
+  beginSingleWill(state) {
+    const player = state.player;
+    const damage = phasePair(this.identity.eruptionDamage, this.phase);
+    const velocity = normalize(player.vx || 0, player.vy || 0);
+    const forwardX = velocity.x || Math.cos(angleTo(this.x, this.y, player.x, player.y));
+    const forwardY = velocity.y || Math.sin(angleTo(this.x, this.y, player.x, player.y));
+    const points = [
+      [player.x, player.y],
+      [player.x + forwardX * 64, player.y + forwardY * 64],
+      [player.x + forwardX * 118, player.y + forwardY * 118],
+    ];
+
+    points.forEach(([x, y], index) => {
+      this.pushHazard(state, {
+        x,
+        y,
+        radius: 38 + index * 4,
+        warning: 0.5 + index * 0.18,
+        active: 0.42,
+        damage: damage + (index === 2 ? 3 : 0),
+        type: "blight",
+      });
+    });
+
+    if (state.enemies.length <= 4 && this.phase >= 3) {
+      const spawn = state.arena.bossAddSpawns?.[0];
+      if (spawn) {
+        state.enemies.push(
+          new Enemy(spawn.x, spawn.y, "blight_hound", {
+            elite: true,
+            affixes: ["swift"],
+          })
+        );
+      }
+    }
+  }
+
+  beginTidewakeCrown(state) {
+    const damage = phasePair(this.identity.eruptionDamage, this.phase);
+    const center = { x: this.x, y: this.y };
+    const ringRadii = this.phase >= 3 ? [72, 126, 180] : [84, 148];
+
+    ringRadii.forEach((radius, ringIndex) => {
+      const count = this.phase >= 3 ? 12 : 10;
+      const safeArc = angleTo(center.x, center.y, state.player.x, state.player.y) + Math.PI;
+      for (let index = 0; index < count; index += 1) {
+        const angle = (TAU * index) / count;
+        const delta = Math.atan2(Math.sin(angle - safeArc), Math.cos(angle - safeArc));
+        if (Math.abs(delta) < 0.38) continue;
+        this.pushHazard(state, {
+          x: center.x + Math.cos(angle) * radius,
+          y: center.y + Math.sin(angle) * radius,
+          radius: 25,
+          warning: 0.5 + ringIndex * 0.24,
+          active: 0.44,
+          damage,
+          type: "mire",
+        });
+      }
+    });
+  }
+
+  beginVaultLock(state) {
+    const center = { x: state.player.x, y: state.player.y };
+    const damage = phasePair(this.identity.eruptionDamage, this.phase);
+    const spacing = 54;
+    const safeQuadrant = Math.floor(Math.random() * 4);
+
+    for (let ix = -2; ix <= 2; ix += 1) {
+      for (let iy = -2; iy <= 2; iy += 1) {
+        if (ix === 0 && iy === 0) continue;
+        const quadrant = (ix >= 0 ? 1 : 0) + (iy >= 0 ? 2 : 0);
+        if (quadrant === safeQuadrant && Math.abs(ix) <= 1 && Math.abs(iy) <= 1) continue;
+        if ((Math.abs(ix) + Math.abs(iy)) % 2 !== 0) continue;
+        this.pushHazard(state, {
+          x: center.x + ix * spacing,
+          y: center.y + iy * spacing,
+          radius: 24,
+          warning: 0.62 + (Math.abs(ix) + Math.abs(iy)) * 0.06,
+          damage,
+          type: "ancient",
+        });
+      }
+    }
+  }
+
+  beginSixfoldVerdict(state) {
+    const center = { x: state.player.x, y: state.player.y };
+    const damage = phasePair(this.identity.eruptionDamage, this.phase);
+    const rotation = randomRange(0, TAU);
+
+    for (let spoke = 0; spoke < 6; spoke += 1) {
+      const angle = rotation + (TAU * spoke) / 6;
+      for (let step = 1; step <= 4; step += 1) {
+        const radius = 38 + step * 40;
+        this.pushHazard(state, {
+          x: center.x + Math.cos(angle) * radius,
+          y: center.y + Math.sin(angle) * radius,
+          radius: 21,
+          warning: 0.48 + step * 0.09,
+          damage,
+          type: "ancient",
+        });
+      }
+    }
+
+    const safeAngle = rotation + Math.PI / 6;
+    const ringCount = 12;
+    for (let index = 0; index < ringCount; index += 1) {
+      const angle = rotation + (TAU * index) / ringCount;
+      const delta = Math.atan2(Math.sin(angle - safeAngle), Math.cos(angle - safeAngle));
+      if (Math.abs(delta) < 0.3) continue;
+      this.pushHazard(state, {
+        x: center.x + Math.cos(angle) * 116,
+        y: center.y + Math.sin(angle) * 116,
+        radius: 18,
+        warning: 0.92,
+        damage: damage + 2,
+        type: "ancient",
+      });
+    }
+  }
+
+  pushHazard(state, hazard) {
+    state.eruptions.push({
+      x: hazard.x,
+      y: hazard.y,
+      radius: hazard.radius,
+      warning: hazard.warning ?? 0.7,
+      active: hazard.active ?? 0.32,
+      damage: hazard.damage,
+      hitPlayer: false,
+      type: hazard.type || this.identity.hazardType,
+    });
+  }
+
   updateAttack(dt, state) {
     this.currentAttack.timer -= dt;
-
     if (this.currentAttack.timer > 0) return;
 
     if (this.currentAttack.type === "slam") {
@@ -401,8 +652,11 @@ export class Boss {
     } else if (this.currentAttack.type === "summon") {
       this.performSummon(state);
       this.recovery = 0.46;
-    } else if (this.currentAttack.type === "rootCrown") {
-      this.performRootCrown(state);
+    } else if (
+      this.currentAttack.type === "rootCrown" ||
+      this.currentAttack.type === "signature"
+    ) {
+      this.performSignatureBurst(state);
       this.recovery = 0.5;
     }
 
@@ -416,7 +670,7 @@ export class Boss {
 
     spawnBurst(state, attack.targetX, attack.targetY, {
       count: 32,
-      colors: this.identity.slamColors || ["#ffb772", "#ff7f69", "#f5e48b"],
+      colors: this.identity.slamColors,
       speed: 300,
       size: [2, 6],
       life: [0.18, 0.55],
@@ -442,9 +696,10 @@ export class Boss {
 
   performVolley(state) {
     const base = angleTo(this.x, this.y, state.player.x, state.player.y);
-    const spread = this.phase >= 2
-      ? [-0.62, -0.42, -0.2, 0, 0.2, 0.42, 0.62]
-      : [-0.48, -0.3, -0.14, 0, 0.14, 0.3, 0.48];
+    const spread =
+      this.phase >= 2
+        ? [-0.62, -0.42, -0.2, 0, 0.2, 0.42, 0.62]
+        : [-0.48, -0.3, -0.14, 0, 0.14, 0.3, 0.48];
 
     for (const offset of spread) {
       const angle = base + offset;
@@ -463,7 +718,7 @@ export class Boss {
 
     spawnBurst(state, this.x, this.y, {
       count: 20,
-      colors: this.identity.volleyColors || ["#d35d48", "#ffb868", "#9cdc79"],
+      colors: this.identity.volleyColors,
       speed: 180,
       size: [2, 4],
       life: [0.14, 0.32],
@@ -474,7 +729,7 @@ export class Boss {
     state.shake = Math.max(state.shake, 5);
     spawnBurst(state, this.x, this.y, {
       count: 14,
-      colors: this.identity.eruptionBurstColors || ["#7ce567", "#efb35e", "#f1f8a6"],
+      colors: this.identity.eruptionBurstColors,
       speed: 150,
       size: [2, 4],
       life: [0.12, 0.28],
@@ -482,9 +737,10 @@ export class Boss {
   }
 
   performSummon(state) {
-    const composition = this.phase >= 3 ? this.identity.summonPhase3 : this.identity.summonPhase2;
-
+    const composition =
+      this.phase >= 3 ? this.identity.summonPhase3 : this.identity.summonPhase2;
     const spawns = [...state.arena.bossAddSpawns];
+    if (spawns.length === 0) return;
 
     composition.forEach((spec, index) => {
       const spawn = spawns[index % spawns.length];
@@ -495,22 +751,22 @@ export class Boss {
       }
       spawnBurst(state, spawn.x, spawn.y, {
         count: 18,
-        colors: this.identity.summonBurstColors || ["#f0ce78", "#9be570", "#d4634a"],
+        colors: this.identity.summonBurstColors,
         speed: 180,
         size: [2, 5],
         life: [0.16, 0.36],
       });
     });
 
-    state.encounter.bannerText = this.identity.summonBanner || "The Hollow Calls";
+    state.encounter.bannerText = this.identity.summonBanner;
     state.encounter.bannerTimer = 1.5;
   }
 
-  performRootCrown(state) {
+  performSignatureBurst(state) {
     state.shake = Math.max(state.shake, 6);
     spawnBurst(state, this.x, this.y, {
       count: 26,
-      colors: this.identity.summonBurstColors || ["#9ce77a", "#e3ca73", "#d8f0a0"],
+      colors: this.identity.summonBurstColors,
       speed: 220,
       size: [2, 6],
       life: [0.18, 0.48],
@@ -530,11 +786,16 @@ export class Boss {
           : this.identity.phaseBanners?.[1] || "The Wilds Break";
       state.encounter.bannerTimer = 1.8;
       state.shake = Math.max(state.shake, 7);
+      this.cooldowns.signature = Math.min(this.cooldowns.signature, 1.25);
     }
   }
 
   checkSummonThresholds(state) {
-    while (this.thresholds.length > 0 && this.hp <= this.maxHp * this.thresholds[0] && !this.dead) {
+    while (
+      this.thresholds.length > 0 &&
+      this.hp <= this.maxHp * this.thresholds[0] &&
+      !this.dead
+    ) {
       this.thresholds.shift();
       this.performSummon(state);
       state.shake = Math.max(state.shake, 5);
@@ -546,8 +807,10 @@ export class Boss {
     const rootMul = this.rooted > 0 ? 0.3 : 1;
     const distanceToZoneCenter = distance(this.x, this.y, this.zone.x, this.zone.y);
 
-    this.vx += direction.x * this.speed * (this.phase >= 2 ? 5.4 : 5.1) * dt * rootMul;
-    this.vy += direction.y * this.speed * (this.phase >= 2 ? 5.4 : 5.1) * dt * rootMul;
+    this.vx +=
+      direction.x * this.speed * (this.phase >= 2 ? 5.4 : 5.1) * dt * rootMul;
+    this.vy +=
+      direction.y * this.speed * (this.phase >= 2 ? 5.4 : 5.1) * dt * rootMul;
 
     if (distanceToZoneCenter > this.zone.radius - 28) {
       const pull = normalize(this.zone.x - this.x, this.zone.y - this.y);
@@ -587,7 +850,10 @@ export class Boss {
     }
 
     if (this.currentAttack) {
-      this.pose = this.currentAttack.type === "rootCrown" ? "summon" : this.currentAttack.type;
+      this.pose =
+        this.currentAttack.type === "rootCrown" || this.currentAttack.type === "signature"
+          ? "summon"
+          : this.currentAttack.type;
       return;
     }
 
