@@ -39,6 +39,57 @@ const WORLD_MILESTONES = [
   },
 ];
 
+const CONTROLLER_ABILITY_BINDINGS = [
+  ["staff", "RT", "Staff"],
+  ["bolt", "LT", "Bolt"],
+  ["dash", "A", "Dash"],
+  ["root", "X", "Root"],
+  ["pulse", "Y", "Pulse"],
+];
+
+export function getControllerAbilityHudEntries(state) {
+  const player = state?.player;
+  if (!player) return [];
+
+  return CONTROLLER_ABILITY_BINDINGS.map(([id, binding, fallbackLabel]) => {
+    const info = player.abilityInfo?.[id] || {};
+    const cooldown = Math.max(0, Number(player.cooldowns?.[id] || 0));
+    const cost = Math.max(0, Number(info.cost || 0));
+    const spirit = Math.max(0, Number(player.spirit || 0));
+    const heartCharge = Math.max(0, Math.min(100, Number(player.heartCharge || 0)));
+    const signature = id === "pulse" && Boolean(info.signatureAbility);
+    const locked = id === "pulse" && info.unlocked === false;
+
+    let status = "Ready";
+    let readiness = "ready";
+
+    if (locked) {
+      status = "Locked";
+      readiness = "locked";
+    } else if (cooldown > 0.05) {
+      status = `${cooldown.toFixed(1)}s`;
+      readiness = "cooldown";
+    } else if (signature && heartCharge < 100) {
+      status = `${Math.round(heartCharge)}%`;
+      readiness = "charging";
+    } else if (cost > spirit) {
+      status = "Need SP";
+      readiness = "spirit";
+    } else if (signature) {
+      status = "ULT";
+      readiness = "ready";
+    }
+
+    return {
+      id,
+      binding,
+      label: info.shortLabel || fallbackLabel,
+      status,
+      readiness,
+    };
+  });
+}
+
 export function createShellPresentation({
   getState,
   getSettings,
@@ -59,6 +110,7 @@ export function createShellPresentation({
   let worldEventBanner = null;
   let worldEventBannerTimer = 0;
   let controllerContextPrompt = null;
+  let controllerHudStrip = null;
 
   function activeInputDevice() {
     return getInputDevice?.() || root.dataset.inputDevice || "keyboard";
@@ -133,6 +185,54 @@ export function createShellPresentation({
     );
 
     controllerGuide.hidden = !visible;
+  }
+
+  function ensureControllerHudStrip() {
+    if (controllerHudStrip) return controllerHudStrip;
+    const strip = document.createElement("div");
+    strip.className = "controller-hud-strip";
+    strip.hidden = true;
+    strip.setAttribute("aria-hidden", "true");
+
+    for (const [id, binding, fallbackLabel] of CONTROLLER_ABILITY_BINDINGS) {
+      const item = document.createElement("span");
+      item.className = "controller-hud-ability";
+      item.dataset.ability = id;
+      item.innerHTML = `
+        <b class="controller-glyph">${binding}</b>
+        <span class="controller-hud-label">${fallbackLabel}</span>
+        <small class="controller-hud-status">Ready</small>
+      `;
+      strip.append(item);
+    }
+
+    document.getElementById("game-shell")?.append(strip);
+    controllerHudStrip = strip;
+    return strip;
+  }
+
+  function syncControllerHud(state) {
+    const strip = ensureControllerHudStrip();
+    const visible = Boolean(
+      state &&
+        state.mode === GAME_MODES.PLAYING &&
+        !state.gameOver &&
+        activeInputDevice() === "gamepad" &&
+        !hasMajorOverlay(state)
+    );
+
+    strip.hidden = !visible;
+    if (!visible) return;
+
+    for (const entry of getControllerAbilityHudEntries(state)) {
+      const item = strip.querySelector(`[data-ability="${entry.id}"]`);
+      if (!item) continue;
+      item.dataset.readiness = entry.readiness;
+      const label = item.querySelector(".controller-hud-label");
+      const status = item.querySelector(".controller-hud-status");
+      if (label) label.textContent = entry.label;
+      if (status) status.textContent = entry.status;
+    }
   }
 
   function ensureControllerContextPrompt() {
@@ -251,6 +351,7 @@ export function createShellPresentation({
 
   function sync(state = getState?.()) {
     syncControllerGuide(state);
+    syncControllerHud(state);
     syncControllerContextPrompt(state);
     syncWorldMilestones(state);
   }
