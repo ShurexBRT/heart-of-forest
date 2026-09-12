@@ -25,6 +25,62 @@
       Use W A S D or the left controller stick to move. Aim with the mouse or right controller stick.
     </p>
 
+    <div id="shell-tools" class="shell-tools" hidden>
+      <button id="save-slot-toggle" class="shell-tool-button" type="button" aria-haspopup="dialog">
+        Save Slot 1
+      </button>
+      <button id="accessibility-toggle" class="shell-tool-button" type="button" aria-haspopup="dialog">
+        Accessibility
+      </button>
+    </div>
+
+    <section id="save-slot-panel" class="shell-panel save-slot-panel" aria-label="Save slots" hidden>
+      <header class="shell-panel-header">
+        <div>
+          <span class="shell-panel-kicker">Local Adventure</span>
+          <h2>Save Slots</h2>
+        </div>
+        <button class="shell-panel-close" type="button" data-close-shell-panel aria-label="Close save slots">×</button>
+      </header>
+      <p class="shell-panel-copy">Choose which local adventure Continue, New Game, autosave and Reset Save Data use.</p>
+      <div id="save-slot-list" class="save-slot-list"></div>
+    </section>
+
+    <section id="accessibility-panel" class="shell-panel accessibility-panel" aria-label="Accessibility" hidden>
+      <header class="shell-panel-header">
+        <div>
+          <span class="shell-panel-kicker">Presentation & Input</span>
+          <h2>Accessibility</h2>
+        </div>
+        <button class="shell-panel-close" type="button" data-close-shell-panel aria-label="Close accessibility">×</button>
+      </header>
+      <div class="accessibility-list">
+        <label class="shell-setting-row">
+          <span><strong>Reduced Motion</strong><small>Removes ambient motion and camera shake.</small></span>
+          <input id="setting-reduced-motion" type="checkbox" />
+        </label>
+        <label class="shell-setting-row">
+          <span><strong>High Contrast</strong><small>Raises game contrast and UI readability.</small></span>
+          <input id="setting-high-contrast" type="checkbox" />
+        </label>
+        <label class="shell-setting-row">
+          <span><strong>Damage Numbers</strong><small>Show numeric combat damage feedback.</small></span>
+          <input id="setting-damage-numbers" type="checkbox" />
+        </label>
+        <label class="shell-setting-row">
+          <span><strong>Controller Vibration</strong><small>Allow supported controllers to use haptic feedback.</small></span>
+          <input id="setting-controller-vibration" type="checkbox" />
+        </label>
+        <label class="shell-setting-row shell-setting-slider">
+          <span><strong>Aim Sensitivity</strong><small>Right-stick aim reach and responsiveness.</small></span>
+          <span class="shell-range-wrap">
+            <input id="setting-aim-sensitivity" type="range" min="0.5" max="1.75" step="0.05" />
+            <output id="setting-aim-sensitivity-value">1.00×</output>
+          </span>
+        </label>
+      </div>
+    </section>
+
     <div id="input-device-toast" class="input-device-toast" role="status" aria-live="polite" hidden>
       <span class="input-device-icon" aria-hidden="true">✦</span>
       <span id="input-device-label">Keyboard & Mouse</span>
