@@ -1,0 +1,28 @@
+name: Verify Golden Slice
+
+on:
+  push:
+    branches:
+      - polish/golden-slice
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run syntax checks and tests
+        run: node scripts/verify.mjs
