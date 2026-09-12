@@ -145,8 +145,27 @@ test("save writes a recoverable backup before overwriting a slot", () => {
   second.player.level = 6;
   assert.equal(saveGame(second, 1), true);
 
-  storage.set("heart-of-forest-save", "{broken json");
-  assert.equal(loadSave(1).player.level, 5);
+  const warnings = [];
+  const originalWarn = console.warn;
+  console.warn = (...args) => {
+    warnings.push(args.map((value) => String(value)).join(" "));
+  };
+
+  try {
+    storage.set("heart-of-forest-save", "{broken json");
+    assert.equal(loadSave(1).player.level, 5);
+  } finally {
+    console.warn = originalWarn;
+  }
+
+  assert.ok(
+    warnings.some((warning) => warning.includes("Failed to parse save slot 1 JSON")),
+    "corrupt primary should emit the expected parse warning"
+  );
+  assert.ok(
+    warnings.some((warning) => warning.includes("Recovered save slot 1 from backup")),
+    "backup recovery should emit the expected recovery warning"
+  );
 
   assert.equal(restoreBackup(1), true);
   assert.equal(loadSave(1).player.level, 5);
