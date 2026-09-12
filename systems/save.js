@@ -3,7 +3,9 @@ import { createClock, serializeClock } from "./clock.js";
 
 const SAVE_KEY = "heart-of-forest-save";
 const SETTINGS_KEY = "heart-of-forest-settings";
+const ACTIVE_SLOT_KEY = "heart-of-forest-active-slot";
 const SAVE_VERSION = "0.4.0";
+const SAVE_SLOT_COUNT = 3;
 let invalidSaveWarned = false;
 
 export function getDefaultSettings() {
@@ -13,6 +15,12 @@ export function getDefaultSettings() {
     screenShake: 0.65,
     damageNumbers: true,
     fullscreen: false,
+    uiScale: 1,
+    reducedMotion: false,
+    highContrast: false,
+    controllerVibration: true,
+    aimSensitivity: 1,
+    showTutorialHints: true,
   };
 }
 
@@ -57,27 +65,90 @@ export function createDefaultSave() {
   };
 }
 
-export function hasSave() {
-  return Boolean(loadSave());
+export function hasSave(slot = getActiveSaveSlot()) {
+  return Boolean(loadSave(slot));
 }
 
-export function loadSave() {
-  const raw = readStoredJson(SAVE_KEY, "save");
-  if (!raw) return null;
-  const migrated = migrateLegacySnapshot(raw);
-  const normalized = normalizeSave(migrated);
+export function getActiveSaveSlot() {
+  if (!canUseStorage()) return 1;
+  return normalizeSlot(localStorage.getItem(ACTIVE_SLOT_KEY));
+}
 
-  if (!normalized) {
-    warnInvalidSave("Stored save data is corrupt or incomplete.");
-    return null;
-  }
-
+export function setActiveSaveSlot(slot) {
+  const normalized = normalizeSlot(slot);
+  if (!canUseStorage()) return normalized;
+  localStorage.setItem(ACTIVE_SLOT_KEY, String(normalized));
   invalidSaveWarned = false;
   return normalized;
 }
 
-export function saveGame(gameData) {
+export function getSaveSlotSummaries() {
+  return Array.from({ length: SAVE_SLOT_COUNT }, (_, index) => {
+    const slot = index + 1;
+    const save = loadSave(slot, { recoverFromBackup: true, warn: false });
+    if (!save) {
+      return {
+        slot,
+        empty: true,
+        savedAt: 0,
+        level: 1,
+        day: 1,
+        sceneId: INITIAL_SCENE_ID,
+      };
+    }
+
+    return {
+      slot,
+      empty: false,
+      savedAt: save.savedAt || 0,
+      level: save.player?.level || save.progression?.level || 1,
+      day: save.calendar?.day || 1,
+      sceneId: save.world?.currentMap || save.runtimeSnapshot?.currentSceneId || INITIAL_SCENE_ID,
+    };
+  });
+}
+
+export function loadSave(
+  slot = getActiveSaveSlot(),
+  { recoverFromBackup = true, warn = true } = {}
+) {
+  const normalizedSlot = normalizeSlot(slot);
+  const key = getSaveKey(normalizedSlot);
+  const raw = readStoredJson(key, `save slot ${normalizedSlot}`, warn);
+  const normalized = raw ? normalizeSave(migrateLegacySnapshot(raw)) : null;
+
+  if (normalized) {
+    invalidSaveWarned = false;
+    return normalized;
+  }
+
+  if (recoverFromBackup) {
+    const backupRaw = readStoredJson(
+      getBackupSaveKey(normalizedSlot),
+      `backup save slot ${normalizedSlot}`,
+      false
+    );
+    const backup = backupRaw ? normalizeSave(migrateLegacySnapshot(backupRaw)) : null;
+    if (backup) {
+      if (warn) {
+        console.warn(
+          `[Heart of Forest] Recovered save slot ${normalizedSlot} from backup.`
+        );
+      }
+      invalidSaveWarned = false;
+      return backup;
+    }
+  }
+
+  if (raw && warn) {
+    warnInvalidSave(`Stored save slot ${normalizedSlot} is corrupt or incomplete.`);
+  }
+  return null;
+}
+
+export function saveGame(gameData, slot = getActiveSaveSlot()) {
   if (!canUseStorage()) return false;
+  const normalizedSlot = normalizeSlot(slot);
   const normalized = normalizeSave({
     ...gameData,
     version: SAVE_VERSION,
@@ -89,15 +160,44 @@ export function saveGame(gameData) {
     return false;
   }
 
-  localStorage.setItem(SAVE_KEY, JSON.stringify(normalized));
+  const key = getSaveKey(normalizedSlot);
+  const previousRaw = localStorage.getItem(key);
+  if (previousRaw) {
+    const previous = parseStoredJson(previousRaw);
+    if (previous && normalizeSave(migrateLegacySnapshot(previous))) {
+      localStorage.setItem(getBackupSaveKey(normalizedSlot), previousRaw);
+    }
+  }
+
+  localStorage.setItem(key, JSON.stringify(normalized));
   invalidSaveWarned = false;
   return true;
 }
 
-export function deleteSave() {
+export function deleteSave(slot = getActiveSaveSlot(), { includeBackup = true } = {}) {
   if (!canUseStorage()) return;
-  localStorage.removeItem(SAVE_KEY);
+  const normalizedSlot = normalizeSlot(slot);
+  localStorage.removeItem(getSaveKey(normalizedSlot));
+  if (includeBackup) {
+    localStorage.removeItem(getBackupSaveKey(normalizedSlot));
+  }
   invalidSaveWarned = false;
+}
+
+export function restoreBackup(slot = getActiveSaveSlot()) {
+  if (!canUseStorage()) return false;
+  const normalizedSlot = normalizeSlot(slot);
+  const backupKey = getBackupSaveKey(normalizedSlot);
+  const backupRaw = localStorage.getItem(backupKey);
+  if (!backupRaw) return false;
+
+  const parsed = parseStoredJson(backupRaw);
+  const normalized = parsed ? normalizeSave(migrateLegacySnapshot(parsed)) : null;
+  if (!normalized) return false;
+
+  localStorage.setItem(getSaveKey(normalizedSlot), JSON.stringify(normalized));
+  invalidSaveWarned = false;
+  return true;
 }
 
 export function loadSettings() {
@@ -131,7 +231,28 @@ function canUseStorage() {
   return typeof localStorage !== "undefined";
 }
 
-function readStoredJson(key, label) {
+function normalizeSlot(slot) {
+  const numeric = Math.floor(Number(slot) || 1);
+  return Math.min(SAVE_SLOT_COUNT, Math.max(1, numeric));
+}
+
+function getSaveKey(slot) {
+  return slot === 1 ? SAVE_KEY : `${SAVE_KEY}-slot-${slot}`;
+}
+
+function getBackupSaveKey(slot) {
+  return `${getSaveKey(slot)}-backup`;
+}
+
+function parseStoredJson(raw) {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function readStoredJson(key, label, warn = true) {
   if (!canUseStorage()) return null;
   const raw = localStorage.getItem(key);
   if (!raw) return null;
@@ -139,7 +260,9 @@ function readStoredJson(key, label) {
   try {
     return JSON.parse(raw);
   } catch (error) {
-    warnInvalidSave(`Failed to parse ${label} JSON.`, error);
+    if (warn) {
+      warnInvalidSave(`Failed to parse ${label} JSON.`, error);
+    }
     return null;
   }
 }
@@ -157,6 +280,12 @@ function normalizeSettings(rawSettings, defaults = getDefaultSettings()) {
     screenShake: clampUnit(rawSettings?.screenShake, defaults.screenShake),
     damageNumbers: rawSettings?.damageNumbers !== false,
     fullscreen: Boolean(rawSettings?.fullscreen),
+    uiScale: clampRange(rawSettings?.uiScale, defaults.uiScale, 0.8, 1.35),
+    reducedMotion: Boolean(rawSettings?.reducedMotion),
+    highContrast: Boolean(rawSettings?.highContrast),
+    controllerVibration: rawSettings?.controllerVibration !== false,
+    aimSensitivity: clampRange(rawSettings?.aimSensitivity, defaults.aimSensitivity, 0.5, 1.75),
+    showTutorialHints: rawSettings?.showTutorialHints !== false,
   };
 }
 
@@ -186,6 +315,7 @@ function migrateLegacySnapshot(raw) {
       maxSpirit: numberOr(progression.maxSpirit, 65),
       level: Math.max(1, integerOr(progression.level, 1)),
       xp: Math.max(0, integerOr(progression.xp, 0)),
+      heartCharge: Math.max(0, Math.min(100, numberOr(raw.playerVitals?.heartCharge, 0))),
     },
     world: {
       currentMap: currentSceneId,
@@ -409,9 +539,13 @@ function pickPotions(inventory) {
 }
 
 function clampUnit(value, fallback) {
+  return clampRange(value, fallback, 0, 1);
+}
+
+function clampRange(value, fallback, min, max) {
   const number = Number(value);
   if (!Number.isFinite(number)) return fallback;
-  return Math.max(0, Math.min(1, number));
+  return Math.max(min, Math.min(max, number));
 }
 
 function numberOr(value, fallback) {
