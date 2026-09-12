@@ -53,6 +53,51 @@ body.game-ready canvas {
   opacity: 1;
 }
 
+.input-device-toast {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  left: 50%;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 164px;
+  justify-content: center;
+  padding: 8px 13px;
+  border: 1px solid rgba(154, 203, 120, 0.28);
+  background:
+    linear-gradient(90deg, rgba(66, 102, 65, 0.12), transparent 38%, rgba(228, 207, 134, 0.07)),
+    rgba(8, 19, 14, 0.88);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
+  color: rgba(241, 237, 216, 0.92);
+  font: 600 calc(11px * var(--ui-scale)) "Segoe UI", Arial, sans-serif;
+  letter-spacing: 0.035em;
+  opacity: 0;
+  transform: translate(-50%, -8px);
+  transition: opacity 160ms ease, transform 160ms ease;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+}
+
+.input-device-toast[hidden] {
+  display: none;
+}
+
+.input-device-toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.input-device-toast[data-device="gamepad"] {
+  border-color: rgba(137, 207, 217, 0.34);
+}
+
+.input-device-icon {
+  color: var(--forest-gold);
+  font-size: 10px;
+  text-shadow: 0 0 8px rgba(228, 207, 134, 0.3);
+}
+
 .boot-status {
   position: absolute;
   inset: 0;
@@ -213,8 +258,13 @@ body.game-ready canvas {
 }
 
 html[data-contrast="high"] .boot-copy span,
-html[data-contrast="high"] .fatal-card p {
+html[data-contrast="high"] .fatal-card p,
+html[data-contrast="high"] .input-device-toast {
   color: #ffffff;
+}
+
+html[data-contrast="high"] canvas {
+  filter: contrast(1.12) saturate(1.04);
 }
 
 html[data-motion="reduced"] * {
