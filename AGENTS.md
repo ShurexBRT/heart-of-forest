@@ -1,48 +1,82 @@
 # Heart of Forest — Agent Operating Contract
 
-Heart of Forest is a lightweight browser-based 2D pixel-art action RPG vertical slice built with HTML5 Canvas and vanilla JavaScript.
+Heart of Forest is a browser-based 2D pixel-art action RPG built with HTML5 Canvas and vanilla JavaScript. The project is in a **production-polish** phase with a frozen feature scope.
 
 Forge is the work-truth layer for agent tasks. GitHub is code truth.
 
 ## Before acting
 
 1. Read the Forge ticket and acceptance criteria.
-2. Read this file and `.forge/project.json`.
-3. Read the Forge product-direction state for HOF before planning broad gameplay, world, progression, narrative, UX or visual-direction work.
-4. Inspect the current game loop and the specific data/system files involved.
-5. Preserve existing saves and unrelated progression unless the ticket explicitly changes them.
-6. Work only inside the current role and ticket scope.
+2. Read this file, `.forge/project.json`, and the current Forge product-direction state.
+3. Inspect the current game loop and the specific data/system files involved.
+4. Preserve existing saves and unrelated progression unless the ticket explicitly changes them.
+5. Work only inside the current role and ticket scope.
+6. Treat the Golden Slice and repository README as product truth for the current production pass.
 
 ## Product Direction Gate
 
-Heart of Forest is currently treated as `needs_alignment` in Forge.
+Heart of Forest is currently `defined` in Forge.
 
-Agents may still:
+The product identity is:
 
-- inspect and audit the current vertical slice;
-- fix clearly reproducible defects;
-- improve stability, tests and save safety without changing product intent;
-- document technical debt and regression risks.
+> Ayla does not conquer the world. She restores it.
 
-Agents must **not** independently decide major questions such as final game loop, world scale, biome scope, progression depth, farming importance, combat complexity, narrative structure, art direction or target release scope.
+Core loop:
 
-When a ticket depends on one of those choices, stop the dependent work and create a Forge decision request for the PM. Include the current implementation, the concrete question, viable options, trade-offs and a recommendation if evidence supports one. The PM will align the decision with the product owner and record it before execution resumes.
+```text
+Homestead
+-> story and preparation
+-> regional exploration
+-> resources, equipment and side quests
+-> regional boss
+-> restore the root
+-> visibly changed world
+-> return home
+```
+
+Current scope is frozen. The immediate quality benchmark is the Golden Slice:
+
+```text
+Ayla's Homestead
+-> Whispering Woods
+-> preparation
+-> Mossy Ruins
+-> Rootwarden
+-> Heartwood restoration
+-> return to the changed Homestead
+```
+
+Before that slice reaches commercial-quality presentation and feel, do **not** add new biomes, fishing, unrelated dungeon branches or speculative systems.
+
+A proposed task should materially improve at least one of:
+
+- combat feel/readability;
+- distinct region/enemy/boss identity;
+- Homestead -> wounded world -> restoration payoff;
+- recognizable and usable UI/UX;
+- stability, accessibility, save reliability or performance.
+
+If a request conflicts with this direction or requires a new broad product choice, create a Forge decision request for the PM rather than silently expanding scope.
 
 ## Product truth
 
-The current vertical slice already includes connected zones, quests, combat, loot, inventory/equipment, talents, vendors/services, local saves, a day/time system and Moonleaf farming.
+The existing campaign already contains connected zones, quests, combat, loot, inventory/equipment, talents, vendors/services, save slots, accessibility, gamepad support, a day/time system and Moonleaf farming.
 
 The project intentionally remains framework-free and Canvas-first. Do not migrate it to Phaser, React, Godot or another framework inside a normal feature ticket.
 
 ## Architecture boundaries
 
-- `main.js` — orchestration, scene transitions, UI flow, autosave and regen loop
+- `bootstrap.js` — production boot shell, save/accessibility integration and presentation glue
+- `main.js` — central runtime state, transitions, input routing and high-level UI flow
+- `core/` — game loop, input, math and projection
 - `data/` — authored game/story/world data
 - `entities/` — player/enemy/boss behavior
-- `world/arena.js` — handcrafted layouts and world objects
-- `rendering/renderer.js` — Canvas rendering/depth/FX
-- `systems/` — combat, progression, encounters, services, story, audio and save
-- `ui/hud.js` — HUD and panels
+- `world/arena.js` — handcrafted layouts, exits, NPCs and interactables
+- `rendering/` — Canvas rendering, atlases, terrain, depth sorting and effects
+- `systems/` — combat, progression, saves, story, services, farming, regions, navigation, challenges, input feedback, audio and postgame
+- `ui/` — HUD and shell panels
+- `tests/` — regression coverage
+- `scripts/verify.mjs` — syntax + static smoke + automated tests
 
 Prefer data-driven additions over copy-pasted conditional logic.
 
@@ -50,43 +84,46 @@ Prefer data-driven additions over copy-pasted conditional logic.
 
 Treat these as regression-sensitive:
 
-- save snapshot compatibility;
-- quest flags and world-state consequences;
+- save snapshot/slot/backup compatibility;
+- quest flags and restoration/world-state consequences;
 - inventory/equipment/action slots;
 - XP/talent progression;
 - scene exits/travel links;
 - farming/day progression and sleep;
 - boss/quest reward duplication;
 - combat cooldown/resource state;
-- Canvas depth sorting and input hit targets.
+- gamepad and input-device switching;
+- Canvas depth sorting, UI layout and hit targets;
+- Golden Slice progression and Rootwarden readability.
 
-## Non-goals unless explicitly ticketed and product-approved
+## Non-goals unless explicitly product-approved
 
+- new biomes or broad campaign expansion;
+- new unrelated feature systems;
 - framework/engine migration;
 - wholesale renderer rewrite;
-- broad multiplayer/network features;
-- procedural world replacement;
-- unrelated content expansion while fixing a bug.
+- multiplayer/network features;
+- procedural world replacement.
 
 ## Agent roles
 
 ### Planner
-Maps the ticket to existing data/entities/systems and identifies save/progression/world-state risks. If product intent is unclear, escalates instead of guessing. Does not implement production code.
+Maps the ticket to existing systems, frozen scope and Golden Slice quality goals. Identifies save/progression/world-state risks. If a request would expand or contradict the defined direction, escalates instead of guessing. Does not implement production code.
 
 ### Builder
 Implements the approved scope using existing patterns. Avoids turning `main.js` into a larger god file when a domain system already exists. Cannot approve itself.
 
 ### Reviewer
-Checks save compatibility, duplicated game rules, progression exploits, state leaks, rendering/input regressions, scope creep and unauthorized product-direction changes.
+Checks save compatibility, duplicated game rules, progression exploits, state leaks, rendering/input regressions, Golden Slice regressions, scope creep and unauthorized product expansion.
 
 ### QA
-Validates acceptance criteria plus at least the nearest progression/save regression path. Code inspection alone is not a QA pass.
+Validates acceptance criteria plus the nearest progression/save/input regression path. For Golden Slice work, use the relevant sections of `docs/PLAYTEST_CHECKLIST.md`. Code inspection alone is not a QA pass.
 
 ### Browser
-Runs the game from a local web server and exercises the real gameplay path with controls. Check reload/save restoration when the ticket touches persistent state.
+Runs the game through a local web server and exercises the real gameplay path with keyboard/mouse or gamepad as required. Check reload/save restoration when the ticket touches persistent state.
 
 ### Release
-Validates static-hosting readiness and that no required module paths/assets break the deployed browser build. Release may not bypass an unresolved direction dependency.
+Validates static-hosting readiness, automated verification and applicable manual Golden Slice acceptance gates. Release may not bypass unresolved P0/P1 findings.
 
 ## Runtime validation
 
@@ -96,17 +133,24 @@ Run through a local server because the project uses ES modules:
 python -m http.server 4177
 ```
 
-For gameplay changes, verify the affected loop in the browser. When persistence changes, also save/reload and confirm old/current state can be restored as intended.
+Run the repository verification gate:
+
+```bash
+node scripts/verify.mjs
+```
+
+For gameplay changes, verify the affected loop in the browser. When persistence changes, also save/reload and confirm current/backup state can be restored as intended.
 
 ## Definition of done
 
 A Heart of Forest ticket is done only when:
 
 - acceptance criteria are verified in runtime where applicable;
-- no unintended save/progression regression was introduced;
-- no unresolved product-direction decision is being silently assumed;
-- the change uses existing architecture rather than a drive-by rewrite;
+- `node scripts/verify.mjs` passes for code changes;
+- no unintended save/progression/input regression was introduced;
+- the change supports the frozen production-polish direction rather than adding scope;
 - nearby combat/quest/world-state behavior was checked;
+- relevant manual Golden Slice checks are recorded when needed;
 - structured handoff evidence exists.
 
 ## Required handoff
@@ -117,11 +161,11 @@ Ticket: HOF-<n>
 Role: <role>
 Changed/inspected:
 - ...
-Runtime validation:
+Automated/runtime validation:
 - ...
 Product-direction dependency:
 - none | decision request <topic>
-Save/progression risks:
+Save/progression/input risks:
 - ...
 Next owner/action:
 - ...
