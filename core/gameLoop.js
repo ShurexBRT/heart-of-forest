@@ -5,6 +5,7 @@ export function startGameLoop({ update, render, input }) {
     const dt = Math.min(0.033, Math.max(0, (now - last) / 1000));
     last = now;
 
+    input.beginFrame?.();
     update(dt);
     render();
     input.endFrame();

@@ -42,9 +42,7 @@ const ENEMY_CONFIG = {
     recover: 0.38,
     knockback: 194,
     rootMultiplier: 1.08,
-    sprite: "thornling",
-    spriteTint: "#5f8241",
-    spriteTintAlpha: 0.24,
+    sprite: "barkling",
     meleeLunge: 96,
     animRate: 4.9,
     friction: 4.2,
@@ -71,9 +69,8 @@ const ENEMY_CONFIG = {
     rootMultiplier: 0.94,
     supportRadius: 150,
     supportHeal: 14,
-    sprite: "thorn_weaver",
-    spriteTint: "#658c52",
-    spriteTintAlpha: 0.2,
+    snareCount: 1,
+    sprite: "root_stalker",
     animRate: 4.6,
     friction: 4.2,
     hazardType: "thorn",
@@ -98,6 +95,7 @@ const ENEMY_CONFIG = {
     rootMultiplier: 0.5,
     sprite: "mire_brute",
     meleeLunge: 185,
+    meleeHazard: { radius: 48, damage: 9, type: "mire", warning: 0.18 },
     animRate: 3.4,
     friction: 4.6,
     healthColor: "#ef7b58",
@@ -124,9 +122,8 @@ const ENEMY_CONFIG = {
     projectileSpeed: 246,
     projectileLife: 1.9,
     projectileType: "mire",
-    sprite: "wisp_archer",
-    spriteTint: "#4d8d7a",
-    spriteTintAlpha: 0.24,
+    projectileRadius: 9,
+    sprite: "mire_spitter",
     animRate: 4.15,
     friction: 4.2,
     healthColor: "#82d4c1",
@@ -148,10 +145,8 @@ const ENEMY_CONFIG = {
     recover: 0.52,
     knockback: 225,
     rootMultiplier: 0.74,
-    sprite: "mire_brute",
-    spriteTint: "#456d57",
-    spriteTintAlpha: 0.2,
-    meleeLunge: 120,
+    sprite: "bog_lurker",
+    meleeLunge: 128,
     animRate: 4.2,
     friction: 4.35,
     healthColor: "#74b89d",
@@ -173,10 +168,9 @@ const ENEMY_CONFIG = {
     recover: 0.82,
     knockback: 340,
     rootMultiplier: 0.56,
-    sprite: "mire_brute",
-    spriteTint: "#9d4c33",
-    spriteTintAlpha: 0.24,
-    meleeLunge: 195,
+    sprite: "ash_brute",
+    meleeLunge: 198,
+    meleeHazard: { radius: 54, damage: 11, type: "ember", warning: 0.16 },
     animRate: 3.5,
     friction: 4.7,
     healthColor: "#ff7b58",
@@ -230,9 +224,8 @@ const ENEMY_CONFIG = {
     projectileSpeed: 278,
     projectileLife: 1.7,
     projectileType: "ember",
-    sprite: "wisp_archer",
-    spriteTint: "#b75f39",
-    spriteTintAlpha: 0.24,
+    strafeBias: 1.15,
+    sprite: "cinder_imp",
     animRate: 4.45,
     friction: 4.05,
     healthColor: "#f08c5a",
@@ -259,9 +252,9 @@ const ENEMY_CONFIG = {
     projectileSpeed: 276,
     projectileLife: 1.95,
     projectileType: "frost",
-    sprite: "wisp_archer",
-    spriteTint: "#92c5e5",
-    spriteTintAlpha: 0.24,
+    projectileCount: 2,
+    projectileSpread: 0.11,
+    sprite: "frost_wisp",
     animRate: 4.2,
     friction: 4.08,
     healthColor: "#9edfff",
@@ -281,16 +274,16 @@ const ENEMY_CONFIG = {
     retreatRange: 150,
     damage: 17,
     damageType: "astral",
-    windup: 0.34,
-    recover: 0.52,
+    windup: 0.4,
+    recover: 0.58,
     knockback: 160,
     rootMultiplier: 0.8,
     projectileSpeed: 292,
     projectileLife: 2,
     projectileType: "ancient",
-    sprite: "wisp_archer",
-    spriteTint: "#9b8be3",
-    spriteTintAlpha: 0.24,
+    projectileCount: 3,
+    projectileSpread: 0.16,
+    sprite: "starbound_archer",
     animRate: 4.25,
     friction: 4.08,
     healthColor: "#d3c2ff",
@@ -318,6 +311,7 @@ const ENEMY_CONFIG = {
     projectileLife: 2.1,
     supportRadius: 160,
     supportHeal: 16,
+    snareCount: 2,
     sprite: "thorn_weaver",
     animRate: 4.5,
     friction: 4.15,
@@ -347,9 +341,8 @@ const ENEMY_CONFIG = {
     projectileLife: 2.1,
     supportRadius: 170,
     supportHeal: 18,
-    sprite: "thorn_weaver",
-    spriteTint: "#8d4aa7",
-    spriteTintAlpha: 0.26,
+    snareCount: 3,
+    sprite: "rot_weaver",
     animRate: 4.45,
     friction: 4.18,
     hazardType: "blight",
@@ -368,14 +361,13 @@ const ENEMY_CONFIG = {
     attackRange: 42,
     damage: 24,
     damageType: "frost",
-    windup: 0.38,
-    recover: 0.74,
+    windup: 0.46,
+    recover: 0.78,
     knockback: 310,
     rootMultiplier: 0.42,
-    sprite: "mire_brute",
-    spriteTint: "#9cbfd9",
-    spriteTintAlpha: 0.24,
+    sprite: "icebound_guardian",
     meleeLunge: 175,
+    meleeHazard: { radius: 50, damage: 8, type: "frost", warning: 0.24 },
     animRate: 3.3,
     friction: 4.75,
     healthColor: "#a6d6ff",
@@ -397,10 +389,8 @@ const ENEMY_CONFIG = {
     recover: 0.34,
     knockback: 210,
     rootMultiplier: 0.9,
-    sprite: "thornling",
-    spriteTint: "#8c334f",
-    spriteTintAlpha: 0.28,
-    meleeLunge: 115,
+    sprite: "blight_hound",
+    meleeLunge: 150,
     animRate: 5.5,
     friction: 4.05,
     healthColor: "#d76b7d",
@@ -422,10 +412,8 @@ const ENEMY_CONFIG = {
     recover: 0.58,
     knockback: 250,
     rootMultiplier: 0.68,
-    sprite: "mire_brute",
-    spriteTint: "#998552",
-    spriteTintAlpha: 0.22,
-    meleeLunge: 150,
+    sprite: "relic_sentinel",
+    meleeLunge: 170,
     animRate: 4,
     friction: 4.45,
     healthColor: "#e2c686",
@@ -507,6 +495,7 @@ export class Enemy {
     this.state = "idle";
     this.stateTimer = randomRange(0.4, 1.2);
     this.wanderAngle = randomRange(0, Math.PI * 2);
+    this.strafeSign = Math.random() < 0.5 ? -1 : 1;
     this.facing = 0;
     this.attackAngle = 0;
     this.attackCooldown = randomRange(0.25, 0.8);
@@ -637,9 +626,7 @@ export class Enemy {
       return;
     }
 
-    if (this.rooted > 0) {
-      return;
-    }
+    if (this.rooted > 0) return;
 
     let moveX = 0;
     let moveY = 0;
@@ -651,8 +638,9 @@ export class Enemy {
       moveX += toPlayer.x;
       moveY += toPlayer.y;
     } else {
-      moveX += -toPlayer.y * 0.7;
-      moveY += toPlayer.x * 0.7;
+      const strafe = this.config.strafeBias || 0.7;
+      moveX += -toPlayer.y * strafe * this.strafeSign;
+      moveY += toPlayer.x * strafe * this.strafeSign;
     }
 
     const direction = normalize(moveX, moveY);
@@ -665,6 +653,7 @@ export class Enemy {
     }
 
     if (collidesWithSceneEdge(this, state)) {
+      this.strafeSign *= -1;
       this.wanderAngle += Math.PI * 0.5;
     }
   }
@@ -692,9 +681,7 @@ export class Enemy {
       }
     }
 
-    if (this.rooted > 0) {
-      return;
-    }
+    if (this.rooted > 0) return;
 
     let moveX = 0;
     let moveY = 0;
@@ -706,8 +693,8 @@ export class Enemy {
       moveX += toPlayer.x * 0.7;
       moveY += toPlayer.y * 0.7;
     } else {
-      moveX += toPlayer.y * 0.9;
-      moveY += -toPlayer.x * 0.9;
+      moveX += toPlayer.y * 0.9 * this.strafeSign;
+      moveY += -toPlayer.x * 0.9 * this.strafeSign;
     }
 
     const direction = normalize(moveX, moveY);
@@ -765,6 +752,7 @@ export class Enemy {
     const lunge = this.config.meleeLunge || 90;
     this.vx += Math.cos(this.attackAngle) * lunge;
     this.vy += Math.sin(this.attackAngle) * lunge;
+    this.spawnMeleeHazard(state);
     this.state = "recover";
     this.stateTimer = this.config.recover;
     this.attackCooldown = this.elite ? 0.48 : 0.6;
@@ -776,23 +764,47 @@ export class Enemy {
     if (this.stateTimer <= 0) {
       this.state = playerDistance < this.config.detectRange ? "chase" : "idle";
       this.stateTimer = randomRange(0.4, 0.9);
+      if (Math.random() < 0.35) this.strafeSign *= -1;
     }
   }
 
   fireProjectile(state) {
-    const angle = this.attackAngle;
-    state.hostileProjectiles.push({
-      x: this.x + Math.cos(angle) * 18,
-      y: this.y + Math.sin(angle) * 18,
-      vx: Math.cos(angle) * this.config.projectileSpeed,
-      vy: Math.sin(angle) * this.config.projectileSpeed,
-      radius: 7,
-      life: this.config.projectileLife,
-      damage: this.damage,
-      knockback: this.config.knockback,
+    const count = Math.max(1, Math.floor(this.config.projectileCount || 1));
+    const spread = this.config.projectileSpread || 0;
+
+    for (let index = 0; index < count; index += 1) {
+      const centerOffset = index - (count - 1) / 2;
+      const angle = this.attackAngle + centerOffset * spread;
+      state.hostileProjectiles.push({
+        x: this.x + Math.cos(angle) * 18,
+        y: this.y + Math.sin(angle) * 18,
+        vx: Math.cos(angle) * this.config.projectileSpeed,
+        vy: Math.sin(angle) * this.config.projectileSpeed,
+        radius: this.config.projectileRadius || 7,
+        life: this.config.projectileLife,
+        damage: this.damage,
+        knockback: this.config.knockback,
         type: this.config.projectileType || (this.elite ? "thorn" : "wisp"),
         owner: this,
       });
+    }
+  }
+
+  spawnMeleeHazard(state) {
+    const hazard = this.config.meleeHazard;
+    if (!hazard) return;
+
+    const lead = Math.max(22, this.radius + 12);
+    state.eruptions.push({
+      x: this.x + Math.cos(this.attackAngle) * lead,
+      y: this.y + Math.sin(this.attackAngle) * lead,
+      radius: hazard.radius,
+      warning: hazard.warning ?? 0.18,
+      active: 0.24,
+      damage: hazard.damage,
+      hitPlayer: false,
+      type: hazard.type || this.config.damageType,
+    });
   }
 
   performMend(state) {
@@ -819,8 +831,12 @@ export class Enemy {
   }
 
   performSnare(state) {
-    const angles = [-0.3, 0.28];
-    for (const offset of angles) {
+    const count = Math.max(1, Math.floor(this.config.snareCount || 2));
+    const spread = count === 1 ? 0 : 0.58;
+
+    for (let index = 0; index < count; index += 1) {
+      const t = count === 1 ? 0.5 : index / (count - 1);
+      const offset = (t - 0.5) * spread;
       const angle = this.attackAngle + offset;
       state.eruptions.push({
         x: state.player.x + Math.cos(angle) * 22,
@@ -837,7 +853,6 @@ export class Enemy {
 
   limitSpeed(maxSpeed) {
     const speed = Math.hypot(this.vx, this.vy);
-
     if (speed <= maxSpeed) return;
 
     const direction = normalize(this.vx, this.vy);
@@ -871,7 +886,10 @@ export class Enemy {
     }
 
     if (this.state === "recover") {
-      this.pose = this.config.role === "ranged" || this.config.role === "support" ? "release" : "recover";
+      this.pose =
+        this.config.role === "ranged" || this.config.role === "support"
+          ? "release"
+          : "recover";
       return;
     }
 
