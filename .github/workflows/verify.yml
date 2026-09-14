@@ -3,6 +3,7 @@ name: Verify Golden Slice
 on:
   push:
     branches:
+      - main
       - polish/golden-slice
   pull_request:
     branches:
