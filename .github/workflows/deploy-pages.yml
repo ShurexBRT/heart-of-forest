@@ -31,13 +31,16 @@ jobs:
       - name: Verify Golden Slice
         run: node scripts/verify.mjs
 
+      - name: Package runtime site
+        run: node scripts/package-pages.mjs
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
 
   deploy:
     environment:
